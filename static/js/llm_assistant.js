@@ -31,11 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialize file upload handlers
-    initializeFileUpload();
-    
-    // Initialize web scraper form
-    initializeWebScraper();
+    // Document upload and web scraper functionality moved to RAG tab
     
     // Event listeners for response handling
     // Socket.IO is currently not used, we'll process the response after fetch
@@ -314,133 +310,9 @@ function scrollToBottom() {
     }
 }
 
-// Initialize file upload functionality
-function initializeFileUpload() {
-    const documentUploadForm = document.getElementById('document-upload-form');
-    
-    if (documentUploadForm) {
-        documentUploadForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const fileInput = document.getElementById('document-file');
-            const descriptionInput = document.getElementById('document-description');
-            
-            if (!fileInput.files || fileInput.files.length === 0) {
-                showToast('Please select a file to upload', 'warning');
-                return;
-            }
-            
-            const file = fileInput.files[0];
-            const formData = new FormData();
-            formData.append('document', file);
-            
-            if (descriptionInput.value) {
-                formData.append('description', descriptionInput.value);
-            }
-            
-            // Show loading toast
-            showToast('Uploading document...', 'info');
-            
-            try {
-                const response = await fetchWithTimeout('/api/rag/upload-document', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showToast('Document uploaded and indexed successfully', 'success');
-                    
-                    // Reset form
-                    documentUploadForm.reset();
-                    
-                    // Add system message about the upload
-                    const chatMessages = document.getElementById('chat-messages');
-                    if (chatMessages) {
-                        const messageElement = document.createElement('div');
-                        messageElement.className = 'message system-message';
-                        messageElement.innerHTML = `
-                            <div class="message-content">
-                                <p><i class="fas fa-file-upload"></i> Document "${escapeHtml(file.name)}" has been uploaded and indexed.</p>
-                            </div>
-                        `;
-                        
-                        chatMessages.appendChild(messageElement);
-                        scrollToBottom();
-                    }
-                } else {
-                    throw new Error(data.message || 'Failed to upload document');
-                }
-            } catch (error) {
-                handleFetchError(error, 'upload document');
-            }
-        });
-    }
-}
-
-// Initialize web scraper functionality
-function initializeWebScraper() {
-    const webScraperForm = document.getElementById('web-scraper-form');
-    
-    if (webScraperForm) {
-        webScraperForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const urlInput = document.getElementById('webpage-url');
-            const descriptionInput = document.getElementById('webpage-description');
-            
-            if (!urlInput.value.trim()) {
-                showToast('Please enter a valid URL', 'warning');
-                return;
-            }
-            
-            // Show loading toast
-            showToast('Scraping webpage...', 'info');
-            
-            try {
-                const response = await fetchWithTimeout('/api/rag/scrape-webpage', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        url: urlInput.value.trim(),
-                        description: descriptionInput.value.trim()
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showToast('Webpage scraped and indexed successfully', 'success');
-                    
-                    // Reset form
-                    webScraperForm.reset();
-                    
-                    // Add system message about the scraping
-                    const chatMessages = document.getElementById('chat-messages');
-                    if (chatMessages) {
-                        const messageElement = document.createElement('div');
-                        messageElement.className = 'message system-message';
-                        messageElement.innerHTML = `
-                            <div class="message-content">
-                                <p><i class="fas fa-globe"></i> Webpage "${escapeHtml(urlInput.value)}" has been scraped and indexed.</p>
-                            </div>
-                        `;
-                        
-                        chatMessages.appendChild(messageElement);
-                        scrollToBottom();
-                    }
-                } else {
-                    throw new Error(data.message || 'Failed to scrape webpage');
-                }
-            } catch (error) {
-                handleFetchError(error, 'scrape webpage');
-            }
-        });
-    }
-}
+// Document upload and web scraper functionality moved to the RAG tab
+// These functions have been removed from this file
+// See static/js/rag.js for implementations
 
 // Get current agent settings
 function getAgentSettings() {

@@ -6,7 +6,7 @@
 {% block content %}
 <!-- Main chat container -->
 <div class="row">
-    <div class="col-md-9">
+    <div class="col-md-12">
         <!-- LLM Chat Panel -->
         <div class="panel panel-primary">
             <div class="panel-heading">
@@ -37,6 +37,9 @@
                         <div class="checkbox">
                             <label>
                                 <input type="checkbox" id="useRag" checked> Use RAG
+                                <a href="/rag" class="btn btn-xs btn-info" title="Go to RAG Management">
+                                    <i class="fas fa-database"></i>
+                                </a>
                             </label>
                         </div>
                     </div>
@@ -48,6 +51,11 @@
                         <div class="message system-message">
                             <div class="message-content">
                                 <p><strong>AI Assistant:</strong> Hello! I'm your AI Assistant. How can I help you today?</p>
+                            </div>
+                        </div>
+                        <div class="message system-message">
+                            <div class="message-content">
+                                <p><i class="fas fa-info-circle"></i> If you want to upload documents or scrape web pages for better context, please visit the <a href="/rag">RAG tab</a>.</p>
                             </div>
                         </div>
                         <!-- Messages will be added here -->
@@ -63,58 +71,6 @@
                         </button>
                     </span>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Right Sidebar Tools -->
-    <div class="col-md-3">
-        <!-- Document Upload Panel -->
-        <div class="panel panel-info">
-            <div class="panel-heading">
-                <h3 class="panel-title">
-                    <i class="fas fa-file-upload"></i> Document Upload
-                </h3>
-            </div>
-            <div class="panel-body">
-                <form id="document-upload-form" enctype="multipart/form-data">
-                    <div class="form-group">
-                        <label for="document-file">Upload Document</label>
-                        <input class="form-control" type="file" id="document-file" name="document">
-                        <p class="help-block">PDF, Word, Excel, PCAP</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="document-description">Description (optional)</label>
-                        <input type="text" class="form-control" id="document-description" name="description" placeholder="Add a description">
-                    </div>
-                    <button type="submit" class="btn btn-info btn-block">
-                        <i class="fas fa-upload"></i> Upload Document
-                    </button>
-                </form>
-            </div>
-        </div>
-        
-        <!-- Web Scraper Panel -->
-        <div class="panel panel-success">
-            <div class="panel-heading">
-                <h3 class="panel-title">
-                    <i class="fas fa-globe"></i> Web Scraper
-                </h3>
-            </div>
-            <div class="panel-body">
-                <form id="web-scraper-form">
-                    <div class="form-group">
-                        <label for="webpage-url">Web Page URL</label>
-                        <input type="url" class="form-control" id="webpage-url" name="url" placeholder="https://example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="webpage-description">Description (optional)</label>
-                        <input type="text" class="form-control" id="webpage-description" name="description" placeholder="Add a description">
-                    </div>
-                    <button type="submit" class="btn btn-success btn-block">
-                        <i class="fas fa-globe"></i> Scrape Web Page
-                    </button>
-                </form>
             </div>
         </div>
     </div>
