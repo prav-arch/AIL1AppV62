@@ -12,7 +12,7 @@ class LocalLLMService:
         """Initialize the LLM service with the model path"""
         if not model_path:
             # Default model path
-            model_path = "/tmp/llm_models/mistral-7b-instruct-v0.2.Q4_K_M-GGUF"
+            model_path = "/tmp/llm_models/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
         
         # Check if the model exists
         if not os.path.exists(model_path):
