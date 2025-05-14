@@ -472,12 +472,32 @@ def scrape_webpage():
     from werkzeug.utils import secure_filename
     
     try:
-        # Get request parameters
-        url = request.json.get('url', '') if request.json else ''
-        name = request.json.get('name', '') if request.json else ''
-        description = request.json.get('description', '') if request.json else ''
-        index_immediately = request.json.get('index_immediately', True) if request.json else True
-        ignore_ssl_errors = request.json.get('ignore_ssl_errors', False) if request.json else False
+        # Log the request to debug
+        logger.info(f"====== Scrape webpage request received ======")
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Request content type: {request.content_type}")
+        logger.info(f"Request form data: {request.form}")
+        logger.info(f"Request data: {request.data}")
+        logger.info(f"=======================================")
+        
+        # Use request.form for form data instead of request.json
+        if request.is_json:
+            data = request.json
+            logger.info(f"Processing JSON data: {data}")
+        else:
+            data = request.form
+            logger.info(f"Processing form data: {data}")
+        
+        # Get request parameters from either form or json
+        url = data.get('url', '')
+        name = data.get('name', '')
+        description = data.get('description', '')
+        index_immediately = data.get('index_immediately', True)
+        if isinstance(index_immediately, str):
+            index_immediately = index_immediately.lower() == 'true'
+        ignore_ssl_errors = data.get('ignore_ssl_errors', False)
+        if isinstance(ignore_ssl_errors, str):
+            ignore_ssl_errors = ignore_ssl_errors.lower() == 'true'
         
         logger.info(f"Scraping webpage: {url}, ignore_ssl: {ignore_ssl_errors}")
         
