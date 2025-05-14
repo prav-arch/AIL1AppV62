@@ -169,5 +169,21 @@ def api_anomalies_list():
         'anomalies': anomalies
     })
 
+@app.route('/api/llm/query', methods=['POST'])
+def api_llm_query():
+    """Process an LLM query and return the response"""
+    data = request.json or {}
+    prompt = data.get('prompt', '')
+    
+    if not prompt:
+        return jsonify({'error': 'Prompt is required'}), 400
+    
+    try:
+        # For now, we'll return a mock response
+        response = f"This is a simulated response to your query: '{prompt}'"
+        return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

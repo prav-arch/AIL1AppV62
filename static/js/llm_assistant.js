@@ -38,18 +38,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize web scraper form
     initializeWebScraper();
     
-    // Socket.IO event listeners for real-time streaming responses
-    socket.on('llm_response_chunk', (data) => {
-        appendResponseChunk(data.text, data.message_id);
-    });
-    
-    socket.on('llm_response_end', (data) => {
-        completeResponse(data.message_id);
-    });
-    
-    socket.on('llm_error', (data) => {
-        handleLLMError(data.error, data.message_id);
-    });
+    // Event listeners for response handling
+    // Socket.IO is currently not used, we'll process the response after fetch
 });
 
 // Initialize the LLM Assistant chat interface
@@ -108,7 +98,7 @@ async function sendMessage() {
     
     try {
         // Send the prompt to the server
-        await fetchWithTimeout('/api/llm/query', {
+        const response = await fetchWithTimeout('/api/llm/query', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -122,8 +112,21 @@ async function sendMessage() {
             })
         });
         
-        // Note: We don't wait for the response here since we'll receive
-        // it through Socket.IO in chunks for streaming
+        // Process the response directly
+        const data = await response.json();
+        if (data.error) {
+            handleLLMError(data.error, messageId);
+        } else {
+            // Replace loading indicator with response
+            const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                const messageContent = messageElement.querySelector('.message-content');
+                if (messageContent) {
+                    messageContent.innerHTML = `<p>${formatResponseText(data.response)}</p>`;
+                }
+            }
+            completeResponse(messageId);
+        }
     } catch (error) {
         handleLLMError(error.message, messageId);
     } finally {
