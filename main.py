@@ -317,7 +317,7 @@ def api_llm_query():
             try:
                 # Make request to the local LLM API
                 response = requests.post(
-                    'http://localhost:5000/api/local-llm/generate',
+                    'http://localhost:15000/api/local-llm/generate',
                     json={
                         'prompt': prompt, 
                         'system_prompt': system_prompt,
@@ -356,4 +356,4 @@ def api_llm_query():
 
 # Start the server when run directly
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=15000, debug=True)

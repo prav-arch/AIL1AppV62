@@ -12,7 +12,7 @@ local_llm_bp = Blueprint('local_llm', __name__, url_prefix='/api/local-llm')
 
 # Initialize the LLM service
 # You can set a custom model path in environment variable or use the default
-model_path = os.environ.get('LLM_MODEL_PATH', '/tmp/llm_models/tinyllama-1.1b-chat-v1.0.Q4_k_M.gguf')
+model_path = os.environ.get('LLM_MODEL_PATH', '/tmp/llm_models/mistral-7b-instruct-v0.2.Q4_K_M-GGUF')
 llm_service = LocalLLMService(model_path=model_path)
 
 @local_llm_bp.route('/status', methods=['GET'])
