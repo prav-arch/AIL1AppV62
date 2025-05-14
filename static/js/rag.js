@@ -264,76 +264,41 @@ function initializeRangeSliders() {
 function setupDocumentUploadModal() {
     const uploadSubmitBtn = document.getElementById('upload-document-submit');
     const fileInput = document.getElementById('modal-document-file');
+    const selectedFileInfo = document.getElementById('selected-file-info');
+    const selectedFilename = document.getElementById('selected-filename');
+    const clearFileBtn = document.getElementById('clear-selected-file');
     
-    // Setup drag and drop functionality
-    if (dropZone) {
-        // Click on drop zone to trigger file input
-        dropZone.addEventListener('click', function() {
-            fileInput.click();
-        });
-        
-        // Listen for file selection changes
+    // Handle file selection changes
+    if (fileInput) {
         fileInput.addEventListener('change', function() {
             updateSelectedFileDisplay();
         });
-        
-        // Handle drag events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
+    }
+    
+    // Handle clear file button
+    if (clearFileBtn) {
+        clearFileBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        // Add highlight class when file is dragged over drop zone
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, highlight, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, unhighlight, false);
-        });
-        
-        function highlight() {
-            dropZone.style.borderColor = '#007bff';
-            dropZone.style.backgroundColor = '#f0f7ff';
-        }
-        
-        function unhighlight() {
-            dropZone.style.borderColor = '#ccc';
-            dropZone.style.backgroundColor = '#f9f9f9';
-        }
-        
-        // Handle dropped files
-        dropZone.addEventListener('drop', handleDrop, false);
-        
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            fileInput.files = dt.files;
+            fileInput.value = '';
             updateSelectedFileDisplay();
-        }
-        
-        // Handle clear file button
-        if (clearFileBtn) {
-            clearFileBtn.addEventListener('click', function() {
-                fileInput.value = '';
-                updateSelectedFileDisplay();
-            });
-        }
-        
-        // Update file info display
-        function updateSelectedFileDisplay() {
-            if (fileInput.files && fileInput.files.length > 0) {
+        });
+    }
+    
+    // Update file info display
+    function updateSelectedFileDisplay() {
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            if (selectedFilename) {
                 selectedFilename.textContent = fileInput.files[0].name;
+            }
+            if (selectedFileInfo) {
                 selectedFileInfo.style.display = 'block';
-                dropZone.style.display = 'none';
-            } else {
+            }
+        } else {
+            if (selectedFileInfo) {
                 selectedFileInfo.style.display = 'none';
-                dropZone.style.display = 'block';
             }
         }
+    }
     }
     
     // Setup form submission
