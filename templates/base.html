@@ -37,38 +37,40 @@
 
         <!-- Horizontal Navigation Tabs -->
         <nav class="container-fluid mb-4">
-            <ul class="nav nav-tabs">
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
-                        <i class="fas fa-chart-line me-1"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'llm_assistant' %}active{% endif %}" href="/llm-assistant">
-                        <i class="fas fa-robot me-1"></i> LLM Assistant
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'rag' %}active{% endif %}" href="/rag">
-                        <i class="fas fa-database me-1"></i> RAG
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'anomalies' %}active{% endif %}" href="/anomalies">
-                        <i class="fas fa-exclamation-triangle me-1"></i> Anomalies
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'data_pipeline' %}active{% endif %}" href="/data-pipeline">
-                        <i class="fas fa-stream me-1"></i> Data Pipeline
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'kafka_browser' %}active{% endif %}" href="/kafka-browser">
-                        <i class="fas fa-exchange-alt me-1"></i> Kafka Browser
-                    </a>
-                </li>
-            </ul>
+            <div class="nav-container mx-auto" style="max-width: 700px;">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
+                            <i class="fas fa-chart-line me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'llm_assistant' %}active{% endif %}" href="/llm-assistant">
+                            <i class="fas fa-robot me-1"></i> LLM
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'rag' %}active{% endif %}" href="/rag">
+                            <i class="fas fa-database me-1"></i> RAG
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'anomalies' %}active{% endif %}" href="/anomalies">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Anomalies
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'data_pipeline' %}active{% endif %}" href="/data-pipeline">
+                            <i class="fas fa-stream me-1"></i> Pipeline
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'kafka_browser' %}active{% endif %}" href="/kafka-browser">
+                            <i class="fas fa-exchange-alt me-1"></i> Kafka
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </nav>
 
         <!-- Main content -->

@@ -190,6 +190,17 @@ code {
   word-wrap: break-word;
 }
 
+/* Utility classes */
+.mx-auto {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: center;
+}
+
 /* Custom scrollbar (WebKit browsers) */
 ::-webkit-scrollbar {
   width: 8px;
