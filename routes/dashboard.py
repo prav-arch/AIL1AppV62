@@ -9,6 +9,7 @@ def index():
     return render_template('dashboard.html')
 
 @dashboard_bp.route('/api/dashboard/metrics', methods=['GET'])
+@dashboard_bp.route('/api/dashboard/metrics/', methods=['GET'])
 def get_dashboard_metrics():
     """Return dashboard metrics for display"""
     metrics = {

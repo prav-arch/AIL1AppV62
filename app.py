@@ -1,7 +1,9 @@
 import os
 import logging
-from flask import Flask
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO
+import random
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -31,3 +33,100 @@ app.register_blueprint(rag_bp)
 app.register_blueprint(anomalies_bp)
 app.register_blueprint(data_pipeline_bp)
 app.register_blueprint(kafka_browser_bp)
+
+# Global API routes that match what the JavaScript is expecting
+
+@app.route('/api/dashboard/metrics', methods=['GET'])
+def api_dashboard_metrics():
+    """Return dashboard metrics for display"""
+    metrics = {
+        'llm_requests': random.randint(800, 1200),
+        'docs_indexed': random.randint(150, 300),
+        'anomalies': random.randint(10, 30),
+        'pipelines': random.randint(3, 12),
+        'memory_usage': random.randint(60, 85),
+        'cpu_load': random.randint(30, 70),
+        'disk_usage': random.randint(50, 80),
+        'network_throughput': random.randint(20, 60),
+        'llm_usage': [random.randint(50, 150) for _ in range(7)],  # Last 7 days of LLM usage
+        'resource_distribution': [
+            {'label': 'CPU', 'value': random.randint(20, 40)},
+            {'label': 'Memory', 'value': random.randint(15, 35)},
+            {'label': 'Storage', 'value': random.randint(10, 25)},
+            {'label': 'Network', 'value': random.randint(15, 30)}
+        ],
+        'gpu_utilization': [random.randint(0, 100) for _ in range(24)]  # Last 24 hours of GPU usage
+    }
+    return jsonify(metrics)
+
+@app.route('/api/kafka/recent-messages', methods=['GET'])
+def api_recent_kafka_messages():
+    """Return recent Kafka messages for the dashboard"""
+    queues = ['logs-queue', 'metrics-queue', 'alerts-queue', 'events-queue', 'system-queue']
+    messages = []
+    
+    for i in range(5):  # Generate 5 messages
+        messages.append({
+            'queue': random.choice(queues),
+            'message': random.choice([
+                "System startup completed",
+                "User login successful",
+                "New data received from source",
+                "Processing completed successfully",
+                "CPU spike detected",
+                "Memory usage increased",
+                "Database backup completed",
+                "New anomaly detected",
+                "Alert triggered by sensor",
+                "Scheduled task started"
+            ]),
+            'time_ago': f"{random.randint(1, 30)}m ago"
+        })
+    
+    return jsonify(messages)
+
+@app.route('/api/pipeline/status', methods=['GET'])
+def api_pipeline_status():
+    """Return pipeline status information"""
+    pipelines = [
+        {
+            'name': 'Data Ingestion',
+            'description': 'Processing files',
+            'status': 'Running' 
+        },
+        {
+            'name': 'ETL Process',
+            'description': 'Transforming data',
+            'status': 'Running'
+        },
+        {
+            'name': 'Model Training',
+            'description': f"Scheduled for {(datetime.now() + timedelta(hours=2)).strftime('%H:%M')}",
+            'status': 'Scheduled'
+        }
+    ]
+    
+    return jsonify(pipelines)
+
+@app.route('/api/anomalies/latest', methods=['GET'])
+def api_latest_anomalies():
+    """Return latest anomalies information"""
+    anomalies = [
+        {
+            'title': 'Network Traffic Spike',
+            'description': 'Unusual outbound traffic',
+            'details_url': '/anomalies'
+        },
+        {
+            'title': 'Memory Leak',
+            'description': 'In application server',
+            'details_url': '/anomalies'
+        },
+        {
+            'title': 'API Response Time',
+            'description': 'Increased latency detected',
+            'details_url': '/anomalies'
+        }
+    ]
+    
+    return jsonify(anomalies)
