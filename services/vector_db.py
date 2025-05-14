@@ -19,13 +19,9 @@ from datetime import datetime
 # Set up logger
 logger = logging.getLogger(__name__)
 
-# Try to import FAISS
-try:
-    import faiss
-    FAISS_AVAILABLE = True
-except ImportError:
-    logger.warning("FAISS is not available. Vector search functionality will be limited.")
-    FAISS_AVAILABLE = False
+# Import FAISS - installed via packager_tool
+import faiss
+FAISS_AVAILABLE = True
 
 class VectorDBService:
     """Service for managing vector database operations"""
@@ -157,7 +153,7 @@ class VectorDBService:
         
         return chunks
     
-    def add_document(self, doc_id: str, text: str, metadata: Dict[str, Any] = None) -> bool:
+    def add_document(self, doc_id: str, text: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
         """
         Add a document to the vector database
         
@@ -200,7 +196,8 @@ class VectorDBService:
                 vector = self._generate_embeddings(chunk)
                 
                 # Add to FAISS index
-                self.index.add(np.array([vector]))
+                if self.index is not None:
+                    self.index.add(np.array([vector]))
                 
                 # Add chunk ID to the list
                 chunk_ids.append(chunk_id)
@@ -245,25 +242,40 @@ class VectorDBService:
             logger.error("FAISS is not available. Cannot search vector database.")
             return []
         
+        if self.index is None:
+            logger.error("FAISS index is not initialized. Cannot search vector database.")
+            return []
+            
         try:
             # Generate query embedding
             query_vector = self._generate_embeddings(query)
             
             # Search the FAISS index
-            scores, indices = self.index.search(np.array([query_vector]), top_k)
+            distances, indices = self.index.search(np.array([query_vector], dtype=np.float32), k=top_k)
             
             # Format results
             results = []
-            for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
-                # In a real implementation, you would convert the index to a document ID
-                # Here we just use a mock implementation
-                doc_id = list(self.documents.keys())[idx % len(self.documents)] if self.documents else f"doc_{idx}"
-                
-                results.append({
-                    'score': float(score),
-                    'document_id': doc_id,
-                    'rank': i + 1
-                })
+            
+            # Check if we have any valid results (indices != -1)
+            if len(indices) > 0 and len(indices[0]) > 0:
+                for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
+                    # Skip invalid indices (FAISS returns -1 for not enough results)
+                    if idx == -1:
+                        continue
+                        
+                    # In a real implementation, you would convert the index to a document ID
+                    # Here we just map the index to an available document ID
+                    if self.documents:
+                        doc_ids = list(self.documents.keys())
+                        doc_id = doc_ids[idx % len(doc_ids)]
+                    else:
+                        doc_id = f"doc_{idx}"
+                    
+                    results.append({
+                        'score': float(distance),
+                        'document_id': doc_id,
+                        'rank': i + 1
+                    })
             
             return results
             
