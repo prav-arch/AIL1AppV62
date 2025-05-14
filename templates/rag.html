@@ -443,40 +443,70 @@
                 <h4 class="modal-title" id="uploadDocumentModalLabel"><i class="fas fa-file-upload"></i> Upload Document</h4>
             </div>
             <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    Upload documents to be processed and indexed for retrieval-augmented generation. 
+                    Files will be saved locally and made available for RAG processing.
+                </div>
+                
                 <form id="upload-document-form">
-                    <!-- File Drop Zone -->
-                    <div class="form-group text-center">
-                        <div class="file-input-container">
-                            <label for="modal-document-file" class="form-label"><strong><i class="fas fa-file"></i> Select Document</strong></label>
-                            <input class="form-control" type="file" id="modal-document-file" name="document">
+                    <!-- File Selection Section -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><i class="fas fa-file"></i> File Selection</h4>
                         </div>
-                        <div id="selected-file-info" style="display: none;">
-                            <div class="alert alert-info">
-                                <i class="fas fa-file"></i> <span id="selected-filename">No file selected</span>
-                                <button type="button" class="close" id="clear-selected-file">&times;</button>
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <label for="modal-document-file" style="color: #f8f8f8; font-weight: bold;"><i class="fas fa-upload"></i> Select File:</label>
+                                <input class="form-control" type="file" id="modal-document-file" name="document">
+                                <p class="help-block" style="margin-top: 10px; color: #aaa;">
+                                    Supported formats: PDF, Word (.docx), Excel (.xlsx), PCAP (.pcap), PPT (.ppt), TXT (.txt)
+                                </p>
+                            </div>
+                            <div id="selected-file-info" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-file"></i> <span id="selected-filename">No file selected</span>
+                                    <button type="button" class="close" id="clear-selected-file">&times;</button>
+                                </div>
                             </div>
                         </div>
-                        <small class="text-muted">Supported formats: PDF, Word (.docx), Excel (.xlsx), PCAP (.pcap), PPT (.ppt), TXT (.txt)</small>
                     </div>
                     
-                    <!-- Document Details -->
-                    <div class="form-group">
-                        <label for="modal-document-name"><i class="fas fa-tag"></i> Document Name (optional)</label>
-                        <input type="text" class="form-control" id="modal-document-name" placeholder="Leave blank to use filename">
-                    </div>
-                    <div class="form-group">
-                        <label for="modal-document-description"><i class="fas fa-align-left"></i> Description (optional)</label>
-                        <textarea class="form-control" id="modal-document-description" rows="3" placeholder="Add a description for this document..."></textarea>
+                    <!-- Document Details Section -->
+                    <div class="panel panel-default" style="margin-top: 15px;">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><i class="fas fa-info-circle"></i> Document Details</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <label for="modal-document-name" style="color: #f8f8f8; font-weight: bold;"><i class="fas fa-tag"></i> Document Name (optional):</label>
+                                <input type="text" class="form-control" id="modal-document-name" placeholder="Leave blank to use filename">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="modal-document-description" style="color: #f8f8f8; font-weight: bold;"><i class="fas fa-align-left"></i> Description (optional):</label>
+                                <textarea class="form-control" id="modal-document-description" rows="3" placeholder="Add a description for this document..."></textarea>
+                            </div>
+                        </div>
                     </div>
                     
-                    <!-- Options -->
-                    <div class="form-group">
-                        <div class="checkbox">
-                            <label style="display: block; margin-bottom: 10px;">
-                                <input type="checkbox" id="index-immediately" checked>
-                                <span style="color: inherit; font-weight: bold;">Index immediately after upload</span>
-                            </label>
-                            <small class="text-muted" style="display: block; margin-left: 20px; color: #aaa !important;">(Makes document searchable in the RAG system)</small>
+                    <!-- Options Section -->
+                    <div class="panel panel-default" style="margin-top: 15px;">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><i class="fas fa-cog"></i> Processing Options</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <div class="checkbox">
+                                    <label style="color: #f8f8f8; font-weight: bold;">
+                                        <input type="checkbox" id="index-immediately" checked>
+                                        Index immediately after upload
+                                    </label>
+                                    <p class="help-block" style="margin-top: 5px; margin-bottom: 0; color: #aaa;">
+                                        This makes the document searchable in the RAG system
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
