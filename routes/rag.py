@@ -2,6 +2,10 @@ from flask import Blueprint, render_template, request, jsonify
 import random
 from datetime import datetime, timedelta
 import logging
+import os
+
+# Import vector database service
+from services.vector_db import vector_db_service
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -239,58 +243,91 @@ def search_rag():
     """Perform RAG search with the given query"""
     try:
         query = request.json.get('query', '') if request.json else ''
+        top_k = request.json.get('top_k', 3) if request.json else 3
         
         if not query:
             return jsonify({'error': 'Query is required'}), 400
         
-        # Sample search results
-        results = [
-            {
-                'chunk_id': 'chunk_042',
-                'document_id': 'doc_001',
-                'document_name': 'network_guide.pdf',
-                'text': 'To configure network settings on a Linux system, you need to edit the interface configuration files. On most modern distributions, you can find these in the /etc/netplan/ directory...',
-                'relevance_score': 0.92,
-                'page_number': 15,
-                'metadata': {
-                    'section': 'Network Configuration',
-                    'author': 'John Doe'
-                }
-            },
-            {
-                'chunk_id': 'chunk_156',
-                'document_id': 'doc_004',
-                'document_name': 'product_documentation.docx',
-                'text': 'The product includes advanced network configuration options. Users can modify interface settings through the admin panel by navigating to Settings > Network > Interfaces...',
-                'relevance_score': 0.87,
-                'page_number': 32,
-                'metadata': {
-                    'section': 'Administrator Guide',
-                    'author': 'Jane Smith'
-                }
-            },
-            {
-                'chunk_id': 'chunk_072',
-                'document_id': 'doc_001',
-                'document_name': 'network_guide.pdf',
-                'text': 'Network troubleshooting often begins with checking interface configuration. Use the command "ip a" to list all network interfaces and their status...',
-                'relevance_score': 0.83,
-                'page_number': 28,
-                'metadata': {
-                    'section': 'Troubleshooting',
-                    'author': 'John Doe'
-                }
-            }
-        ]
+        # Record start time for performance measurement
+        start_time = time.time()
+        
+        # Perform vector search using FAISS
+        search_results = vector_db_service.search(query, top_k=top_k)
+        
+        # Calculate search time
+        search_time = time.time() - start_time
+        
+        # If we have no documents in the vector db yet, provide sample results
+        if not search_results:
+            # Get stats to check if we have any documents
+            stats = vector_db_service.get_stats()
+            if stats.get('documents_count', 0) == 0:
+                logger.warning("No documents in vector database, returning sample results")
+                # Sample search results for empty database
+                results = [
+                    {
+                        'chunk_id': 'sample_chunk_1',
+                        'document_id': 'sample_doc_1',
+                        'document_name': 'Sample Document',
+                        'text': 'This is a sample result. Please add documents to the vector database to get real search results.',
+                        'relevance_score': 0.95,
+                        'metadata': {
+                            'note': 'Sample data'
+                        }
+                    }
+                ]
+                
+                return jsonify({
+                    'query': query,
+                    'results': results,
+                    'total_matches': len(results),
+                    'search_time': search_time,
+                    'note': 'No documents have been added to the vector database yet. These are sample results.',
+                    'metadata': {
+                        'embedding_model': 'mock',
+                        'similarity_metric': 'cosine',
+                        'retrieval_method': 'faiss'
+                    }
+                })
+        
+        # Format the real search results
+        results = []
+        documents = vector_db_service.get_documents()
+        
+        for result in search_results:
+            doc_id = result.get('document_id', '')
+            if doc_id in documents:
+                doc_metadata = documents[doc_id]
+                doc_name = doc_metadata.get('name', doc_id)
+                
+                # Try to read a snippet of text from the document
+                text_snippet = "Content not available"
+                file_path = doc_metadata.get('file_path')
+                if file_path and os.path.exists(file_path):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+                            # Read first 300 characters as a preview
+                            text_snippet = f.read(300) + '...'
+                    except Exception as e:
+                        logger.error(f"Error reading file for search result: {str(e)}")
+                
+                results.append({
+                    'chunk_id': f"{doc_id}_chunk_0",  # We don't have real chunk IDs yet
+                    'document_id': doc_id,
+                    'document_name': doc_name,
+                    'text': text_snippet,
+                    'relevance_score': 1.0 - (result.get('score', 0) / 10),  # Convert distance to similarity
+                    'metadata': doc_metadata
+                })
         
         return jsonify({
             'query': query,
             'results': results,
             'total_matches': len(results),
-            'search_time': 0.048,  # seconds
+            'search_time': search_time,
             'metadata': {
-                'embedding_model': 'all-MiniLM-L6-v2',
-                'similarity_metric': 'cosine',
+                'embedding_model': 'faiss-cpu',
+                'similarity_metric': 'L2',
                 'retrieval_method': 'faiss'
             }
         })
@@ -366,15 +403,54 @@ def upload_document():
         logger.warning(f"Cannot save to remote path {remote_path} due to filesystem restrictions. " +
                       f"File is saved locally at {file_path} instead.")
         
+        # Generate a unique document ID
+        doc_id = f'doc_{random.randint(100, 999)}'
+        
+        # Add to vector database if index_immediately is True
+        indexed = False
+        if index_immediately:
+            try:
+                logger.info(f"Indexing document {doc_id} in vector database")
+                # Read the file content with error handling for various encodings
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except UnicodeDecodeError:
+                    logger.warning(f"UTF-8 decoding failed for {file_path}, trying with latin-1")
+                    with open(file_path, 'r', encoding='latin-1') as f:
+                        content = f.read()
+                
+                # Add document metadata
+                doc_metadata = {
+                    'name': document_name,
+                    'description': description,
+                    'file_path': file_path,
+                    'file_type': file.content_type,
+                    'file_size': os.path.getsize(file_path),
+                    'upload_date': datetime.now().isoformat()
+                }
+                
+                # Add to vector database
+                indexed = vector_db_service.add_document(doc_id, content, doc_metadata)
+                
+                if indexed:
+                    logger.info(f"Document {doc_id} added to vector database successfully")
+                else:
+                    logger.warning(f"Failed to add document {doc_id} to vector database")
+            except Exception as index_error:
+                logger.error(f"Error indexing document: {str(index_error)}")
+                # Continue even if indexing fails, as we've already saved the file
+        
         # Return success response
         response_data = {
             'success': True,
-            'document_id': f'doc_{random.randint(100, 999)}',
+            'document_id': doc_id,
             'name': document_name,
             'path': file_path,
             'intended_remote_path': remote_path,  # This is just for reference, file wasn't actually saved here
             'note': 'File was saved locally. Remote path is not accessible due to filesystem restrictions.',
-            'status': 'processing' if index_immediately else 'uploaded'
+            'status': 'indexed' if indexed else ('processing' if index_immediately else 'uploaded'),
+            'indexed': indexed
         }
         logger.info(f"Returning success response: {response_data}")
         return jsonify(response_data)
@@ -482,15 +558,48 @@ def scrape_webpage():
             
             logger.info(f"Webpage content saved to {file_path}")
             
+            # Generate a unique document ID
+            doc_id = f'doc_{random.randint(100, 999)}'
+            
+            # Add to vector database if index_immediately is True
+            indexed = False
+            if index_immediately:
+                try:
+                    logger.info(f"Indexing scraped document {doc_id} in vector database")
+                    
+                    # Add document metadata
+                    doc_metadata = {
+                        'name': safe_filename,
+                        'description': f"Scraped from {url}",
+                        'file_path': file_path,
+                        'url': url,
+                        'content_length': len(text_content),
+                        'scraped_date': datetime.now().isoformat(),
+                        'content_type': 'text/plain',
+                        'source': 'web_scraper'
+                    }
+                    
+                    # Add to vector database
+                    indexed = vector_db_service.add_document(doc_id, text_content, doc_metadata)
+                    
+                    if indexed:
+                        logger.info(f"Scraped document {doc_id} added to vector database successfully")
+                    else:
+                        logger.warning(f"Failed to add scraped document {doc_id} to vector database")
+                except Exception as index_error:
+                    logger.error(f"Error indexing scraped document: {str(index_error)}")
+                    # Continue even if indexing fails, as we've already saved the file
+            
             # Return success response
             return jsonify({
                 'success': True,
-                'document_id': f'doc_{random.randint(100, 999)}',
+                'document_id': doc_id,
                 'url': url,
                 'name': safe_filename,
                 'path': file_path,
                 'content_length': len(text_content),
-                'status': 'processing' if index_immediately else 'uploaded'
+                'status': 'indexed' if indexed else ('processing' if index_immediately else 'uploaded'),
+                'indexed': indexed
             })
             
         except requests.exceptions.SSLError as ssl_error:
