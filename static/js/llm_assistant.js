@@ -8,8 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const agentSettingsBtn = document.getElementById('agent-settings-btn');
     if (agentSettingsBtn) {
         agentSettingsBtn.addEventListener('click', function() {
-            const agentSettingsModal = new bootstrap.Modal(document.getElementById('agentSettingsModal'));
-            agentSettingsModal.show();
+            $('#agentSettingsModal').modal('show');
         });
     }
     
@@ -27,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saveAgentSettingsBtn) {
         saveAgentSettingsBtn.addEventListener('click', function() {
             saveAgentSettings();
-            bootstrap.Modal.getInstance(document.getElementById('agentSettingsModal')).hide();
+            $('#agentSettingsModal').modal('hide');
             showToast('Agent settings saved successfully', 'success');
         });
     }

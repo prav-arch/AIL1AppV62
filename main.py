@@ -174,7 +174,7 @@ def api_anomalies_list():
 def api_llm_query():
     """Process an LLM query and return the response"""
     from flask import Response, stream_with_context
-    from services.llm_service import LLMService
+    import requests
     
     data = request.json or {}
     prompt = data.get('prompt', '')
@@ -188,21 +188,74 @@ def api_llm_query():
     max_tokens = settings.get('max_tokens', 1024)
     
     try:
-        # Connect to the LLM running at localhost:8080
-        llm_service = LLMService(base_url="http://localhost:8080")
+        # Connect directly to the generate endpoint at localhost:8080
+        llm_base_url = "http://localhost:8080"
         
-        # Use streaming response
+        # Use streaming response directly to the generate endpoint
         def generate():
             try:
-                for chunk in llm_service.query_stream(
-                    prompt=prompt,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                ):
-                    # Yield each chunk as a server-sent event
-                    yield f"data: {json.dumps({'text': chunk})}\n\n"
-                yield "data: [DONE]\n\n"
+                
+                # Connect directly to the generate endpoint
+                url = f"{llm_base_url}/generate"
+                
+                # Prepare the request payload
+                payload = {
+                    "prompt": prompt,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "stream": True
+                }
+                
+                # Make the API request with streaming enabled
+                with requests.post(
+                    url,
+                    json=payload,
+                    stream=True,
+                    timeout=120  # 2-minute timeout
+                ) as response:
+                    # Check for successful response
+                    response.raise_for_status()
+                    
+                    # Process the streaming response
+                    for line in response.iter_lines():
+                        if line:
+                            # Skip empty lines
+                            line = line.decode('utf-8')
+                            
+                            # Handle SSE format if applicable
+                            if line.startswith('data: '):
+                                line = line[6:]  # Remove 'data: ' prefix
+                            
+                            # Skip heartbeat messages
+                            if line == '[DONE]':
+                                yield "data: [DONE]\n\n"
+                                break
+                            
+                            try:
+                                # Try to parse as JSON
+                                chunk = json.loads(line)
+                                
+                                # Extract the text content based on response format
+                                text = None
+                                if "choices" in chunk and len(chunk["choices"]) > 0:
+                                    # OpenAI-like format
+                                    content = chunk["choices"][0].get("text", "") or chunk["choices"][0].get("delta", {}).get("content", "")
+                                    if content:
+                                        text = content
+                                elif "response" in chunk:
+                                    text = chunk["response"]
+                                elif "text" in chunk:
+                                    text = chunk["text"]
+                                elif "generated_text" in chunk:
+                                    text = chunk["generated_text"]
+                                
+                                if text:
+                                    yield f"data: {json.dumps({'text': text})}\n\n"
+                            except json.JSONDecodeError:
+                                # If not JSON, yield the raw line
+                                yield f"data: {json.dumps({'text': line})}\n\n"
             except Exception as e:
+                logging.error(f"Error in LLM streaming: {str(e)}")
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
         
         return Response(
