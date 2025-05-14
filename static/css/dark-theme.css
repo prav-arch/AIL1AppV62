@@ -1,0 +1,165 @@
+/* Dark Theme Styles for Bootstrap 3 */
+body.dark-theme {
+    background-color: #222;
+    color: #f8f8f8;
+}
+
+/* Navbar Dark Theme */
+body.dark-theme .navbar-default {
+    background-color: #111;
+    border-color: #333;
+}
+
+body.dark-theme .navbar-brand {
+    color: #f8f8f8 !important;
+}
+
+/* Panel Dark Theme */
+body.dark-theme .panel {
+    background-color: #333;
+    border-color: #444;
+}
+
+body.dark-theme .panel-default > .panel-heading {
+    background-color: #444;
+    color: #f8f8f8;
+    border-color: #555;
+}
+
+body.dark-theme .panel-primary > .panel-heading {
+    background-color: #375a7f;
+    color: #fff;
+    border-color: #2c4766;
+}
+
+body.dark-theme .panel-info > .panel-heading {
+    background-color: #2a6d8f;
+    color: #fff;
+    border-color: #216080;
+}
+
+body.dark-theme .panel-danger > .panel-heading {
+    background-color: #c12e2a;
+    color: #fff;
+    border-color: #a82824;
+}
+
+body.dark-theme .panel-success > .panel-heading {
+    background-color: #2b542c;
+    color: #fff;
+    border-color: #244a25;
+}
+
+body.dark-theme .panel-warning > .panel-heading {
+    background-color: #a66927;
+    color: #fff;
+    border-color: #8e5a25;
+}
+
+body.dark-theme .panel-body {
+    background-color: #333;
+    color: #f8f8f8;
+}
+
+/* Button Dark Theme */
+body.dark-theme .btn-default {
+    background-color: #444;
+    color: #f8f8f8;
+    border-color: #555;
+}
+
+body.dark-theme .btn-default:hover {
+    background-color: #555;
+    color: #fff;
+    border-color: #666;
+}
+
+body.dark-theme .btn-primary {
+    background-color: #375a7f;
+    border-color: #2c4766;
+}
+
+/* Form Controls Dark Theme */
+body.dark-theme .form-control {
+    background-color: #444;
+    color: #f8f8f8;
+    border-color: #555;
+}
+
+/* Tables Dark Theme */
+body.dark-theme .table {
+    color: #f8f8f8;
+}
+
+body.dark-theme .table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: #444;
+}
+
+body.dark-theme .table-hover > tbody > tr:hover {
+    background-color: #555;
+}
+
+/* List Groups Dark Theme */
+body.dark-theme .list-group-item {
+    background-color: #333;
+    border-color: #444;
+    color: #f8f8f8;
+}
+
+/* Text Colors */
+body.dark-theme .text-muted {
+    color: #999;
+}
+
+body.dark-theme .text-success {
+    color: #5cb85c;
+}
+
+body.dark-theme .text-info {
+    color: #5bc0de;
+}
+
+body.dark-theme .text-warning {
+    color: #f0ad4e;
+}
+
+body.dark-theme .text-danger {
+    color: #d9534f;
+}
+
+/* Footer Dark Theme */
+body.dark-theme .footer {
+    background-color: #111;
+    color: #f8f8f8;
+    border-color: #333;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    background-color: #375a7f;
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+/* Chart Dark Theme */
+body.dark-theme .chart-container canvas {
+    background-color: #333;
+}
