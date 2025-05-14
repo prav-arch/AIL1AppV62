@@ -144,3 +144,109 @@ def api_latest_anomalies():
     ]
     
     return jsonify(anomalies)
+
+@app.route('/api/anomalies/stats', methods=['GET'])
+def api_anomaly_stats():
+    """Return statistics about anomalies"""
+    total = random.randint(20, 30)
+    critical = random.randint(3, 8)
+    warning = random.randint(8, 15)
+    info = total - critical - warning
+    
+    stats = {
+        'success': True,
+        'total': total,
+        'critical': critical,
+        'warning': warning,
+        'info': info,
+        'trends': {
+            'labels': [(datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7, 0, -1)],
+            'datasets': [
+                {
+                    'label': 'Critical',
+                    'data': [random.randint(3, 8) for _ in range(7)]
+                },
+                {
+                    'label': 'Warning',
+                    'data': [random.randint(8, 15) for _ in range(7)]
+                },
+                {
+                    'label': 'Info',
+                    'data': [random.randint(5, 10) for _ in range(7)]
+                }
+            ]
+        },
+        'types': {
+            'labels': ['Network', 'System', 'Database', 'Application', 'Security'],
+            'data': [random.randint(10, 25) for _ in range(5)]
+        }
+    }
+    
+    return jsonify(stats)
+
+@app.route('/api/anomalies/list', methods=['GET'])
+def api_anomalies_list():
+    """Return list of anomalies with optional filtering"""
+    # Get filter parameter (all, critical, warning, info)
+    filter_type = request.args.get('filter', 'all')
+    
+    # Sample anomalies data
+    anomalies = [
+        {
+            'id': 'A-1283',
+            'timestamp': '2023-05-20 14:32:15',
+            'type': 'Network',
+            'source': 'router-edge-01',
+            'description': 'Unusual outbound traffic spike detected (4.5GB in 5 minutes)',
+            'severity': 'Critical'
+        },
+        {
+            'id': 'A-1282',
+            'timestamp': '2023-05-20 13:45:22',
+            'type': 'System',
+            'source': 'app-server-03',
+            'description': 'Memory usage continuously above 92% for 15 minutes',
+            'severity': 'Warning'
+        },
+        {
+            'id': 'A-1281',
+            'timestamp': '2023-05-20 12:58:45',
+            'type': 'Database',
+            'source': 'db-cluster-main',
+            'description': 'Query latency increased by 300% in the last hour',
+            'severity': 'Critical'
+        },
+        {
+            'id': 'A-1280',
+            'timestamp': '2023-05-20 11:23:18',
+            'type': 'Application',
+            'source': 'web-frontend',
+            'description': 'API response time exceeding SLA (avg 3.2s)',
+            'severity': 'Warning'
+        },
+        {
+            'id': 'A-1279',
+            'timestamp': '2023-05-20 10:15:36',
+            'type': 'Security',
+            'source': 'firewall-main',
+            'description': 'Multiple failed login attempts from IP 192.168.1.45',
+            'severity': 'Critical'
+        },
+        {
+            'id': 'A-1278',
+            'timestamp': '2023-05-20 09:42:05',
+            'type': 'Storage',
+            'source': 'storage-array-02',
+            'description': 'Disk space trending to full (92% used)',
+            'severity': 'Warning'
+        }
+    ]
+    
+    # Apply filtering
+    if filter_type.lower() != 'all':
+        anomalies = [a for a in anomalies if a['severity'].lower() == filter_type.lower()]
+    
+    return jsonify({
+        'success': True,
+        'anomalies': anomalies
+    })
