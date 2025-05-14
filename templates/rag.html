@@ -517,37 +517,80 @@
 <div class="modal fade" id="scrapeWebpageModal" tabindex="-1" aria-labelledby="scrapeWebpageModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="scrapeWebpageModalLabel">Scrape Webpage</h5>
+            <div class="modal-header bg-primary text-white">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="scrapeWebpageModalLabel"><i class="fas fa-globe"></i> Scrape Webpage</h4>
             </div>
             <div class="modal-body">
                 <form id="scrape-webpage-form">
-                    <div class="form-group">
-                        <label for="webpage-url-modal" class="form-label">Webpage URL</label>
-                        <input type="url" class="form-control" id="webpage-url-modal" placeholder="https://example.com">
+                    <!-- URL Section -->
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><i class="fas fa-link"></i> Webpage URL</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <label for="webpage-url-modal" style="color: #f8f8f8; font-weight: bold;">Website Address:</label>
+                                <input type="url" class="form-control" id="webpage-url-modal" placeholder="https://example.com">
+                                <p class="help-block" style="margin-top: 10px; color: #aaa;">
+                                    Enter a fully qualified URL including https:// or http://
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="webpage-name" class="form-label">Name (optional)</label>
-                        <input type="text" class="form-control" id="webpage-name" placeholder="Leave blank to use URL">
+                    
+                    <!-- Document Details Section -->
+                    <div class="panel panel-default" style="margin-top: 15px;">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><i class="fas fa-info-circle"></i> Document Details</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-group">
+                                <label for="webpage-name" style="color: #f8f8f8; font-weight: bold;"><i class="fas fa-tag"></i> Document Name (optional):</label>
+                                <input type="text" class="form-control" id="webpage-name" placeholder="Leave blank to use URL">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="webpage-description-modal" style="color: #f8f8f8; font-weight: bold;"><i class="fas fa-align-left"></i> Description (optional):</label>
+                                <textarea class="form-control" id="webpage-description-modal" rows="3"></textarea>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="webpage-description-modal" class="form-label">Description (optional)</label>
-                        <textarea class="form-control" id="webpage-description-modal" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="index-webpage-immediately" checked>
-                            <label class="form-check-label" for="index-webpage-immediately">
-                                Index immediately after scraping
-                            </label>
+                    
+                    <!-- Options Section -->
+                    <div class="panel panel-default" style="margin-top: 15px;">
+                        <div class="panel-heading">
+                            <h4 class="panel-title"><i class="fas fa-cog"></i> Processing Options</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <div class="checkbox">
+                                    <label style="color: #f8f8f8; font-weight: bold;">
+                                        <input type="checkbox" id="index-webpage-immediately" checked>
+                                        Index immediately after scraping
+                                    </label>
+                                    <p class="help-block" style="margin-top: 5px; margin-bottom: 0; color: #aaa;">
+                                        This makes the webpage content searchable in the RAG system
+                                    </p>
+                                </div>
+                                
+                                <div class="checkbox" style="margin-top: 15px;">
+                                    <label style="color: #f8f8f8; font-weight: bold;">
+                                        <input type="checkbox" id="ignore-ssl-errors" checked>
+                                        Ignore SSL certificate errors
+                                    </label>
+                                    <p class="help-block" style="margin-top: 5px; margin-bottom: 0; color: #aaa;">
+                                        Enable this if the website has SSL certificate issues
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="scrape-webpage-submit">Scrape</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal"><i class="fas fa-times"></i> Cancel</button>
+                <button type="button" class="btn btn-primary" id="scrape-webpage-submit"><i class="fas fa-globe"></i> Scrape Webpage</button>
             </div>
         </div>
     </div>

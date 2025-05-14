@@ -388,20 +388,138 @@ def upload_document():
 @rag_bp.route('/api/documents/scrape', methods=['POST'])
 def scrape_webpage():
     """Scrape a webpage and add it to the RAG system"""
+    from trafilatura import fetch_url, extract
+    import requests
+    from urllib.parse import urlparse
+    import os
+    from werkzeug.utils import secure_filename
+    
     try:
+        # Get request parameters
         url = request.json.get('url', '') if request.json else ''
+        name = request.json.get('name', '') if request.json else ''
+        description = request.json.get('description', '') if request.json else ''
+        index_immediately = request.json.get('index_immediately', True) if request.json else True
+        ignore_ssl_errors = request.json.get('ignore_ssl_errors', False) if request.json else False
+        
+        logger.info(f"Scraping webpage: {url}, ignore_ssl: {ignore_ssl_errors}")
         
         if not url:
             return jsonify({'error': 'URL is required'}), 400
         
-        # Return success response with mock data
-        return jsonify({
-            'success': True,
-            'document_id': f'doc_{random.randint(100, 999)}',
-            'url': url,
-            'name': f'webpage_{datetime.now().strftime("%Y%m%d%H%M%S")}.html',
-            'status': 'processing'
-        })
+        # Validate URL
+        try:
+            parsed_url = urlparse(url)
+            if not parsed_url.scheme or not parsed_url.netloc:
+                return jsonify({'error': 'Invalid URL format. Please include http:// or https://'}), 400
+        except Exception as url_error:
+            logger.error(f"URL parsing error: {str(url_error)}")
+            return jsonify({'error': f'Invalid URL: {str(url_error)}'}), 400
+        
+        # Create upload directory if it doesn't exist
+        upload_dir = os.path.join(os.getcwd(), 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generate default name if not provided
+        if not name:
+            domain = parsed_url.netloc
+            path = parsed_url.path.strip('/')
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            if path:
+                path = path.replace('/', '_')
+                name = f"{domain}_{path}_{timestamp}"
+            else:
+                name = f"{domain}_{timestamp}"
+        
+        # Setup request options
+        request_kwargs = {}
+        if ignore_ssl_errors:
+            logger.info("Ignoring SSL certificate verification")
+            request_kwargs['verify'] = False
+        
+        # Try to fetch webpage content
+        try:
+            # First try with trafilatura
+            logger.info(f"Fetching URL with trafilatura: {url}")
+            downloaded = fetch_url(url, **request_kwargs)
+            
+            if not downloaded:
+                # If trafilatura fails, try with requests
+                logger.info(f"Trafilatura failed, trying with requests: {url}")
+                response = requests.get(url, **request_kwargs, timeout=10)
+                response.raise_for_status()  # Raise exception for 4XX/5XX responses
+                downloaded = response.text
+            
+            # Extract main content
+            text_content = extract(downloaded)
+            
+            if not text_content:
+                logger.warning(f"No text content extracted from {url}")
+                text_content = downloaded  # Use the raw HTML if extraction fails
+            
+            # Save the content to a file
+            safe_filename = secure_filename(name)
+            if not safe_filename.endswith('.txt'):
+                safe_filename += '.txt'
+                
+            file_path = os.path.join(upload_dir, safe_filename)
+            
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(text_content)
+            
+            logger.info(f"Webpage content saved to {file_path}")
+            
+            # Return success response
+            return jsonify({
+                'success': True,
+                'document_id': f'doc_{random.randint(100, 999)}',
+                'url': url,
+                'name': safe_filename,
+                'path': file_path,
+                'content_length': len(text_content),
+                'status': 'processing' if index_immediately else 'uploaded'
+            })
+            
+        except requests.exceptions.SSLError as ssl_error:
+            logger.error(f"SSL Error scraping {url}: {str(ssl_error)}")
+            return jsonify({
+                'success': False,
+                'error': f'SSL Certificate Error: {str(ssl_error)}. Try enabling "Ignore SSL certificate errors" option.'
+            }), 400
+            
+        except requests.exceptions.ConnectionError as conn_error:
+            logger.error(f"Connection Error for {url}: {str(conn_error)}")
+            return jsonify({
+                'success': False,
+                'error': f'Connection Error: Could not connect to {parsed_url.netloc}. The site may be down or blocking requests.'
+            }), 400
+            
+        except requests.exceptions.Timeout as timeout_error:
+            logger.error(f"Timeout Error for {url}: {str(timeout_error)}")
+            return jsonify({
+                'success': False,
+                'error': 'The request timed out. The website took too long to respond.'
+            }), 408
+            
+        except requests.exceptions.HTTPError as http_error:
+            status_code = http_error.response.status_code if hasattr(http_error, 'response') else 0
+            logger.error(f"HTTP Error {status_code} for {url}: {str(http_error)}")
+            
+            if status_code == 403:
+                error_msg = 'Access Denied (403 Forbidden). The website blocked our request.'
+            elif status_code == 404:
+                error_msg = 'Page Not Found (404). The requested URL does not exist.'
+            elif status_code == 429:
+                error_msg = 'Too Many Requests (429). The website is rate limiting our access.'
+            else:
+                error_msg = f'HTTP Error {status_code}: {str(http_error)}'
+                
+            return jsonify({
+                'success': False,
+                'error': error_msg
+            }), status_code if status_code else 400
+            
     except Exception as e:
         logger.error(f"Error scraping webpage: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.exception("Exception traceback:")
+        return jsonify({'success': False, 'error': str(e)}), 500

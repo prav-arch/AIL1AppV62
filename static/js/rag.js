@@ -390,17 +390,27 @@ function setupWebScraperModal() {
             const nameInput = document.getElementById('webpage-name');
             const descriptionInput = document.getElementById('webpage-description-modal');
             const indexImmediately = document.getElementById('index-webpage-immediately').checked;
+            const ignoreSSLErrors = document.getElementById('ignore-ssl-errors')?.checked || false;
             
             if (!urlInput.value.trim()) {
                 showToast('Please enter a valid URL', 'warning');
                 return;
             }
             
+            // Validate URL format
+            try {
+                new URL(urlInput.value.trim());
+            } catch (e) {
+                showToast('Please enter a valid URL including http:// or https://', 'warning');
+                return;
+            }
+            
             // Show loading toast
             showToast('Scraping webpage...', 'info');
+            console.log(`Scraping URL: ${urlInput.value.trim()}, ignoreSSL: ${ignoreSSLErrors}`);
             
             try {
-                const response = await fetchWithTimeout('/api/rag/scrape-webpage', {
+                const response = await fetch('/rag/api/documents/scrape', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -409,28 +419,54 @@ function setupWebScraperModal() {
                         url: urlInput.value.trim(),
                         name: nameInput.value.trim(),
                         description: descriptionInput.value.trim(),
-                        index_immediately: indexImmediately
+                        index_immediately: indexImmediately,
+                        ignore_ssl_errors: ignoreSSLErrors
                     })
                 });
+                
+                if (!response.ok) {
+                    // Check for specific status codes to provide more helpful messages
+                    if (response.status === 404) {
+                        showToast('Error 404: API endpoint not found. Please check the server configuration.', 'error');
+                        console.error('API endpoint not found:', response.url);
+                        return;
+                    } else if (response.status === 401 || response.status === 403) {
+                        showToast('Authentication error: Unable to access the page. It may require login.', 'error');
+                        return;
+                    }
+                }
                 
                 const data = await response.json();
                 
                 if (data.success) {
                     showToast('Webpage scraped successfully', 'success');
                     
-                    // Close modal
-                    bootstrap.Modal.getInstance(document.getElementById('scrapeWebpageModal')).hide();
+                    // Close modal using jQuery (Bootstrap 3 compatible)
+                    try {
+                        $('#scrapeWebpageModal').modal('hide');
+                    } catch (modalError) {
+                        console.error('Error closing modal:', modalError);
+                    }
                     
-                    // Reset form
+                    // Reset form and refresh data
                     document.getElementById('scrape-webpage-form').reset();
-                    
-                    // Refresh documents table
                     fetchDocumentsData();
                 } else {
-                    throw new Error(data.message || 'Failed to scrape webpage');
+                    // Display specific error messages
+                    if (data.error && data.error.includes('SSL')) {
+                        showToast(`SSL Error: Try enabling "Ignore SSL certificate errors" option`, 'error');
+                    } else if (data.error && data.error.includes('timeout')) {
+                        showToast(`Timeout Error: The website took too long to respond`, 'error');
+                    } else if (data.error && data.error.includes('403')) {
+                        showToast(`Access Denied: The website blocked our request (403 Forbidden)`, 'error');
+                    } else {
+                        showToast(`Error: ${data.error || 'Unknown error occurred'}`, 'error');
+                    }
+                    console.error('Web scraping error:', data.error);
                 }
             } catch (error) {
-                handleFetchError(error, 'scrape webpage');
+                console.error('Exception during web scraping:', error);
+                showToast(`Error: ${error.message || 'Failed to scrape webpage'}`, 'error');
             }
         });
     }
