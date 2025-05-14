@@ -432,6 +432,128 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+/* Improved font visibility for tabs and cards */
+.card-header {
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    font-weight: 600;
+}
+
+body.dark-theme .nav-tabs .nav-link {
+    color: #ced4da;
+}
+
+body.dark-theme .nav-tabs .nav-link.active {
+    color: #fff;
+    background-color: #375a7f;
+    border-color: #375a7f;
+}
+
+.card {
+    border: 1px solid rgba(0,0,0,0.125);
+}
+
+body.dark-theme .card {
+    background-color: #303030;
+    border-color: #444;
+}
+
+body.dark-theme .card-header {
+    background-color: #444;
+    border-color: #555;
+}
+
+body.dark-theme .bg-light {
+    background-color: #303030 !important;
+}
+
+body.dark-theme .text-muted {
+    color: #adb5bd !important;
+}
+
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+    background-color: #222;
+    border-color: #444;
+    color: #ced4da;
+}
+
+body.dark-theme .form-check-input {
+    background-color: #222;
+    border-color: #444;
+}
+
+.list-group-item-action:hover {
+    background-color: #f8f9fa;
+}
+
+body.dark-theme .list-group-item-action:hover {
+    background-color: #444;
+}
+
+body.dark-theme .list-group-item {
+    background-color: #303030;
+    border-color: #444;
+    color: #ced4da;
+}
+
+.chat-messages .message {
+    margin-bottom: 15px;
+    clear: both;
+    overflow: hidden;
+}
+
+.chat-messages .user-message .message-content {
+    float: right;
+    background-color: #007bff;
+    color: white;
+    border-radius: 18px 18px 4px 18px;
+    padding: 10px 15px;
+    max-width: 75%;
+}
+
+.chat-messages .assistant-message .message-content {
+    float: left;
+    background-color: #f1f0f0;
+    color: #333;
+    border-radius: 18px 18px 18px 4px;
+    padding: 10px 15px;
+    max-width: 75%;
+}
+
+.chat-messages .system-message .message-content {
+    background-color: #fffce6;
+    color: #222;
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin: 0 auto 15px;
+    max-width: 90%;
+    text-align: center;
+}
+
+body.dark-theme .chat-messages .assistant-message .message-content {
+    background-color: #444;
+    color: #ced4da;
+}
+
+body.dark-theme .chat-messages .system-message .message-content {
+    background-color: #333;
+    color: #ced4da;
+    border-left: 4px solid #ffd700;
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 <script>
