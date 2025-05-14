@@ -1,0 +1,477 @@
+/*
+ * Falcon Theme - A modern light theme for the AI Assistant Platform
+ */
+
+:root {
+  /* Base colors */
+  --falcon-body-bg: #f5f7fa;
+  --falcon-white: #fff;
+  --falcon-light: #f9fafd;
+  --falcon-card-bg: var(--falcon-white);
+  --falcon-border-color: #e6eaf0;
+  --falcon-text-color: #5e6e82;
+  --falcon-text-muted: #8896ab;
+  --falcon-text-dark: #344050;
+  --falcon-heading-color: #344050;
+  
+  /* Brand colors */
+  --falcon-primary: #2c7be5;
+  --falcon-secondary: #748194;
+  --falcon-success: #00d27a;
+  --falcon-info: #27bcfd;
+  --falcon-warning: #f5803e;
+  --falcon-danger: #e63757;
+  
+  /* Other variables */
+  --falcon-box-shadow: 0 7px 14px 0 rgba(59, 65, 94, 0.1), 0 3px 6px 0 rgba(0, 0, 0, 0.07);
+  --falcon-border-radius: 0.25rem;
+  --falcon-border-radius-lg: 0.375rem;
+  --falcon-card-cap-bg: var(--falcon-white);
+}
+
+html, body {
+  background-color: var(--falcon-body-bg);
+  color: var(--falcon-text-color);
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Layout */
+.wrapper {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  background-color: var(--falcon-body-bg);
+  padding: 1rem 0;
+}
+
+/* Header */
+.falcon-header {
+  background-color: var(--falcon-white);
+  border-bottom: 1px solid var(--falcon-border-color);
+  padding: 0.5rem 1rem;
+  height: 3.5625rem;
+  box-shadow: 0 0.5rem 0.5rem -0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.falcon-logo {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--falcon-primary);
+}
+
+.falcon-logo img {
+  height: 30px;
+  margin-right: 0.5rem;
+}
+
+.falcon-header .search-box {
+  flex-grow: 1;
+  max-width: 20rem;
+  margin: 0 1rem;
+}
+
+.falcon-header .search-box input {
+  background-color: var(--falcon-light);
+  border: none;
+  border-radius: 50rem;
+  padding: 0.5rem 1rem 0.5rem 2.2rem;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.falcon-header .search-box .search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--falcon-text-muted);
+}
+
+/* Card */
+.falcon-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: var(--falcon-card-bg);
+  background-clip: border-box;
+  border: 0 solid var(--falcon-border-color);
+  border-radius: var(--falcon-border-radius-lg);
+  box-shadow: var(--falcon-box-shadow);
+  margin-bottom: 1.5rem;
+}
+
+.falcon-card-header {
+  padding: 1rem 1.25rem;
+  margin-bottom: 0;
+  background-color: var(--falcon-card-cap-bg);
+  border-bottom: 1px solid var(--falcon-border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.falcon-card-title {
+  margin-bottom: 0;
+  color: var(--falcon-heading-color);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.falcon-card-body {
+  flex: 1 1 auto;
+  padding: 1.25rem;
+}
+
+/* Navigation */
+.falcon-navbar {
+  background-color: var(--falcon-white);
+  border-bottom: 1px solid var(--falcon-border-color);
+  padding: 0;
+}
+
+.falcon-navbar .nav-link {
+  color: var(--falcon-text-color);
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid transparent;
+}
+
+.falcon-navbar .nav-link:hover,
+.falcon-navbar .nav-link:focus {
+  color: var(--falcon-primary);
+}
+
+.falcon-navbar .nav-link.active {
+  color: var(--falcon-primary);
+  border-bottom-color: var(--falcon-primary);
+}
+
+.falcon-navbar .nav-tabs {
+  border-bottom: none;
+}
+
+/* Stats cards */
+.stats-card {
+  padding: 1rem;
+}
+
+.stats-card .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--falcon-heading-color);
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.stats-card .stat-label {
+  color: var(--falcon-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.stats-card .percent-change {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.stats-card .percent-change.positive {
+  color: var(--falcon-success);
+}
+
+.stats-card .percent-change.negative {
+  color: var(--falcon-danger);
+}
+
+/* Project cards */
+.project-card {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.project-card:last-child {
+  margin-bottom: 0;
+}
+
+.project-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--falcon-white);
+  font-weight: 500;
+  margin-right: 1rem;
+}
+
+.project-details {
+  flex-grow: 1;
+}
+
+.project-name {
+  font-weight: 500;
+  color: var(--falcon-text-dark);
+  margin-bottom: 0.25rem;
+}
+
+.project-progress {
+  display: flex;
+  align-items: center;
+}
+
+.project-progress-bar {
+  height: 0.25rem;
+  background-color: #edf2f9;
+  border-radius: 50rem;
+  width: 100px;
+  margin-right: 1rem;
+  overflow: hidden;
+}
+
+.project-progress-bar .fill {
+  height: 100%;
+  border-radius: 50rem;
+}
+
+.project-percent {
+  font-size: 0.75rem;
+  color: var(--falcon-text-muted);
+}
+
+.project-time {
+  margin-left: auto;
+  color: var(--falcon-text-muted);
+  font-size: 0.875rem;
+}
+
+/* Charts */
+.chart-container {
+  position: relative;
+  height: 250px;
+}
+
+/* Progress Bars */
+.progress {
+  height: 0.5rem;
+  background-color: #edf2f9;
+  border-radius: 50rem;
+  overflow: hidden;
+}
+
+.progress-bar {
+  background-color: var(--falcon-primary);
+  border-radius: 50rem;
+}
+
+/* Colors for project avatars */
+.bg-falcon-primary {
+  background-color: var(--falcon-primary);
+}
+
+.bg-falcon-success {
+  background-color: var(--falcon-success);
+}
+
+.bg-falcon-info {
+  background-color: var(--falcon-info);
+}
+
+.bg-falcon-warning {
+  background-color: var(--falcon-warning);
+}
+
+.bg-falcon-danger {
+  background-color: var(--falcon-danger);
+}
+
+/* Tables */
+.falcon-table {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: var(--falcon-text-color);
+}
+
+.falcon-table th,
+.falcon-table td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-top: 1px solid var(--falcon-border-color);
+}
+
+.falcon-table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--falcon-border-color);
+  background-color: var(--falcon-light);
+  color: var(--falcon-text-dark);
+  font-weight: 600;
+}
+
+.falcon-table tbody tr:hover {
+  background-color: #f9fafd;
+}
+
+/* Buttons */
+.falcon-btn {
+  display: inline-block;
+  font-weight: 500;
+  color: var(--falcon-text-color);
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  background-color: transparent;
+  border: 1px solid transparent;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  border-radius: var(--falcon-border-radius);
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.falcon-btn-primary {
+  color: #fff;
+  background-color: var(--falcon-primary);
+  border-color: var(--falcon-primary);
+}
+
+.falcon-btn-outline-primary {
+  color: var(--falcon-primary);
+  border-color: var(--falcon-primary);
+}
+
+.falcon-btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 0.2rem;
+}
+
+/* Weather card */
+.weather-card {
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.weather-temp {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--falcon-heading-color);
+  margin-bottom: 0.5rem;
+}
+
+.weather-icon {
+  font-size: 4rem;
+  color: var(--falcon-warning);
+  margin-bottom: 0.5rem;
+}
+
+.weather-info {
+  color: var(--falcon-text-muted);
+  font-size: 0.875rem;
+}
+
+/* Storage usage */
+.storage-usage {
+  margin-bottom: 1rem;
+}
+
+.storage-bar {
+  height: 0.5rem;
+  background-color: #edf2f9;
+  border-radius: 50rem;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.storage-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--falcon-text-muted);
+}
+
+.storage-legend-item {
+  display: flex;
+  align-items: center;
+}
+
+.storage-legend-color {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  margin-right: 0.375rem;
+}
+
+/* File list */
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--falcon-border-color);
+}
+
+.file-item:last-child {
+  border-bottom: none;
+}
+
+.file-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--falcon-border-radius);
+  background-color: var(--falcon-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  overflow: hidden;
+}
+
+.file-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-info {
+  flex-grow: 1;
+}
+
+.file-name {
+  font-weight: 500;
+  color: var(--falcon-text-dark);
+  margin-bottom: 0.25rem;
+}
+
+.file-meta {
+  font-size: 0.75rem;
+  color: var(--falcon-text-muted);
+}
+
+/* Utilities */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.view-all {
+  font-size: 0.875rem;
+  color: var(--falcon-primary);
+  text-decoration: none;
+}
+
+.view-all:hover {
+  text-decoration: underline;
+}

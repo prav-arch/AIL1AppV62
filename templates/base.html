@@ -1,34 +1,49 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI Assistant Platform{% endblock %}</title>
     <!-- Bootstrap CSS (Local) -->
     <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/css/bootstrap-core.css" rel="stylesheet">
     <!-- Font Awesome Icons (Local placeholder) -->
     <link rel="stylesheet" href="/static/vendor/fontawesome/all.min.css">
     <!-- Chart.js (Local) -->
     <link rel="stylesheet" href="/static/vendor/chartjs/chart.min.css">
     <!-- DataTables CSS (Local) -->
     <link rel="stylesheet" href="/static/vendor/datatables/dataTables.bootstrap5.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <link rel="stylesheet" href="/static/css/tabs.css">
-    <link rel="stylesheet" href="/static/css/tab-content.css">
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap">
+    <!-- Falcon Theme CSS -->
+    <link rel="stylesheet" href="/static/css/falcon-theme.css">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="wrapper">
         <!-- Main navigation -->
-        <header class="bg-dark py-2 mb-3 shadow-sm">
+        <header class="falcon-header">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h1 class="text-light h3 mb-0">AI Assistant Platform</h1>
-                    <div class="text-light">
-                        <span class="me-2" id="system-status">
-                            <i class="fas fa-circle text-success"></i> System Online
+                    <div class="d-flex align-items-center">
+                        <a href="/" class="falcon-logo">
+                            <img src="/static/images/falcon-logo.svg" alt="Falcon Logo">
+                        </a>
+                        <div class="search-box position-relative ms-3">
+                            <span class="search-icon">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" placeholder="Search..." class="form-control">
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="me-3" id="system-status">
+                            <i class="fas fa-circle text-success me-1"></i> System Online
+                        </span>
+                        <span class="me-3">
+                            <i class="fas fa-bell"></i>
+                        </span>
+                        <span>
+                            <i class="fas fa-user-circle"></i>
                         </span>
                     </div>
                 </div>
@@ -36,54 +51,58 @@
         </header>
 
         <!-- Horizontal Navigation Tabs -->
-        <nav class="container-fluid mb-4">
-            <div class="nav-container mx-auto" style="max-width: 700px;">
-                <ul class="nav nav-tabs">
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
-                            <i class="fas fa-chart-line me-1"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'llm_assistant' %}active{% endif %}" href="/llm-assistant">
-                            <i class="fas fa-robot me-1"></i> LLM
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'rag' %}active{% endif %}" href="/rag">
-                            <i class="fas fa-database me-1"></i> RAG
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'anomalies' %}active{% endif %}" href="/anomalies">
-                            <i class="fas fa-exclamation-triangle me-1"></i> Anomalies
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'data_pipeline' %}active{% endif %}" href="/data-pipeline">
-                            <i class="fas fa-stream me-1"></i> Pipeline
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'kafka_browser' %}active{% endif %}" href="/kafka-browser">
-                            <i class="fas fa-exchange-alt me-1"></i> Kafka
-                        </a>
-                    </li>
-                </ul>
+        <nav class="falcon-navbar">
+            <div class="container-fluid">
+                <div class="nav-container" style="max-width: 900px; margin: 0 auto;">
+                    <ul class="nav nav-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
+                                <i class="fas fa-chart-line me-1"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'llm_assistant' %}active{% endif %}" href="/llm-assistant">
+                                <i class="fas fa-robot me-1"></i> LLM Assistant
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'rag' %}active{% endif %}" href="/rag">
+                                <i class="fas fa-database me-1"></i> RAG
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'anomalies' %}active{% endif %}" href="/anomalies">
+                                <i class="fas fa-exclamation-triangle me-1"></i> Anomalies
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'data_pipeline' %}active{% endif %}" href="/data-pipeline">
+                                <i class="fas fa-stream me-1"></i> Data Pipeline
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'kafka_browser' %}active{% endif %}" href="/kafka-browser">
+                                <i class="fas fa-exchange-alt me-1"></i> Kafka Browser
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </nav>
 
         <!-- Main content -->
-        <main class="container-fluid flex-grow-1 pb-4 main-content">
-            {% block content %}{% endblock %}
+        <main class="main-content">
+            <div class="container-fluid">
+                {% block content %}{% endblock %}
+            </div>
         </main>
 
         <!-- Footer -->
-        <footer class="bg-dark text-light py-3 mt-auto">
+        <footer class="py-3 mt-auto" style="background-color: #f9fafd; border-top: 1px solid #e6eaf0;">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center">
-                    <span>AI Assistant Platform</span>
-                    <span>© 2023 All Rights Reserved</span>
+                    <span class="text-muted">AI Assistant Platform</span>
+                    <span class="text-muted">© 2025 All Rights Reserved</span>
                 </div>
             </div>
         </footer>
