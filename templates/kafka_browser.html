@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+{% set active_tab = 'kafka_browser' %}
+
+{% block title %}Kafka Browser - AI Assistant Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Kafka Browser</h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="kafka-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">Overview</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="topics-tab" data-bs-toggle="tab" data-bs-target="#topics" type="button" role="tab" aria-controls="topics" aria-selected="false">Topics</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link d-none" id="message-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab" aria-controls="messages" aria-selected="false">Messages</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="consumer-groups-tab" data-bs-toggle="tab" data-bs-target="#consumer-groups" type="button" role="tab" aria-controls="consumer-groups" aria-selected="false">Consumer Groups</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="kafka-tab-content">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Broker Count</h6>
+                                        <h2 class="display-4" id="broker-count">3</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Topics</h6>
+                                        <h2 class="display-4" id="total-topics">12</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Consumer Groups</h6>
+                                        <h2 class="display-4" id="consumer-groups-count">8</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Total Messages</h6>
+                                        <h2 class="display-4" id="total-messages">1.2M</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card mb-md-0 mb-4">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Cluster Health</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <h6>Broker Status</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Broker ID</th>
+                                                            <th>Host</th>
+                                                            <th>Port</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td>1</td>
+                                                            <td>kafka-1</td>
+                                                            <td>9092</td>
+                                                            <td><span class="badge bg-success">Online</span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>2</td>
+                                                            <td>kafka-2</td>
+                                                            <td>9092</td>
+                                                            <td><span class="badge bg-success">Online</span></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td>3</td>
+                                                            <td>kafka-3</td>
+                                                            <td>9092</td>
+                                                            <td><span class="badge bg-success">Online</span></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <h6>Zookeeper Status</h6>
+                                            <div class="alert alert-success">
+                                                <i class="fas fa-check-circle me-2"></i> Zookeeper cluster is healthy
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Recent Activity</h6>
+                                    </div>
+                                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>logs-topic</strong>
+                                                    <div class="text-muted small">Received 156 new messages</div>
+                                                </div>
+                                                <span class="badge bg-primary rounded-pill">2m ago</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>metrics-topic</strong>
+                                                    <div class="text-muted small">Consumer group rebalancing</div>
+                                                </div>
+                                                <span class="badge bg-primary rounded-pill">5m ago</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>events-topic</strong>
+                                                    <div class="text-muted small">Created new partition</div>
+                                                </div>
+                                                <span class="badge bg-primary rounded-pill">15m ago</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>alerts-topic</strong>
+                                                    <div class="text-muted small">Received 23 new messages</div>
+                                                </div>
+                                                <span class="badge bg-primary rounded-pill">32m ago</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>system-topic</strong>
+                                                    <div class="text-muted small">Consumer lag detected</div>
+                                                </div>
+                                                <span class="badge bg-warning rounded-pill">45m ago</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Topic Distribution</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="position: relative; height:300px;">
+                                            <canvas id="topic-distribution-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Topics Tab -->
+                    <div class="tab-pane fade" id="topics" role="tabpanel" aria-labelledby="topics-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>Kafka Topics</h5>
+                            <div>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTopicModal">
+                                    <i class="fas fa-plus"></i> Create Topic
+                                </button>
+                                <button class="btn btn-outline-secondary" id="refresh-topics-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-group">
+                                <label for="topic-selector" class="form-label">Select a topic to view messages:</label>
+                                <select class="form-select" id="topic-selector">
+                                    <option value="">Select a topic</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="kafka-topics-table">
+                                <thead>
+                                    <tr>
+                                        <th>Topic Name</th>
+                                        <th>Partitions</th>
+                                        <th>Replication Factor</th>
+                                        <th>Message Count</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>logs-topic</td>
+                                        <td>3</td>
+                                        <td>3</td>
+                                        <td>524,892</td>
+                                        <td>2023-05-01 00:00:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary view-topic-btn" data-topic="logs-topic">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger delete-topic-btn" data-topic="logs-topic">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>metrics-topic</td>
+                                        <td>5</td>
+                                        <td>3</td>
+                                        <td>328,157</td>
+                                        <td>2023-05-01 00:00:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary view-topic-btn" data-topic="metrics-topic">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger delete-topic-btn" data-topic="metrics-topic">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>events-topic</td>
+                                        <td>2</td>
+                                        <td>3</td>
+                                        <td>125,628</td>
+                                        <td>2023-05-01 00:00:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary view-topic-btn" data-topic="events-topic">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger delete-topic-btn" data-topic="events-topic">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>alerts-topic</td>
+                                        <td>1</td>
+                                        <td>3</td>
+                                        <td>8,421</td>
+                                        <td>2023-05-01 00:00:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary view-topic-btn" data-topic="alerts-topic">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger delete-topic-btn" data-topic="alerts-topic">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages Tab -->
+                    <div class="tab-pane fade" id="messages" role="tabpanel" aria-labelledby="message-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5 id="selected-topic-title">Topic Messages</h5>
+                            <div>
+                                <button class="btn btn-outline-secondary" id="refresh-messages-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <div class="form-check form-switch d-inline-block ms-3">
+                                    <input class="form-check-input" type="checkbox" id="auto-refresh-toggle">
+                                    <label class="form-check-label" for="auto-refresh-toggle">Auto-refresh</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Message Count</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <h2 class="display-4" id="message-count">0</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Message Rate</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="position: relative; height:100px;">
+                                            <canvas id="message-rate-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Partition Distribution</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="position: relative; height:100px;">
+                                            <canvas id="partition-distribution-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">Send Message</h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="send-message-form">
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label for="message-key" class="form-label">Key (optional)</label>
+                                            <input type="text" class="form-control" id="message-key">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="message-partition" class="form-label">Partition (optional)</label>
+                                            <input type="number" class="form-control" id="message-partition" min="0">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="submit" class="btn btn-primary d-block w-100">Send Message</button>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="message-value" class="form-label">Message Value</label>
+                                        <textarea class="form-control" id="message-value" rows="3"></textarea>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="kafka-messages-table">
+                                <thead>
+                                    <tr>
+                                        <th>Offset</th>
+                                        <th>Partition</th>
+                                        <th>Key</th>
+                                        <th>Value</th>
+                                        <th>Timestamp</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Messages will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Consumer Groups Tab -->
+                    <div class="tab-pane fade" id="consumer-groups" role="tabpanel" aria-labelledby="consumer-groups-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>Consumer Groups</h5>
+                            <div>
+                                <button class="btn btn-outline-secondary" id="refresh-consumer-groups-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="consumer-group-selector" class="form-label">Select Consumer Group:</label>
+                                        <select class="form-select" id="consumer-group-selector">
+                                            <option value="">Select a consumer group</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Consumer Lag</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="chart-container" style="position: relative; height:100px;">
+                                                <canvas id="consumer-lag-chart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">Consumer Offsets</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm" id="consumer-offset-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Partition</th>
+                                                <th>Current Offset</th>
+                                                <th>Log End Offset</th>
+                                                <th>Lag</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Consumer offsets will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Consumer Groups List</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="consumer-groups-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Group ID</th>
+                                                <th>State</th>
+                                                <th>Members</th>
+                                                <th>Topics</th>
+                                                <th>Total Lag</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>logs-consumer</td>
+                                                <td><span class="badge bg-success">Stable</span></td>
+                                                <td>3</td>
+                                                <td>logs-topic</td>
+                                                <td>142</td>
+                                            </tr>
+                                            <tr>
+                                                <td>metrics-consumer</td>
+                                                <td><span class="badge bg-success">Stable</span></td>
+                                                <td>2</td>
+                                                <td>metrics-topic</td>
+                                                <td>89</td>
+                                            </tr>
+                                            <tr>
+                                                <td>events-consumer</td>
+                                                <td><span class="badge bg-warning">Rebalancing</span></td>
+                                                <td>2</td>
+                                                <td>events-topic</td>
+                                                <td>215</td>
+                                            </tr>
+                                            <tr>
+                                                <td>alerts-consumer</td>
+                                                <td><span class="badge bg-success">Stable</span></td>
+                                                <td>1</td>
+                                                <td>alerts-topic</td>
+                                                <td>0</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Topic Modal -->
+<div class="modal fade" id="createTopicModal" tabindex="-1" aria-labelledby="createTopicModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTopicModalLabel">Create Topic</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-topic-form">
+                    <div class="mb-3">
+                        <label for="new-topic-name" class="form-label">Topic Name</label>
+                        <input type="text" class="form-control" id="new-topic-name" placeholder="Enter topic name">
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="new-topic-partitions" class="form-label">Partitions</label>
+                            <input type="number" class="form-control" id="new-topic-partitions" value="1" min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="new-topic-replication" class="form-label">Replication Factor</label>
+                            <input type="number" class="form-control" id="new-topic-replication" value="1" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Advanced Configuration (optional)</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enable-advanced-config">
+                            <label class="form-check-label" for="enable-advanced-config">
+                                Enable advanced configuration
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="advanced-config" class="d-none">
+                        <div class="mb-3">
+                            <label for="retention-ms" class="form-label">Retention Time (ms)</label>
+                            <input type="number" class="form-control" id="retention-ms" value="604800000">
+                            <small class="form-text text-muted">Default: 7 days (604800000 ms)</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="retention-bytes" class="form-label">Retention Size (bytes)</label>
+                            <input type="number" class="form-control" id="retention-bytes" value="-1">
+                            <small class="form-text text-muted">Default: -1 (unlimited)</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="create-topic-btn">Create Topic</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Message Details Modal -->
+<div class="modal fade" id="messageDetailsModal" tabindex="-1" aria-labelledby="messageDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageDetailsModalLabel">Message Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="message-details-content">
+                <!-- Message details will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/kafka_browser.js') }}"></script>
+{% endblock %}

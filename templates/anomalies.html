@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% set active_tab = 'anomalies' %}
+
+{% block title %}Anomalies - AI Assistant Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Anomaly Detection Dashboard</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-light text-dark">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Total Anomalies</h6>
+                                <h2 class="display-4" id="total-anomalies">24</h2>
+                                <div class="badge bg-secondary">Last 24 hours</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light text-dark">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Critical</h6>
+                                <h2 class="display-4 text-danger" id="critical-anomalies">5</h2>
+                                <div class="small text-danger">
+                                    <i class="fas fa-arrow-up"></i> 20% from yesterday
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light text-dark">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Warning</h6>
+                                <h2 class="display-4 text-warning" id="warning-anomalies">12</h2>
+                                <div class="small text-warning">
+                                    <i class="fas fa-arrow-up"></i> 8% from yesterday
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light text-dark">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Info</h6>
+                                <h2 class="display-4 text-info" id="info-anomalies">7</h2>
+                                <div class="small text-success">
+                                    <i class="fas fa-arrow-down"></i> 3% from yesterday
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card mb-md-0 mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">Anomaly Trends</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:300px;">
+                                    <canvas id="anomaly-trends-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Anomaly Type Distribution</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:300px;">
+                                    <canvas id="anomaly-types-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Detected Anomalies</h6>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary" id="refresh-anomalies">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <div class="btn-group btn-group-sm ms-2">
+                                    <button type="button" class="btn btn-outline-secondary">
+                                        <i class="fas fa-filter"></i> Filter
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="visually-hidden">Toggle Dropdown</span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" data-filter="all">All</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="critical">Critical</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="warning">Warning</a></li>
+                                        <li><a class="dropdown-item" href="#" data-filter="info">Info</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="anomalies-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Timestamp</th>
+                                        <th>Type</th>
+                                        <th>Source</th>
+                                        <th>Description</th>
+                                        <th>Severity</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>A-1283</td>
+                                        <td>2023-05-20 14:32:15</td>
+                                        <td>Network</td>
+                                        <td>router-edge-01</td>
+                                        <td>Unusual outbound traffic spike detected (4.5GB in 5 minutes)</td>
+                                        <td><span class="badge bg-danger">Critical</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1283">Get Recommendations</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>A-1282</td>
+                                        <td>2023-05-20 13:45:22</td>
+                                        <td>System</td>
+                                        <td>app-server-03</td>
+                                        <td>Memory usage continuously above 92% for 15 minutes</td>
+                                        <td><span class="badge bg-warning">Warning</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1282">Get Recommendations</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>A-1281</td>
+                                        <td>2023-05-20 12:58:45</td>
+                                        <td>Database</td>
+                                        <td>db-cluster-main</td>
+                                        <td>Query latency increased by 300% in the last hour</td>
+                                        <td><span class="badge bg-danger">Critical</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1281">Get Recommendations</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>A-1280</td>
+                                        <td>2023-05-20 11:23:18</td>
+                                        <td>Application</td>
+                                        <td>web-frontend</td>
+                                        <td>API response time exceeding SLA (avg 3.2s)</td>
+                                        <td><span class="badge bg-warning">Warning</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1280">Get Recommendations</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>A-1279</td>
+                                        <td>2023-05-20 10:15:36</td>
+                                        <td>Security</td>
+                                        <td>firewall-main</td>
+                                        <td>Multiple failed login attempts from IP 192.168.1.45</td>
+                                        <td><span class="badge bg-danger">Critical</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1279">Get Recommendations</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>A-1278</td>
+                                        <td>2023-05-20 09:42:05</td>
+                                        <td>Storage</td>
+                                        <td>storage-array-02</td>
+                                        <td>Disk space trending to full (92% used)</td>
+                                        <td><span class="badge bg-warning">Warning</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1278">Get Recommendations</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Network Visualizations -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Network Visualization</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card mb-md-0 mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">Network Topology</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="network-topology" style="height: 400px; border: 1px solid #ccc; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Traffic Patterns</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:180px;">
+                                    <canvas id="traffic-in-chart"></canvas>
+                                </div>
+                                <div class="chart-container" style="position: relative; height:180px; margin-top: 20px;">
+                                    <canvas id="traffic-out-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recommendation Modal -->
+<div class="modal fade" id="recommendationModal" tabindex="-1" aria-labelledby="recommendationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recommendationModalLabel">Recommendations for Anomaly</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-start mb-3">
+                    <div class="flex-shrink-0">
+                        <span class="badge bg-danger fs-6 p-2"><i class="fas fa-exclamation-triangle"></i></span>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h5 id="anomaly-title">Network Traffic Spike</h5>
+                        <p id="anomaly-description" class="text-muted mb-0">Unusual outbound traffic spike detected (4.5GB in 5 minutes) from router-edge-01.</p>
+                    </div>
+                </div>
+                
+                <div class="card border-primary mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0">LLM Recommendations</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="recommendation-content">
+                            <div class="d-flex justify-content-center my-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card border-secondary">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">Similar Past Incidents</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush" id="similar-incidents">
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">A-1145: Network Traffic Spike</div>
+                                    <span class="text-muted">2023-05-01 - Resolved in 45 minutes</span>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">85% similar</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="fw-bold">A-982: Unusual Traffic Pattern</div>
+                                    <span class="text-muted">2023-04-12 - Resolved in 2 hours</span>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">72% similar</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success">Mark as Resolved</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+<script src="{{ url_for('static', filename='js/anomalies.js') }}"></script>
+{% endblock %}

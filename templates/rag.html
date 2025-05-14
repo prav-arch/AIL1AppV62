@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+{% set active_tab = 'rag' %}
+
+{% block title %}RAG - AI Assistant Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">RAG Management</h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="rag-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="true">Documents</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="vectordb-tab" data-bs-toggle="tab" data-bs-target="#vectordb" type="button" role="tab" aria-controls="vectordb" aria-selected="false">Vector Database</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="filestore-tab" data-bs-toggle="tab" data-bs-target="#filestore" type="button" role="tab" aria-controls="filestore" aria-selected="false">File Storage</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="rag-tab-content">
+                    <!-- Documents Tab -->
+                    <div class="tab-pane fade show active" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>Document Repository</h5>
+                            <div>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+                                    <i class="fas fa-upload"></i> Upload Document
+                                </button>
+                                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#scrapeWebpageModal">
+                                    <i class="fas fa-globe"></i> Scrape Webpage
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="documents-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Size</th>
+                                        <th>Date Added</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1</td>
+                                        <td>network_guide.pdf</td>
+                                        <td>PDF</td>
+                                        <td>1.2 MB</td>
+                                        <td>2023-05-20</td>
+                                        <td><span class="badge bg-success">Indexed</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                <button class="btn btn-outline-secondary"><i class="fas fa-retweet"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>2</td>
+                                        <td>financial_report.xlsx</td>
+                                        <td>Excel</td>
+                                        <td>0.8 MB</td>
+                                        <td>2023-05-18</td>
+                                        <td><span class="badge bg-success">Indexed</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                <button class="btn btn-outline-secondary"><i class="fas fa-retweet"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>3</td>
+                                        <td>network_capture.pcap</td>
+                                        <td>PCAP</td>
+                                        <td>5.6 MB</td>
+                                        <td>2023-05-15</td>
+                                        <td><span class="badge bg-warning">Processing</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                <button class="btn btn-outline-secondary"><i class="fas fa-retweet"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Vector Database Tab -->
+                    <div class="tab-pane fade" id="vectordb" role="tabpanel" aria-labelledby="vectordb-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>FAISS Vector Database</h5>
+                            <div>
+                                <button class="btn btn-primary" id="search-vector-btn">
+                                    <i class="fas fa-search"></i> Vector Search
+                                </button>
+                                <button class="btn btn-outline-secondary" id="rebuild-index-btn">
+                                    <i class="fas fa-sync"></i> Rebuild Index
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Indexed Chunks</h5>
+                                        <h2 class="display-4" id="chunks-count">1,245</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Vector Dimension</h5>
+                                        <h2 class="display-4" id="vector-dimension">384</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Index Size</h5>
+                                        <h2 class="display-4" id="index-size">8.5 MB</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Vector Database Statistics</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container" style="position: relative; height:300px;">
+                                    <canvas id="vectordb-stats-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Recent Queries</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Query</th>
+                                                <th>Time</th>
+                                                <th>Top Matches</th>
+                                                <th>Latency (ms)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-queries">
+                                            <tr>
+                                                <td>How to configure network settings</td>
+                                                <td>12:45:32</td>
+                                                <td>3</td>
+                                                <td>45</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Troubleshoot CPU performance issues</td>
+                                                <td>12:42:18</td>
+                                                <td>5</td>
+                                                <td>62</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Financial report summary 2023</td>
+                                                <td>12:35:56</td>
+                                                <td>4</td>
+                                                <td>38</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- File Storage Tab -->
+                    <div class="tab-pane fade" id="filestore" role="tabpanel" aria-labelledby="filestore-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>MinIO File Storage</h5>
+                            <div>
+                                <button class="btn btn-primary" id="refresh-minio-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <button class="btn btn-outline-secondary" id="create-bucket-btn">
+                                    <i class="fas fa-folder-plus"></i> Create Bucket
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Storage Usage</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="position: relative; height:200px;">
+                                            <canvas id="storage-usage-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">File Type Distribution</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="position: relative; height:200px;">
+                                            <canvas id="file-type-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Buckets and Files</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="minio-files-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Bucket</th>
+                                                <th>Path</th>
+                                                <th>Type</th>
+                                                <th>Size</th>
+                                                <th>Last Modified</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="minio-files">
+                                            <tr>
+                                                <td>documents</td>
+                                                <td>/pdfs/network_guide.pdf</td>
+                                                <td>PDF</td>
+                                                <td>1.2 MB</td>
+                                                <td>2023-05-20</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary"><i class="fas fa-download"></i></button>
+                                                        <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>documents</td>
+                                                <td>/excel/financial_report.xlsx</td>
+                                                <td>Excel</td>
+                                                <td>0.8 MB</td>
+                                                <td>2023-05-18</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary"><i class="fas fa-download"></i></button>
+                                                        <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>pcaps</td>
+                                                <td>/captures/network_capture.pcap</td>
+                                                <td>PCAP</td>
+                                                <td>5.6 MB</td>
+                                                <td>2023-05-15</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary"><i class="fas fa-download"></i></button>
+                                                        <button class="btn btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings Tab -->
+                    <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                        <h5 class="mb-3">RAG Configuration</h5>
+                        
+                        <form id="rag-settings-form">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Embedding Model</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="embedding-model" class="form-label">Model</label>
+                                                <select class="form-select" id="embedding-model">
+                                                    <option value="sentence-transformers/all-MiniLM-L6-v2" selected>all-MiniLM-L6-v2 (Fast)</option>
+                                                    <option value="sentence-transformers/all-mpnet-base-v2">all-mpnet-base-v2 (Accurate)</option>
+                                                    <option value="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2">paraphrase-multilingual-MiniLM-L12-v2 (Multilingual)</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="embedding-dimension" class="form-label">Embedding Dimension</label>
+                                                <input type="number" class="form-control" id="embedding-dimension" value="384" readonly>
+                                                <small class="text-muted">Automatically set based on model</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">FAISS Index</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="faiss-index-type" class="form-label">Index Type</label>
+                                                <select class="form-select" id="faiss-index-type">
+                                                    <option value="IndexFlatL2" selected>Flat L2 (Exact)</option>
+                                                    <option value="IndexIVFFlat">IVF Flat (Approximate)</option>
+                                                    <option value="IndexHNSWFlat">HNSW Flat (Fast Search)</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="faiss-nprobe" class="form-label">nprobe (search accuracy)</label>
+                                                <input type="range" class="form-range" min="1" max="100" step="1" value="10" id="faiss-nprobe">
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="text-muted">Faster</small>
+                                                    <small>Value: <span id="nprobe-value">10</span></small>
+                                                    <small class="text-muted">More accurate</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Text Chunking</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="chunk-size" class="form-label">Chunk Size</label>
+                                                <input type="range" class="form-range" min="100" max="2000" step="50" value="500" id="chunk-size">
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="text-muted">Small</small>
+                                                    <small>Value: <span id="chunk-size-value">500</span> characters</small>
+                                                    <small class="text-muted">Large</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="chunk-overlap" class="form-label">Chunk Overlap</label>
+                                                <input type="range" class="form-range" min="0" max="200" step="10" value="50" id="chunk-overlap">
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="text-muted">No overlap</small>
+                                                    <small>Value: <span id="chunk-overlap-value">50</span> characters</small>
+                                                    <small class="text-muted">High overlap</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Retrieval Settings</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <label for="top-k-results" class="form-label">Top K Results</label>
+                                                <input type="range" class="form-range" min="1" max="20" step="1" value="5" id="top-k-results">
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="text-muted">Few</small>
+                                                    <small>Value: <span id="top-k-value">5</span></small>
+                                                    <small class="text-muted">Many</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label for="similarity-threshold" class="form-label">Similarity Threshold</label>
+                                                <input type="range" class="form-range" min="0" max="1" step="0.05" value="0.7" id="similarity-threshold">
+                                                <div class="d-flex justify-content-between">
+                                                    <small class="text-muted">Low relevance</small>
+                                                    <small>Value: <span id="similarity-value">0.7</span></small>
+                                                    <small class="text-muted">High relevance</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="button" class="btn btn-outline-secondary" id="reset-rag-settings">Reset to Defaults</button>
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadDocumentModalLabel">Upload Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="upload-document-form">
+                    <div class="mb-3">
+                        <label for="document-file" class="form-label">Select Document</label>
+                        <input class="form-control" type="file" id="modal-document-file">
+                        <small class="text-muted">Supported formats: PDF, Word (.docx), Excel (.xlsx), PCAP (.pcap)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-document-name" class="form-label">Document Name (optional)</label>
+                        <input type="text" class="form-control" id="modal-document-name" placeholder="Leave blank to use filename">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modal-document-description" class="form-label">Description (optional)</label>
+                        <textarea class="form-control" id="modal-document-description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="index-immediately" checked>
+                            <label class="form-check-label" for="index-immediately">
+                                Index immediately after upload
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="upload-document-submit">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scrape Webpage Modal -->
+<div class="modal fade" id="scrapeWebpageModal" tabindex="-1" aria-labelledby="scrapeWebpageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scrapeWebpageModalLabel">Scrape Webpage</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="scrape-webpage-form">
+                    <div class="mb-3">
+                        <label for="webpage-url-modal" class="form-label">Webpage URL</label>
+                        <input type="url" class="form-control" id="webpage-url-modal" placeholder="https://example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="webpage-name" class="form-label">Name (optional)</label>
+                        <input type="text" class="form-control" id="webpage-name" placeholder="Leave blank to use URL">
+                    </div>
+                    <div class="mb-3">
+                        <label for="webpage-description-modal" class="form-label">Description (optional)</label>
+                        <textarea class="form-control" id="webpage-description-modal" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="index-webpage-immediately" checked>
+                            <label class="form-check-label" for="index-webpage-immediately">
+                                Index immediately after scraping
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="scrape-webpage-submit">Scrape</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vector Search Modal -->
+<div class="modal fade" id="vectorSearchModal" tabindex="-1" aria-labelledby="vectorSearchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="vectorSearchModalLabel">Vector Search</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="vector-search-query" class="form-label">Search Query</label>
+                    <input type="text" class="form-control" id="vector-search-query" placeholder="Enter your search query">
+                </div>
+                <div class="mb-3">
+                    <label for="vector-search-top-k" class="form-label">Number of Results (Top K)</label>
+                    <input type="number" class="form-control" id="vector-search-top-k" value="5" min="1" max="20">
+                </div>
+                
+                <div id="vector-search-results" class="d-none">
+                    <h6 class="mb-3">Search Results</h6>
+                    <div class="list-group" id="vector-results-list">
+                        <!-- Results will be shown here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="run-vector-search">Search</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/rag.js') }}"></script>
+{% endblock %}

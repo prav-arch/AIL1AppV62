@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% set active_tab = 'data_pipeline' %}
+
+{% block title %}Data Pipeline - AI Assistant Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Data Pipeline Management</h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="pipeline-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="nifi-tab" data-bs-toggle="tab" data-bs-target="#nifi" type="button" role="tab" aria-controls="nifi" aria-selected="true">NiFi Jobs</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="airflow-tab" data-bs-toggle="tab" data-bs-target="#airflow" type="button" role="tab" aria-controls="airflow" aria-selected="false">Airflow Schedules</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="jobs-tab" data-bs-toggle="tab" data-bs-target="#jobs" type="button" role="tab" aria-controls="jobs" aria-selected="false">Job Status</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="pipeline-tab-content">
+                    <!-- NiFi Tab -->
+                    <div class="tab-pane fade show active" id="nifi" role="tabpanel" aria-labelledby="nifi-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>NiFi Dataflow Management</h5>
+                            <div>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createNifiJobModal">
+                                    <i class="fas fa-plus"></i> Create NiFi Job
+                                </button>
+                                <button class="btn btn-outline-secondary" id="refresh-nifi-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Active Processors</h6>
+                                        <h2 class="display-4" id="active-processors">42</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Process Groups</h6>
+                                        <h2 class="display-4" id="process-groups">8</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Connections</h6>
+                                        <h2 class="display-4" id="connections">65</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Running Jobs</h6>
+                                        <h2 class="display-4 text-success" id="running-jobs">5</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="nifi-jobs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Job Name</th>
+                                        <th>Type</th>
+                                        <th>Source</th>
+                                        <th>Destination</th>
+                                        <th>Status</th>
+                                        <th>Last Run</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Log Data Ingestion</td>
+                                        <td>File Transfer</td>
+                                        <td>/var/log/server01</td>
+                                        <td>Kafka: logs-topic</td>
+                                        <td><span class="badge bg-success">Running</span></td>
+                                        <td>2023-05-20 14:30:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
+                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>S3 Bucket Sync</td>
+                                        <td>Cloud Storage</td>
+                                        <td>AWS S3: data-bucket</td>
+                                        <td>MinIO: archived-data</td>
+                                        <td><span class="badge bg-success">Running</span></td>
+                                        <td>2023-05-20 13:45:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
+                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Network PCAP Collection</td>
+                                        <td>Network Data</td>
+                                        <td>Network Interface</td>
+                                        <td>MinIO: pcap-storage</td>
+                                        <td><span class="badge bg-success">Running</span></td>
+                                        <td>2023-05-20 12:00:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
+                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Database Backup</td>
+                                        <td>Database</td>
+                                        <td>PostgreSQL: main-db</td>
+                                        <td>MinIO: db-backups</td>
+                                        <td><span class="badge bg-secondary">Idle</span></td>
+                                        <td>2023-05-20 02:00:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-success" title="Start"><i class="fas fa-play"></i></button>
+                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>API Data Collector</td>
+                                        <td>REST API</td>
+                                        <td>External API</td>
+                                        <td>Kafka: api-data</td>
+                                        <td><span class="badge bg-success">Running</span></td>
+                                        <td>2023-05-20 10:15:00</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
+                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Airflow Tab -->
+                    <div class="tab-pane fade" id="airflow" role="tabpanel" aria-labelledby="airflow-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>Airflow Scheduling</h5>
+                            <div>
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createScheduleModal">
+                                    <i class="fas fa-plus"></i> Create Schedule
+                                </button>
+                                <button class="btn btn-outline-secondary" id="refresh-airflow-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Active DAGs</h6>
+                                        <h2 class="display-4" id="active-dags">12</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Paused DAGs</h6>
+                                        <h2 class="display-4" id="paused-dags">3</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Success Rate</h6>
+                                        <h2 class="display-4 text-success" id="success-rate">98%</h2>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-subtitle mb-2 text-muted">Running Tasks</h6>
+                                        <h2 class="display-4" id="running-tasks">4</h2>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="airflow-dags-table">
+                                <thead>
+                                    <tr>
+                                        <th>DAG ID</th>
+                                        <th>Description</th>
+                                        <th>Schedule</th>
+                                        <th>Last Run</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>daily_data_processing</td>
+                                        <td>Process daily incoming data</td>
+                                        <td>0 0 * * *</td>
+                                        <td>2023-05-20 00:00:00</td>
+                                        <td>23m 45s</td>
+                                        <td><span class="badge bg-success">Success</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-success" title="Trigger"><i class="fas fa-play"></i></button>
+                                                <button class="btn btn-outline-secondary" title="Edit Schedule"><i class="fas fa-calendar-alt"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>hourly_metrics_collection</td>
+                                        <td>Collect system metrics hourly</td>
+                                        <td>0 * * * *</td>
+                                        <td>2023-05-20 14:00:00</td>
+                                        <td>2m 12s</td>
+                                        <td><span class="badge bg-success">Success</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-success" title="Trigger"><i class="fas fa-play"></i></button>
+                                                <button class="btn btn-outline-secondary" title="Edit Schedule"><i class="fas fa-calendar-alt"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>weekly_report_generation</td>
+                                        <td>Generate weekly summary reports</td>
+                                        <td>0 0 * * 0</td>
+                                        <td>2023-05-14 00:00:00</td>
+                                        <td>45m 18s</td>
+                                        <td><span class="badge bg-success">Success</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-success" title="Trigger"><i class="fas fa-play"></i></button>
+                                                <button class="btn btn-outline-secondary" title="Edit Schedule"><i class="fas fa-calendar-alt"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>monthly_backup</td>
+                                        <td>Perform full system backup</td>
+                                        <td>0 0 1 * *</td>
+                                        <td>2023-05-01 00:00:00</td>
+                                        <td>3h 12m</td>
+                                        <td><span class="badge bg-success">Success</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-success" title="Trigger"><i class="fas fa-play"></i></button>
+                                                <button class="btn btn-outline-secondary" title="Edit Schedule"><i class="fas fa-calendar-alt"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>anomaly_detection_training</td>
+                                        <td>Re-train anomaly detection models</td>
+                                        <td>0 2 * * 1</td>
+                                        <td>2023-05-15 02:00:00</td>
+                                        <td>1h 45m</td>
+                                        <td><span class="badge bg-success">Success</span></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
+                                                <button class="btn btn-outline-success" title="Trigger"><i class="fas fa-play"></i></button>
+                                                <button class="btn btn-outline-secondary" title="Edit Schedule"><i class="fas fa-calendar-alt"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Status Tab -->
+                    <div class="tab-pane fade" id="jobs" role="tabpanel" aria-labelledby="jobs-tab">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5>Job Status Dashboard</h5>
+                            <div>
+                                <button class="btn btn-outline-secondary" id="refresh-jobs-btn">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card mb-md-0 mb-4">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Job Success Rate (Last 7 Days)</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="position: relative; height:300px;">
+                                            <canvas id="job-success-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Job Execution Time (Average)</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container" style="position: relative; height:300px;">
+                                            <canvas id="job-execution-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Job Timeline</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="job-timeline" style="height: 300px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create NiFi Job Modal -->
+<div class="modal fade" id="createNifiJobModal" tabindex="-1" aria-labelledby="createNifiJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createNifiJobModalLabel">Create NiFi Job</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-nifi-job-form">
+                    <div class="mb-3">
+                        <label for="job-name" class="form-label">Job Name</label>
+                        <input type="text" class="form-control" id="job-name" placeholder="Enter job name">
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="job-type" class="form-label">Job Type</label>
+                            <select class="form-select" id="job-type">
+                                <option value="file_transfer">File Transfer</option>
+                                <option value="data_transformation">Data Transformation</option>
+                                <option value="api_ingestion">API Data Ingestion</option>
+                                <option value="database_extract">Database Extract</option>
+                                <option value="network_capture">Network Capture</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="job-priority" class="form-label">Priority</label>
+                            <select class="form-select" id="job-priority">
+                                <option value="low">Low</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Source Configuration</label>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="source-type" class="form-label">Source Type</label>
+                                    <select class="form-select" id="source-type">
+                                        <option value="file_system">File System</option>
+                                        <option value="sftp">SFTP Server</option>
+                                        <option value="http">HTTP/REST API</option>
+                                        <option value="database">Database</option>
+                                        <option value="kafka">Kafka Topic</option>
+                                        <option value="network_interface">Network Interface</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="source-path" class="form-label">Source Path/URL/Topic</label>
+                                    <input type="text" class="form-control" id="source-path" placeholder="Enter source path, URL, or topic name">
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="source-credentials" class="form-label">Credentials (if needed)</label>
+                                        <select class="form-select" id="source-credentials">
+                                            <option value="">None</option>
+                                            <option value="cred_sftp">SFTP Credentials</option>
+                                            <option value="cred_api">API Credentials</option>
+                                            <option value="cred_db">Database Credentials</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="source-format" class="form-label">Data Format</label>
+                                        <select class="form-select" id="source-format">
+                                            <option value="any">Any/Binary</option>
+                                            <option value="json">JSON</option>
+                                            <option value="csv">CSV</option>
+                                            <option value="xml">XML</option>
+                                            <option value="pcap">PCAP</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Destination Configuration</label>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="destination-type" class="form-label">Destination Type</label>
+                                    <select class="form-select" id="destination-type">
+                                        <option value="file_system">File System</option>
+                                        <option value="minio">MinIO Storage</option>
+                                        <option value="kafka">Kafka Topic</option>
+                                        <option value="database">Database</option>
+                                        <option value="http">HTTP Endpoint</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="destination-path" class="form-label">Destination Path/Bucket/Topic</label>
+                                    <input type="text" class="form-control" id="destination-path" placeholder="Enter destination path, bucket, or topic name">
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="destination-credentials" class="form-label">Credentials (if needed)</label>
+                                        <select class="form-select" id="destination-credentials">
+                                            <option value="">None</option>
+                                            <option value="cred_minio">MinIO Credentials</option>
+                                            <option value="cred_kafka">Kafka Credentials</option>
+                                            <option value="cred_db">Database Credentials</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="destination-format" class="form-label">Data Format</label>
+                                        <select class="form-select" id="destination-format">
+                                            <option value="same">Same as source</option>
+                                            <option value="json">JSON</option>
+                                            <option value="csv">CSV</option>
+                                            <option value="parquet">Parquet</option>
+                                            <option value="avro">Avro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="job-description" class="form-label">Description</label>
+                        <textarea class="form-control" id="job-description" rows="3" placeholder="Describe the job purpose and any special considerations"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="create-nifi-job-submit">Create Job</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Schedule Modal -->
+<div class="modal fade" id="createScheduleModal" tabindex="-1" aria-labelledby="createScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createScheduleModalLabel">Create Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-schedule-form">
+                    <div class="mb-3">
+                        <label for="schedule-name" class="form-label">Schedule Name</label>
+                        <input type="text" class="form-control" id="schedule-name" placeholder="Enter schedule name">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="associated-job" class="form-label">Associated Job</label>
+                        <select class="form-select" id="associated-job">
+                            <option value="log_data_ingestion">Log Data Ingestion</option>
+                            <option value="s3_bucket_sync">S3 Bucket Sync</option>
+                            <option value="network_pcap_collection">Network PCAP Collection</option>
+                            <option value="database_backup">Database Backup</option>
+                            <option value="api_data_collector">API Data Collector</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Schedule Type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-cron" checked>
+                            <label class="form-check-label" for="schedule-cron">
+                                Cron Expression
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="schedule-type" id="schedule-simple">
+                            <label class="form-check-label" for="schedule-simple">
+                                Simple Schedule
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="cron-schedule-options">
+                        <div class="mb-3">
+                            <label for="cron-expression" class="form-label">Cron Expression</label>
+                            <input type="text" class="form-control" id="cron-expression" placeholder="0 0 * * *">
+                            <small class="form-text text-muted">Format: minute hour day month weekday</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Common Schedules</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary cron-preset" data-cron="0 * * * *">Hourly</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary cron-preset" data-cron="0 0 * * *">Daily</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary cron-preset" data-cron="0 0 * * 0">Weekly</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary cron-preset" data-cron="0 0 1 * *">Monthly</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="simple-schedule-options" class="d-none">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="frequency-value" class="form-label">Frequency</label>
+                                <input type="number" class="form-control" id="frequency-value" value="1" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="frequency-unit" class="form-label">Unit</label>
+                                <select class="form-select" id="frequency-unit">
+                                    <option value="minutes">Minutes</option>
+                                    <option value="hours">Hours</option>
+                                    <option value="days">Days</option>
+                                    <option value="weeks">Weeks</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="schedule-timezone" class="form-label">Timezone</label>
+                        <select class="form-select" id="schedule-timezone">
+                            <option value="UTC">UTC</option>
+                            <option value="America/New_York">America/New_York</option>
+                            <option value="Europe/London">Europe/London</option>
+                            <option value="Asia/Tokyo">Asia/Tokyo</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="schedule-description" class="form-label">Description</label>
+                        <textarea class="form-control" id="schedule-description" rows="3" placeholder="Describe the schedule purpose"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="create-schedule-submit">Create Schedule</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/data_pipeline.js') }}"></script>
+{% endblock %}

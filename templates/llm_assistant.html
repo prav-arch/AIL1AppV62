@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% set active_tab = 'llm_assistant' %}
+
+{% block title %}LLM Assistant - AI Assistant Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">LLM Assistant</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-9">
+                        <div class="d-flex">
+                            <select class="form-select me-2" id="agent-selector">
+                                <option value="general">General Assistant</option>
+                                <option value="troubleshooting">L1 Troubleshooting</option>
+                                <option value="data-analysis">Data Analysis</option>
+                                <option value="network">Network Specialist</option>
+                            </select>
+                            <button class="btn btn-outline-primary" id="agent-settings-btn">
+                                <i class="fas fa-cog"></i> Agent Settings
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="useRag" checked>
+                            <label class="form-check-label" for="useRag">Use RAG</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-container border rounded p-3 mb-4" style="height: 500px; overflow-y: auto;">
+                    <div id="chat-messages">
+                        <div class="message system-message">
+                            <div class="message-content">
+                                <p>Hello! I'm your AI Assistant. How can I help you today?</p>
+                            </div>
+                        </div>
+                        <!-- Messages will be added here -->
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <textarea class="form-control" id="prompt-input" rows="2" placeholder="Type your message here..."></textarea>
+                    <button class="btn btn-primary" type="button" id="send-prompt">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Document Upload</h5>
+            </div>
+            <div class="card-body">
+                <form id="document-upload-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="document-file" class="form-label">Upload Document (PDF, Word, Excel, PCAP)</label>
+                        <input class="form-control" type="file" id="document-file" name="document">
+                    </div>
+                    <div class="mb-3">
+                        <label for="document-description" class="form-label">Description (optional)</label>
+                        <input type="text" class="form-control" id="document-description" name="description" placeholder="Add a description">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload Document
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Web Scraper</h5>
+            </div>
+            <div class="card-body">
+                <form id="web-scraper-form">
+                    <div class="mb-3">
+                        <label for="webpage-url" class="form-label">Web Page URL</label>
+                        <input type="url" class="form-control" id="webpage-url" name="url" placeholder="https://example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="webpage-description" class="form-label">Description (optional)</label>
+                        <input type="text" class="form-control" id="webpage-description" name="description" placeholder="Add a description">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-globe"></i> Scrape Web Page
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Settings Modal -->
+<div class="modal fade" id="agentSettingsModal" tabindex="-1" aria-labelledby="agentSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="agentSettingsModalLabel">Agent Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="temperature-range" class="form-label">Temperature: <span id="temperature-value">0.7</span></label>
+                    <input type="range" class="form-range" min="0" max="1" step="0.1" value="0.7" id="temperature-range">
+                    <small class="text-muted">Lower values make responses more focused and deterministic. Higher values make responses more random and creative.</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="max-tokens" class="form-label">Max Tokens:</label>
+                    <select class="form-select" id="max-tokens">
+                        <option value="512">512</option>
+                        <option value="1024" selected>1024</option>
+                        <option value="2048">2048</option>
+                        <option value="4096">4096</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Agent Capabilities:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="capability-web-search" checked>
+                        <label class="form-check-label" for="capability-web-search">
+                            Web Search
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="capability-code-execution" checked>
+                        <label class="form-check-label" for="capability-code-execution">
+                            Code Execution
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="capability-document-analysis" checked>
+                        <label class="form-check-label" for="capability-document-analysis">
+                            Document Analysis
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="save-agent-settings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/llm_assistant.js') }}"></script>
+{% endblock %}
