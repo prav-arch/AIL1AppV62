@@ -4,17 +4,17 @@
 {% block title %}Dashboard - AI Assistant Platform{% endblock %}
 
 {% block content %}
-<!-- Simplified dashboard for testing -->
-<div class="row p-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title">Dashboard Test</h5>
+<!-- Dashboard -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Dashboard Overview</h3>
             </div>
-            <div class="card-body">
-                <p>Testing simplified dashboard</p>
+            <div class="panel-body">
+                <p>Welcome to the AI Assistant Platform Dashboard</p>
                 <div id="api-test-results"></div>
-                <button id="test-api-btn" class="btn btn-primary">Test API</button>
+                <button id="test-api-btn" class="btn btn-primary">Test API Connection</button>
             </div>
         </div>
     </div>
@@ -38,53 +38,61 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Original dashboard content below -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">System Overview</h5>
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">System Overview</h3>
             </div>
-            <div class="card-body">
+            <div class="panel-body">
                 <div class="row">
                     <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">LLM Requests</h6>
-                                <h2 class="display-4" id="llm-request-count">0</h2>
-                                <div class="small text-success">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <h3 class="panel-title text-center">LLM Requests</h3>
+                            </div>
+                            <div class="panel-body text-center">
+                                <h2 id="llm-request-count">0</h2>
+                                <div class="text-success">
                                     <i class="fas fa-arrow-up"></i> 5% from yesterday
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Documents Indexed</h6>
-                                <h2 class="display-4" id="docs-indexed-count">0</h2>
-                                <div class="small text-success">
+                        <div class="panel panel-info">
+                            <div class="panel-heading">
+                                <h3 class="panel-title text-center">Documents Indexed</h3>
+                            </div>
+                            <div class="panel-body text-center">
+                                <h2 id="docs-indexed-count">0</h2>
+                                <div class="text-success">
                                     <i class="fas fa-arrow-up"></i> 12% from yesterday
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Anomalies Detected</h6>
-                                <h2 class="display-4" id="anomalies-count">0</h2>
-                                <div class="small text-danger">
+                        <div class="panel panel-danger">
+                            <div class="panel-heading">
+                                <h3 class="panel-title text-center">Anomalies Detected</h3>
+                            </div>
+                            <div class="panel-body text-center">
+                                <h2 id="anomalies-count">0</h2>
+                                <div class="text-danger">
                                     <i class="fas fa-arrow-up"></i> 8% from yesterday
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Active Pipelines</h6>
-                                <h2 class="display-4" id="pipelines-count">0</h2>
-                                <div class="small text-muted">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title text-center">Active Pipelines</h3>
+                            </div>
+                            <div class="panel-body text-center">
+                                <h2 id="pipelines-count">0</h2>
+                                <div class="text-muted">
                                     <i class="fas fa-equals"></i> No change
                                 </div>
                             </div>
