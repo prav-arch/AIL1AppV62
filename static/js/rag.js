@@ -453,10 +453,10 @@ function displayVectorSearchResults(results) {
 // Fetch documents data
 async function fetchDocumentsData() {
     try {
-        const response = await fetchWithTimeout('/api/documents');
+        const response = await fetchWithTimeout('/api/rag/documents');
         const data = await response.json();
         
-        updateDocumentsTable(data.documents);
+        updateDocumentsTable(data);
     } catch (error) {
         handleFetchError(error, 'fetch documents');
     }
@@ -601,7 +601,7 @@ async function reindexDocument(documentId) {
 // Fetch vector database statistics
 async function fetchVectorDBStats() {
     try {
-        const response = await fetchWithTimeout('/api/vectordb/stats');
+        const response = await fetchWithTimeout('/api/rag/stats');
         const data = await response.json();
         
         updateVectorDBStats(data);
@@ -701,7 +701,7 @@ function showVectorSearchModal() {
 // Fetch MinIO storage information
 async function fetchMinioStorage() {
     try {
-        const response = await fetchWithTimeout('/api/storage/info');
+        const response = await fetchWithTimeout('/api/rag/storage');
         const data = await response.json();
         
         updateMinioStorage(data);
