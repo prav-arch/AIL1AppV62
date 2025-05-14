@@ -7,6 +7,15 @@ function handleFetchError(error, action) {
     showToast(`Error: ${message}`, 'error');
 }
 
+// Format file size in human-readable format
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize DataTables
     initializeDataTables();
@@ -255,10 +264,6 @@ function initializeRangeSliders() {
 function setupDocumentUploadModal() {
     const uploadSubmitBtn = document.getElementById('upload-document-submit');
     const fileInput = document.getElementById('modal-document-file');
-    const dropZone = document.getElementById('file-drop-zone');
-    const selectedFileInfo = document.getElementById('selected-file-info');
-    const selectedFilename = document.getElementById('selected-filename');
-    const clearFileBtn = document.getElementById('clear-selected-file');
     
     // Setup drag and drop functionality
     if (dropZone) {
@@ -343,6 +348,9 @@ function setupDocumentUploadModal() {
                 showToast('Please select a file to upload', 'warning');
                 return;
             }
+            
+            // Display file name and size nicely formatted
+            showToast(`File selected: ${fileInput.files[0].name} (${formatFileSize(fileInput.files[0].size)})`, 'info');
             
             const file = fileInput.files[0];
             console.log('Selected file:', file.name, file.size, file.type);

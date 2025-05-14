@@ -10,7 +10,13 @@ rag_bp = Blueprint('rag', __name__, url_prefix='/rag')
 
 @rag_bp.route('/')
 def index():
-    return render_template('rag.html')
+    response = render_template('rag.html')
+    # Set headers to prevent caching
+    return response, 200, {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    }
     
 @rag_bp.route('/api/upload-test', methods=['GET'])
 def test_upload():
