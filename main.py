@@ -1,5 +1,6 @@
 import os
 import logging
+import json
 from flask import Flask, jsonify, render_template, request
 import random
 from datetime import datetime, timedelta
@@ -172,16 +173,42 @@ def api_anomalies_list():
 @app.route('/api/llm/query', methods=['POST'])
 def api_llm_query():
     """Process an LLM query and return the response"""
+    from flask import Response, stream_with_context
+    from services.llm_service import LLMService
+    
     data = request.json or {}
     prompt = data.get('prompt', '')
     
     if not prompt:
         return jsonify({'error': 'Prompt is required'}), 400
     
+    # Get agent settings
+    settings = data.get('settings', {})
+    temperature = settings.get('temperature', 0.7)
+    max_tokens = settings.get('max_tokens', 1024)
+    
     try:
-        # For now, we'll return a mock response
-        response = f"This is a simulated response to your query: '{prompt}'"
-        return jsonify({'response': response})
+        # Connect to the LLM running at localhost:8080
+        llm_service = LLMService(base_url="http://localhost:8080")
+        
+        # Use streaming response
+        def generate():
+            try:
+                for chunk in llm_service.query_stream(
+                    prompt=prompt,
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                ):
+                    # Yield each chunk as a server-sent event
+                    yield f"data: {json.dumps({'text': chunk})}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        
+        return Response(
+            stream_with_context(generate()),
+            mimetype='text/event-stream'
+        )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -97,8 +97,8 @@ async function sendMessage() {
     promptInput.value = '';
     
     try {
-        // Send the prompt to the server
-        const response = await fetchWithTimeout('/api/llm/query', {
+        // Prepare the fetch options
+        const fetchOptions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -110,23 +110,75 @@ async function sendMessage() {
                 message_id: messageId,
                 settings: getAgentSettings()
             })
-        });
+        };
         
-        // Process the response directly
-        const data = await response.json();
-        if (data.error) {
-            handleLLMError(data.error, messageId);
-        } else {
-            // Replace loading indicator with response
-            const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                const messageContent = messageElement.querySelector('.message-content');
-                if (messageContent) {
-                    messageContent.innerHTML = `<p>${formatResponseText(data.response)}</p>`;
+        // Send the request and get a stream response
+        const response = await fetch('/api/llm/query', fetchOptions);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Set up the EventSource for the stream
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        // Replace loading indicator with an empty paragraph
+        const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            const messageContent = messageElement.querySelector('.message-content');
+            if (messageContent) {
+                messageContent.innerHTML = '<p></p>';
+            }
+        }
+        
+        // Process the streaming response
+        let buffer = '';
+        let done = false;
+        
+        while (!done) {
+            const { value, done: readerDone } = await reader.read();
+            if (readerDone) {
+                done = true;
+                break;
+            }
+            
+            // Decode the chunk
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Process complete SSE messages
+            let lines = buffer.split('\n\n');
+            buffer = lines.pop() || ''; // Keep the last incomplete chunk in the buffer
+            
+            for (const line of lines) {
+                if (!line.trim() || !line.startsWith('data: ')) continue;
+                
+                const data = line.substring(6); // Remove 'data: ' prefix
+                
+                if (data === '[DONE]') {
+                    done = true;
+                    break;
+                }
+                
+                try {
+                    const parsed = JSON.parse(data);
+                    
+                    if (parsed.error) {
+                        handleLLMError(parsed.error, messageId);
+                        done = true;
+                        break;
+                    }
+                    
+                    if (parsed.text) {
+                        appendResponseChunk(parsed.text, messageId);
+                    }
+                } catch (e) {
+                    console.error('Error parsing streaming response:', e);
                 }
             }
-            completeResponse(messageId);
         }
+        
+        completeResponse(messageId);
     } catch (error) {
         handleLLMError(error.message, messageId);
     } finally {
