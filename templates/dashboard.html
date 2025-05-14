@@ -6,111 +6,67 @@
 {% block content %}
 <!-- Dashboard -->
 <div class="row">
-    <div class="col-md-12">
-        <div class="panel panel-primary">
+    <div class="col-md-3">
+        <div class="panel panel-info">
             <div class="panel-heading">
-                <h3 class="panel-title">Dashboard Overview</h3>
+                <h3 class="panel-title text-center">LLM Requests</h3>
             </div>
-            <div class="panel-body">
-                <p>Welcome to the AI Assistant Platform Dashboard</p>
-                <div id="api-test-results"></div>
-                <button id="test-api-btn" class="btn btn-primary">Test API Connection</button>
+            <div class="panel-body text-center">
+                <h2 id="llm-request-count">0</h2>
+                <div class="text-success">
+                    <i class="fas fa-arrow-up"></i> 5% from yesterday
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('test-api-btn').addEventListener('click', async function() {
-        const resultDiv = document.getElementById('api-test-results');
-        resultDiv.innerHTML = 'Testing API...';
-        
-        try {
-            const response = await fetch('/api/dashboard/metrics');
-            const data = await response.json();
-            resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-        } catch (error) {
-            resultDiv.innerHTML = 'Error: ' + error.message;
-        }
-    });
-});
-</script>
-
-<!-- Original dashboard content below -->
-<div class="row">
-    <div class="col-md-12">
-        <div class="panel panel-primary">
+    <div class="col-md-3">
+        <div class="panel panel-info">
             <div class="panel-heading">
-                <h3 class="panel-title">System Overview</h3>
+                <h3 class="panel-title text-center">Documents Indexed</h3>
             </div>
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="panel panel-info">
-                            <div class="panel-heading">
-                                <h3 class="panel-title text-center">LLM Requests</h3>
-                            </div>
-                            <div class="panel-body text-center">
-                                <h2 id="llm-request-count">0</h2>
-                                <div class="text-success">
-                                    <i class="fas fa-arrow-up"></i> 5% from yesterday
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="panel panel-info">
-                            <div class="panel-heading">
-                                <h3 class="panel-title text-center">Documents Indexed</h3>
-                            </div>
-                            <div class="panel-body text-center">
-                                <h2 id="docs-indexed-count">0</h2>
-                                <div class="text-success">
-                                    <i class="fas fa-arrow-up"></i> 12% from yesterday
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="panel panel-danger">
-                            <div class="panel-heading">
-                                <h3 class="panel-title text-center">Anomalies Detected</h3>
-                            </div>
-                            <div class="panel-body text-center">
-                                <h2 id="anomalies-count">0</h2>
-                                <div class="text-danger">
-                                    <i class="fas fa-arrow-up"></i> 8% from yesterday
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="panel panel-default">
-                            <div class="panel-heading">
-                                <h3 class="panel-title text-center">Active Pipelines</h3>
-                            </div>
-                            <div class="panel-body text-center">
-                                <h2 id="pipelines-count">0</h2>
-                                <div class="text-muted">
-                                    <i class="fas fa-equals"></i> No change
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="panel-body text-center">
+                <h2 id="docs-indexed-count">0</h2>
+                <div class="text-success">
+                    <i class="fas fa-arrow-up"></i> 12% from yesterday
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="panel panel-danger">
+            <div class="panel-heading">
+                <h3 class="panel-title text-center">Anomalies Detected</h3>
+            </div>
+            <div class="panel-body text-center">
+                <h2 id="anomalies-count">0</h2>
+                <div class="text-danger">
+                    <i class="fas fa-arrow-up"></i> 8% from yesterday
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title text-center">Active Pipelines</h3>
+            </div>
+            <div class="panel-body text-center">
+                <h2 id="pipelines-count">0</h2>
+                <div class="text-muted">
+                    <i class="fas fa-equals"></i> No change
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mb-4">
+<div class="row">
     <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">LLM Usage Trends</h5>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">LLM Usage Trends</h3>
             </div>
-            <div class="card-body">
+            <div class="panel-body">
                 <div class="chart-container" style="position: relative; height:300px;">
                     <canvas id="llmUsageChart"></canvas>
                 </div>
@@ -118,11 +74,11 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Resource Distribution</h5>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Resource Distribution</h3>
             </div>
-            <div class="card-body">
+            <div class="panel-body">
                 <div class="chart-container" style="position: relative; height:300px;">
                     <canvas id="resourceDistributionChart"></canvas>
                 </div>
@@ -131,13 +87,13 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<div class="row mb-4">
+<div class="row">
     <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">GPU Utilization</h5>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">GPU Utilization</h3>
             </div>
-            <div class="card-body">
+            <div class="panel-body">
                 <div class="chart-container" style="position: relative; height:250px;">
                     <canvas id="gpuUtilizationChart"></canvas>
                 </div>
@@ -145,36 +101,44 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">System Health</h5>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">System Health</h3>
             </div>
-            <div class="card-body">
+            <div class="panel-body">
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Memory Usage</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="memory-usage" class="progress-bar bg-info" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">75%</div>
+                        <div class="progress">
+                            <div id="memory-usage" class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 75%;">
+                                75%
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <h6>CPU Load</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="cpu-load" class="progress-bar bg-success" role="progressbar" style="width: 42%;" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100">42%</div>
+                        <div class="progress">
+                            <div id="cpu-load" class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100" style="width: 42%;">
+                                42%
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row" style="margin-top: 15px;">
                     <div class="col-md-6">
                         <h6>Disk Usage</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="disk-usage" class="progress-bar bg-warning" role="progressbar" style="width: 68%;" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100">68%</div>
+                        <div class="progress">
+                            <div id="disk-usage" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100" style="width: 68%;">
+                                68%
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <h6>Network Throughput</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="network-throughput" class="progress-bar bg-primary" role="progressbar" style="width: 35%;" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100">35%</div>
+                        <div class="progress">
+                            <div id="network-throughput" class="progress-bar progress-bar-primary" role="progressbar" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100" style="width: 35%;">
+                                35%
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -185,96 +149,96 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <div class="row">
     <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Recent Kafka Messages</h5>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Recent Kafka Messages</h3>
             </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+            <div class="panel-body" style="max-height: 300px; overflow-y: auto;">
                 <ul class="list-group" id="recent-messages">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>logs-queue</strong>
                             <div class="text-muted small">System startup completed</div>
                         </div>
-                        <span class="badge bg-primary rounded-pill">2m ago</span>
+                        <span class="label label-primary">2m ago</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>metrics-queue</strong>
                             <div class="text-muted small">CPU spike detected</div>
                         </div>
-                        <span class="badge bg-primary rounded-pill">5m ago</span>
+                        <span class="label label-primary">5m ago</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>alerts-queue</strong>
                             <div class="text-muted small">New anomaly detected</div>
                         </div>
-                        <span class="badge bg-danger rounded-pill">10m ago</span>
+                        <span class="label label-danger">10m ago</span>
                     </li>
                 </ul>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Pipeline Status</h5>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Pipeline Status</h3>
             </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+            <div class="panel-body" style="max-height: 300px; overflow-y: auto;">
                 <ul class="list-group" id="pipeline-status">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>Data Ingestion</strong>
                             <div class="text-muted small">Processing files</div>
                         </div>
-                        <span class="badge bg-success rounded-pill">Running</span>
+                        <span class="label label-success">Running</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>ETL Process</strong>
                             <div class="text-muted small">Transforming data</div>
                         </div>
-                        <span class="badge bg-success rounded-pill">Running</span>
+                        <span class="label label-success">Running</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>Model Training</strong>
                             <div class="text-muted small">Scheduled for 22:00</div>
                         </div>
-                        <span class="badge bg-secondary rounded-pill">Scheduled</span>
+                        <span class="label label-default">Scheduled</span>
                     </li>
                 </ul>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Latest Anomalies</h5>
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Latest Anomalies</h3>
             </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+            <div class="panel-body" style="max-height: 300px; overflow-y: auto;">
                 <ul class="list-group" id="latest-anomalies">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>Network Traffic Spike</strong>
                             <div class="text-muted small">Unusual outbound traffic</div>
                         </div>
-                        <a href="/anomalies" class="btn btn-sm btn-outline-primary">Details</a>
+                        <a href="/anomalies" class="btn btn-xs btn-primary">Details</a>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>Memory Leak</strong>
                             <div class="text-muted small">In application server</div>
                         </div>
-                        <a href="/anomalies" class="btn btn-sm btn-outline-primary">Details</a>
+                        <a href="/anomalies" class="btn btn-xs btn-primary">Details</a>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <li class="list-group-item">
                         <div>
                             <strong>API Response Time</strong>
                             <div class="text-muted small">Increased latency detected</div>
                         </div>
-                        <a href="/anomalies" class="btn btn-sm btn-outline-primary">Details</a>
+                        <a href="/anomalies" class="btn btn-xs btn-primary">Details</a>
                     </li>
                 </ul>
             </div>
