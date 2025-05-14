@@ -27,6 +27,48 @@ body {
     color: #fff;
 }
 
+/* Form Elements Enhancement */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-control {
+    height: auto;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.form-group .text-muted {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+.checkbox label {
+    cursor: pointer;
+}
+
+/* Modal Enhancements */
+.modal-header {
+    padding: 15px;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px;
+}
+
 /* Improve navigation tabs for desktop */
 .nav-tabs {
     font-size: 14px;

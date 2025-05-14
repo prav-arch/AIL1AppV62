@@ -446,10 +446,9 @@
                 <form id="upload-document-form">
                     <!-- File Drop Zone -->
                     <div class="form-group text-center">
-                        <div id="file-drop-zone" class="upload-zone" style="border: 2px dashed #ccc; border-radius: 5px; padding: 25px; background-color: #f9f9f9; margin-bottom: 20px; cursor: pointer;">
-                            <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #bbb;"></i>
-                            <h4>Drop files here or click to browse</h4>
-                            <input class="form-control" type="file" id="modal-document-file" name="document" style="display: none;">
+                        <div class="file-input-container">
+                            <label for="modal-document-file" class="form-label"><strong><i class="fas fa-file"></i> Select Document</strong></label>
+                            <input class="form-control" type="file" id="modal-document-file" name="document">
                         </div>
                         <div id="selected-file-info" style="display: none;">
                             <div class="alert alert-info">
@@ -473,10 +472,11 @@
                     <!-- Options -->
                     <div class="form-group">
                         <div class="checkbox">
-                            <label>
+                            <label style="display: block; margin-bottom: 10px;">
                                 <input type="checkbox" id="index-immediately" checked>
-                                <strong>Index immediately after upload</strong> <small class="text-muted">(makes document searchable)</small>
+                                <span style="color: inherit; font-weight: bold;">Index immediately after upload</span>
                             </label>
+                            <small class="text-muted" style="display: block; margin-left: 20px; color: #aaa !important;">(Makes document searchable in the RAG system)</small>
                         </div>
                     </div>
                 </form>
