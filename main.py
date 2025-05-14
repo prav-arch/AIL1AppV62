@@ -19,6 +19,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
+# Disable template caching during development
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 # Register the blueprints
 app.register_blueprint(local_llm_bp)
 app.register_blueprint(rag_bp)
