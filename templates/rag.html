@@ -305,7 +305,7 @@
                     
                     <!-- Settings Tab -->
                     <div class="tab-pane" id="settings" role="tabpanel">
-                        <h5 class="mb-3">RAG Configuration</h5>
+                        <h5 class="form-group">RAG Configuration</h5>
                         
                         <form id="rag-settings-form">
                             <div class="row mb-3">
@@ -315,7 +315,7 @@
                                             <h6 class="mb-0">Embedding Model</h6>
                                         </div>
                                         <div class="card-body">
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="embedding-model" class="form-label">Model</label>
                                                 <select class="form-select" id="embedding-model">
                                                     <option value="sentence-transformers/all-MiniLM-L6-v2" selected>all-MiniLM-L6-v2 (Fast)</option>
@@ -324,7 +324,7 @@
                                                 </select>
                                             </div>
                                             
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="embedding-dimension" class="form-label">Embedding Dimension</label>
                                                 <input type="number" class="form-control" id="embedding-dimension" value="384" readonly>
                                                 <small class="text-muted">Automatically set based on model</small>
@@ -339,7 +339,7 @@
                                             <h6 class="mb-0">FAISS Index</h6>
                                         </div>
                                         <div class="card-body">
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="faiss-index-type" class="form-label">Index Type</label>
                                                 <select class="form-select" id="faiss-index-type">
                                                     <option value="IndexFlatL2" selected>Flat L2 (Exact)</option>
@@ -348,7 +348,7 @@
                                                 </select>
                                             </div>
                                             
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="faiss-nprobe" class="form-label">nprobe (search accuracy)</label>
                                                 <input type="range" class="form-range" min="1" max="100" step="1" value="10" id="faiss-nprobe">
                                                 <div class="d-flex justify-content-between">
@@ -369,7 +369,7 @@
                                             <h6 class="mb-0">Text Chunking</h6>
                                         </div>
                                         <div class="card-body">
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="chunk-size" class="form-label">Chunk Size</label>
                                                 <input type="range" class="form-range" min="100" max="2000" step="50" value="500" id="chunk-size">
                                                 <div class="d-flex justify-content-between">
@@ -379,7 +379,7 @@
                                                 </div>
                                             </div>
                                             
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="chunk-overlap" class="form-label">Chunk Overlap</label>
                                                 <input type="range" class="form-range" min="0" max="200" step="10" value="50" id="chunk-overlap">
                                                 <div class="d-flex justify-content-between">
@@ -398,7 +398,7 @@
                                             <h6 class="mb-0">Retrieval Settings</h6>
                                         </div>
                                         <div class="card-body">
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="top-k-results" class="form-label">Top K Results</label>
                                                 <input type="range" class="form-range" min="1" max="20" step="1" value="5" id="top-k-results">
                                                 <div class="d-flex justify-content-between">
@@ -408,7 +408,7 @@
                                                 </div>
                                             </div>
                                             
-                                            <div class="mb-3">
+                                            <div class="form-group">
                                                 <label for="similarity-threshold" class="form-label">Similarity Threshold</label>
                                                 <input type="range" class="form-range" min="0" max="1" step="0.05" value="0.7" id="similarity-threshold">
                                                 <div class="d-flex justify-content-between">
@@ -444,20 +444,20 @@
             </div>
             <div class="modal-body">
                 <form id="upload-document-form">
-                    <div class="mb-3">
+                    <div class="form-group">
                         <label for="document-file" class="form-label">Select Document</label>
                         <input class="form-control" type="file" id="modal-document-file">
                         <small class="text-muted">Supported formats: PDF, Word (.docx), Excel (.xlsx), PCAP (.pcap)</small>
                     </div>
-                    <div class="mb-3">
+                    <div class="form-group">
                         <label for="modal-document-name" class="form-label">Document Name (optional)</label>
                         <input type="text" class="form-control" id="modal-document-name" placeholder="Leave blank to use filename">
                     </div>
-                    <div class="mb-3">
+                    <div class="form-group">
                         <label for="modal-document-description" class="form-label">Description (optional)</label>
                         <textarea class="form-control" id="modal-document-description" rows="3"></textarea>
                     </div>
-                    <div class="mb-3">
+                    <div class="form-group">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="index-immediately" checked>
                             <label class="form-check-label" for="index-immediately">
@@ -468,7 +468,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="upload-document-submit">Upload</button>
             </div>
         </div>
@@ -481,23 +481,23 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="scrapeWebpageModalLabel">Scrape Webpage</h5>
-                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
                 <form id="scrape-webpage-form">
-                    <div class="mb-3">
+                    <div class="form-group">
                         <label for="webpage-url-modal" class="form-label">Webpage URL</label>
                         <input type="url" class="form-control" id="webpage-url-modal" placeholder="https://example.com">
                     </div>
-                    <div class="mb-3">
+                    <div class="form-group">
                         <label for="webpage-name" class="form-label">Name (optional)</label>
                         <input type="text" class="form-control" id="webpage-name" placeholder="Leave blank to use URL">
                     </div>
-                    <div class="mb-3">
+                    <div class="form-group">
                         <label for="webpage-description-modal" class="form-label">Description (optional)</label>
                         <textarea class="form-control" id="webpage-description-modal" rows="3"></textarea>
                     </div>
-                    <div class="mb-3">
+                    <div class="form-group">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="index-webpage-immediately" checked>
                             <label class="form-check-label" for="index-webpage-immediately">
@@ -508,7 +508,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="scrape-webpage-submit">Scrape</button>
             </div>
         </div>
@@ -521,27 +521,27 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="vectorSearchModalLabel">Vector Search</h5>
-                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
+                <div class="form-group">
                     <label for="vector-search-query" class="form-label">Search Query</label>
                     <input type="text" class="form-control" id="vector-search-query" placeholder="Enter your search query">
                 </div>
-                <div class="mb-3">
+                <div class="form-group">
                     <label for="vector-search-top-k" class="form-label">Number of Results (Top K)</label>
                     <input type="number" class="form-control" id="vector-search-top-k" value="5" min="1" max="20">
                 </div>
                 
                 <div id="vector-search-results" class="d-none">
-                    <h6 class="mb-3">Search Results</h6>
+                    <h6 class="form-group">Search Results</h6>
                     <div class="list-group" id="vector-results-list">
                         <!-- Results will be shown here -->
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" id="run-vector-search">Search</button>
             </div>
         </div>
