@@ -431,22 +431,35 @@ def scrape_webpage():
             else:
                 name = f"{domain}_{timestamp}"
         
-        # Setup request options
-        request_kwargs = {}
+        # Log SSL verification status
         if ignore_ssl_errors:
             logger.info("Ignoring SSL certificate verification")
-            request_kwargs['verify'] = False
         
         # Try to fetch webpage content
         try:
-            # First try with trafilatura
+            # Set up SSL verification for requests
+            ssl_verify = not ignore_ssl_errors
+            
+            # For trafilatura, we don't use the SSL verification directly
+            # as it doesn't accept this parameter
             logger.info(f"Fetching URL with trafilatura: {url}")
-            downloaded = fetch_url(url, **request_kwargs)
+            try:
+                # Import requests and temporarily modify its SSL verification behavior
+                import urllib3
+                if ignore_ssl_errors:
+                    # Disable SSL warnings when verification is disabled
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                    
+                # Try with trafilatura (which doesn't have a verify param)
+                downloaded = fetch_url(url)
+            except Exception as trafilatura_error:
+                logger.warning(f"Trafilatura error: {str(trafilatura_error)}")
+                downloaded = None
             
             if not downloaded:
                 # If trafilatura fails, try with requests
                 logger.info(f"Trafilatura failed, trying with requests: {url}")
-                response = requests.get(url, **request_kwargs, timeout=10)
+                response = requests.get(url, verify=ssl_verify, timeout=10)
                 response.raise_for_status()  # Raise exception for 4XX/5XX responses
                 downloaded = response.text
             
