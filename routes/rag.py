@@ -10,7 +10,7 @@ rag_bp = Blueprint('rag', __name__, url_prefix='/rag')
 
 @rag_bp.route('/')
 def index():
-    return render_template('rag_new.html')
+    return render_template('rag.html')
 
 @rag_bp.route('/api/documents', methods=['GET'])
 def get_documents():

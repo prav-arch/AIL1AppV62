@@ -8,8 +8,9 @@ import time
 import requests
 from flask import stream_with_context
 
-# Import the local LLM blueprint
+# Import the blueprints
 from routes.local_llm import local_llm_bp
+from routes.rag import rag_bp
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(name)s: %(message)s')
@@ -18,8 +19,9 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
-# Register the local LLM blueprint
+# Register the blueprints
 app.register_blueprint(local_llm_bp)
+app.register_blueprint(rag_bp)
 
 # Basic routes for testing
 @app.route('/test')
@@ -40,10 +42,10 @@ def index():
 def llm_assistant():
     return render_template('llm_assistant.html')
 
-# RAG page
-@app.route('/rag')
-def rag():
-    return render_template('rag.html')
+# RAG page - using blueprint now
+# @app.route('/rag')
+# def rag():
+#     return render_template('rag.html')
 
 # Anomalies page
 @app.route('/anomalies')
