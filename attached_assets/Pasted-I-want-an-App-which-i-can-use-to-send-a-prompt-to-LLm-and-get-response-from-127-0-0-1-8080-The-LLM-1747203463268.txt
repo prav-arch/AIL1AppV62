@@ -1,0 +1,21 @@
+I want an App which i can use to send a prompt to LLm and get response from 127.0.0.1:8080 . The LLMs are already running in http://127.0.0.1:8080 .Use appropriate endpoints to get responses when given a prompt
+The aplication or any pip command used should not have any SSL Permission issues or any SSL issues or any certificate untrusted issues should have a provision to skip certificate verfication.Use python3 instead of python when invoking any py files.Also application should be RAG Enabled with FAISS as vector Database.
+Web interface  with python backend.The webintercface should be modern and interactive
+.Through the Web interface i should be able to send prompt to LLM and get streaming response from LLM.I should also be able to scrap a webpage or add  document(Word,Excel,PDF) or even PCAP files
+PCAP Files will be saved in a common filesystem which should have minio file system and any documents which is uploaded should be saved to the Minio filesystem.
+The application will be running in a GPU which is TESLA P40.Do Optimizations as per that.The application should also have a web page to show the RAG Data.
+The application should be able to get all anamolies in a grid and each anamolies should have a "Get recommendations" button.On click of Get recommendation,
+it should fetch fetch recommendation from LLM for that particular anamoly. Anamolies should be detected using ML Algorithms.Anamolies should be shown in a separate page,
+Anamolies,patterns should also be displayed in a chart or any visualization.
+There Should be a dashboard page which should show high level metrics in attarctive charts
+Application should be able to read information from kafka and also should be able to put the message into kafka
+Application should have a separate page called "Kafka Browser" which should show the list of queues and when a queue is selected it should be able to show all messages in the queue
+Application should have ability to create a NIFI job which can get files from other server and that jobs should be powered by NIFI,
+that page should also display status of any jobs, and each jobs can be scheduled using Airflow,same page should also be able to show the schedule of job and configure schedule.
+Applications should be tab based and tabs should be displayed  in horizontal.
+.The application should be able to get messages from kafka and show it in dashboard.
+Also i intend to use it for L1Troubleshooting.So it should use AgenticAI to resolve any issue ,CrewAI should also be used for agents.Donot use .ts or tsx files
+The application should be running without any issues in my GPU Server and it should run with gunicorn
+
+
+
