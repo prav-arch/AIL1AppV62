@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from flask_socketio import SocketIO
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(name)s: %(message)s')
 
 # Initialize Flask app
 app = Flask(__name__)

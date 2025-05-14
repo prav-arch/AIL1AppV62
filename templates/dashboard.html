@@ -4,6 +4,40 @@
 {% block title %}Dashboard - AI Assistant Platform{% endblock %}
 
 {% block content %}
+<!-- Simplified dashboard for testing -->
+<div class="row p-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title">Dashboard Test</h5>
+            </div>
+            <div class="card-body">
+                <p>Testing simplified dashboard</p>
+                <div id="api-test-results"></div>
+                <button id="test-api-btn" class="btn btn-primary">Test API</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('test-api-btn').addEventListener('click', async function() {
+        const resultDiv = document.getElementById('api-test-results');
+        resultDiv.innerHTML = 'Testing API...';
+        
+        try {
+            const response = await fetch('/api/dashboard/metrics');
+            const data = await response.json();
+            resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        } catch (error) {
+            resultDiv.innerHTML = 'Error: ' + error.message;
+        }
+    });
+});
+</script>
+
+<!-- Original dashboard content below -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow-sm">
