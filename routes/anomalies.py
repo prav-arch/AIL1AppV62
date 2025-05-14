@@ -1,7 +1,32 @@
 from flask import Blueprint, render_template, request, jsonify
 import random
-from datetime import datetime, timedelta
 import json
+import numpy as np
+from datetime import datetime, timedelta
+import logging
+
+from services.anomaly_detection import (
+    AnomalyDetectionService, 
+    AnomalyAlgorithm, 
+    AnomalyDetector,
+    AnomalyResult
+)
+
+# Set up logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+# Initialize the anomaly detection service
+anomaly_service = AnomalyDetectionService()
+
+# Create some default detectors with different algorithms
+anomaly_service.create_detector("zscore", AnomalyAlgorithm.ZSCORE, {"threshold": 3.0})
+anomaly_service.create_detector("iqr", AnomalyAlgorithm.IQR, {"k": 1.5})
+anomaly_service.create_detector("isolation_forest", AnomalyAlgorithm.ISOLATION_FOREST, {"contamination": 0.05})
+anomaly_service.create_detector("one_class_svm", AnomalyAlgorithm.ONE_CLASS_SVM, {"nu": 0.05})
+anomaly_service.create_detector("dbscan", AnomalyAlgorithm.DBSCAN, {"eps": 0.5})
+anomaly_service.create_detector("lof", AnomalyAlgorithm.LOF, {"n_neighbors": 20})
+anomaly_service.create_detector("arima", AnomalyAlgorithm.ARIMA, {"order": (5, 1, 0)})
 
 anomalies_bp = Blueprint('anomalies', __name__, url_prefix='/anomalies')
 
@@ -181,6 +206,13 @@ def get_anomaly_recommendation(anomaly_id):
             "3. **Implement Disk Quotas**: Set up disk quotas to prevent any single user or service from filling the disk.",
             "4. **Archive Old Data**: Move older, infrequently accessed data to lower-tier storage.",
             "5. **Storage Expansion**: Plan for storage expansion if current capacity is consistently near capacity."
+        ],
+        'Time Series': [
+            "1. **Check for Seasonality**: Analyze for regular patterns or seasonal effects that might explain the anomaly.",
+            "2. **External Factors**: Investigate external events that might correlate with the anomalous time period.",
+            "3. **Smoothing Techniques**: Apply moving averages or exponential smoothing to reduce noise and better visualize trends.",
+            "4. **Decomposition Analysis**: Break down the time series into trend, seasonal, and residual components.",
+            "5. **Adjust Threshold Parameters**: Fine-tune detection thresholds based on historical data analysis."
         ]
     }
     
@@ -226,6 +258,24 @@ def get_anomaly_recommendation(anomaly_id):
             'source': 'firewall-main',
             'description': 'Multiple failed login attempts from IP 192.168.1.45',
             'severity': 'Critical'
+        },
+        {
+            'id': 'A-1278',
+            'timestamp': '2023-05-20 09:42:05',
+            'type': 'Time Series',
+            'source': 'metrics-server-01',
+            'description': 'Anomalous pattern detected in CPU utilization time series',
+            'severity': 'Warning',
+            'algorithm': 'ARIMA'
+        },
+        {
+            'id': 'A-1277',
+            'timestamp': '2023-05-20 08:35:19',
+            'type': 'Time Series',
+            'source': 'metrics-server-01',
+            'description': 'Outlier detected in network latency measurements',
+            'severity': 'Critical',
+            'algorithm': 'Isolation Forest'
         }
     ]
     
@@ -245,6 +295,141 @@ def get_anomaly_recommendation(anomaly_id):
         'recommendation': recommendations.get(anomaly['type'], recommendations['System']),
         'similar_incidents': similar_incidents
     })
+
+@anomalies_bp.route('/api/anomaly-detection/detect', methods=['POST'])
+def detect_anomalies():
+    """Detect anomalies in time series data using the specified algorithm"""
+    try:
+        # Parse the request data
+        data = request.json
+        
+        # Extract the required fields
+        time_series_data = data.get('data')
+        algorithm_name = data.get('algorithm', 'zscore')
+        params = data.get('params', {})
+        
+        # Validate the data
+        if not time_series_data or not isinstance(time_series_data, list):
+            return jsonify({'error': 'Invalid or missing time series data'}), 400
+        
+        # Convert data to numpy array and ensure it's numeric
+        try:
+            numeric_data = np.array([float(x) for x in time_series_data])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Time series data must be numeric values'}), 400
+            
+        # Get timestamps if provided
+        timestamps = data.get('timestamps')
+        
+        # Use the specified algorithm or create a new detector
+        if algorithm_name in anomaly_service.detectors:
+            detector = anomaly_service.get_detector(algorithm_name)
+        else:
+            # Create a new detector with the specified algorithm and parameters
+            try:
+                algorithm = AnomalyAlgorithm(algorithm_name)
+                detector = AnomalyDetector(algorithm, params)
+            except ValueError:
+                return jsonify({'error': f'Unknown algorithm: {algorithm_name}'}), 400
+        
+        # Detect anomalies
+        result = detector.detect(numeric_data, timestamps)
+        
+        # Convert the result to a JSON-serializable format
+        response = {
+            'algorithm': result.algorithm,
+            'anomaly_indices': result.anomaly_indices,
+            'anomaly_scores': result.anomaly_scores,
+            'threshold': result.threshold,
+            'metadata': result.metadata
+        }
+        
+        return jsonify(response)
+    
+    except Exception as e:
+        logger.error(f"Error in anomaly detection: {str(e)}")
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+@anomalies_bp.route('/api/anomaly-detection/algorithms', methods=['GET'])
+def list_algorithms():
+    """List available anomaly detection algorithms"""
+    algorithms = []
+    for algo in AnomalyAlgorithm:
+        algorithms.append({
+            'id': algo.value,
+            'name': algo.name,
+            'description': get_algorithm_description(algo)
+        })
+    
+    return jsonify(algorithms)
+
+@anomalies_bp.route('/api/anomaly-detection/ensemble', methods=['POST'])
+def ensemble_anomaly_detection():
+    """Perform ensemble anomaly detection using multiple algorithms"""
+    try:
+        # Parse the request data
+        data = request.json
+        
+        # Extract the required fields
+        time_series_data = data.get('data')
+        algorithms = data.get('algorithms')
+        threshold = data.get('threshold', 0.5)
+        
+        # Validate the data
+        if not time_series_data or not isinstance(time_series_data, list):
+            return jsonify({'error': 'Invalid or missing time series data'}), 400
+            
+        # Convert data to numpy array and ensure it's numeric
+        try:
+            numeric_data = np.array([float(x) for x in time_series_data])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Time series data must be numeric values'}), 400
+        
+        # Convert algorithm strings to enum values if needed
+        if algorithms:
+            algo_enums = []
+            for algo_str in algorithms:
+                try:
+                    algo_enums.append(AnomalyAlgorithm(algo_str))
+                except ValueError:
+                    return jsonify({'error': f'Unknown algorithm: {algo_str}'}), 400
+            algorithms = algo_enums
+        
+        # Get timestamps if provided
+        timestamps = data.get('timestamps')
+        
+        # Perform ensemble detection
+        anomaly_indices, ensemble_scores = anomaly_service.ensemble_detection(
+            numeric_data, algorithms, threshold, timestamps
+        )
+        
+        # Prepare response
+        response = {
+            'anomaly_indices': anomaly_indices,
+            'ensemble_scores': ensemble_scores,
+            'threshold': threshold,
+            'algorithms_used': [algo.value for algo in (algorithms or [])]
+        }
+        
+        return jsonify(response)
+    
+    except Exception as e:
+        logger.error(f"Error in ensemble anomaly detection: {str(e)}")
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+def get_algorithm_description(algorithm):
+    """Return a human-readable description of the anomaly detection algorithm"""
+    descriptions = {
+        AnomalyAlgorithm.ZSCORE: "Z-score measures how many standard deviations a data point is from the mean. Good for normally distributed data.",
+        AnomalyAlgorithm.IQR: "Interquartile Range (IQR) identifies outliers based on the distance from the first and third quartiles. Robust to non-normal distributions.",
+        AnomalyAlgorithm.ISOLATION_FOREST: "Isolation Forest isolates observations by randomly selecting features. Effective for high-dimensional data and large datasets.",
+        AnomalyAlgorithm.ONE_CLASS_SVM: "One-Class SVM learns a boundary around normal data points. Effective when training data is clean (anomaly-free).",
+        AnomalyAlgorithm.DBSCAN: "DBSCAN clusters points by density. Points that cannot be clustered are considered anomalies. Good for data with varying densities.",
+        AnomalyAlgorithm.LOF: "Local Outlier Factor compares the local density of a point with its neighbors. Effective at finding local anomalies.",
+        AnomalyAlgorithm.ARIMA: "ARIMA models time series data and identifies points that deviate from the prediction. Best for seasonal and trending time series.",
+        AnomalyAlgorithm.LSTM_AUTOENCODER: "LSTM Autoencoder uses deep learning to learn patterns in sequence data. Effective for complex time series with non-linear patterns."
+    }
+    return descriptions.get(algorithm, "No description available.")
 
 # Helper function to generate similar past incidents
 def get_similar_incidents(anomaly_type, severity):
