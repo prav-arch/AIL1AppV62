@@ -1,166 +1,210 @@
-/* Custom CSS for AI Assistant Platform */
+/* Main stylesheet for the application */
 
 /* Global styles */
+:root {
+  --body-bg: #212529;
+  --card-bg: #2b3035;
+  --border-color: #495057;
+  --text-color: #adb5bd;
+  --heading-color: #fff;
+  --link-color: #6ea8fe;
+  --link-hover-color: #8bb9fe;
+  --success-color: #198754;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #0dcaf0;
+}
+
 html, body {
-    height: 100%;
+  height: 100%;
+  overflow-x: hidden;
 }
 
 body {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+  background-color: var(--body-bg);
+  color: var(--text-color);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Layout structure */
 .wrapper {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
 }
 
-main {
-    flex: 1;
+.main-content {
+  flex: 1;
+  padding: 2rem 0;
 }
 
-/* Chat styling for LLM Assistant */
-.chat-container {
-    background-color: var(--bs-dark);
-    border-radius: 8px;
+.footer {
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
 }
 
-.message {
-    margin-bottom: 15px;
-    max-width: 85%;
+/* Dashboard components */
+.metric-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  height: 100%;
 }
 
-.user-message {
-    margin-left: auto;
-    background-color: rgba(var(--bs-primary-rgb), 0.2);
-    padding: 10px 15px;
-    border-radius: 15px 15px 0 15px;
+.metric-card .metric-value {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: var(--heading-color);
+  margin-bottom: 0.5rem;
 }
 
-.assistant-message {
-    margin-right: auto;
-    background-color: rgba(var(--bs-secondary-rgb), 0.2);
-    padding: 10px 15px;
-    border-radius: 15px 15px 15px 0;
+.metric-card .metric-title {
+  font-size: 1rem;
+  color: var(--text-color);
+  margin-bottom: 1rem;
 }
 
-.system-message {
-    margin: 0 auto;
-    background-color: rgba(var(--bs-info-rgb), 0.15);
-    padding: 10px 15px;
-    border-radius: 15px;
-    text-align: center;
-    max-width: 70%;
+.chart-container {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  height: 100%;
 }
 
-.typing-indicator {
-    display: inline-block;
-}
-.typing-indicator span {
-    height: 10px;
-    width: 10px;
-    float: left;
-    margin: 0 1px;
-    background-color: var(--bs-light);
-    display: block;
-    border-radius: 50%;
-    opacity: 0.4;
+.chart-container canvas {
+  width: 100% !important;
+  height: 250px !important;
 }
 
-.typing-indicator span:nth-of-type(1) {
-    animation: 1s blink infinite 0.3333s;
-}
-.typing-indicator span:nth-of-type(2) {
-    animation: 1s blink infinite 0.6666s;
-}
-.typing-indicator span:nth-of-type(3) {
-    animation: 1s blink infinite 0.9999s;
-}
-
-@keyframes blink {
-    50% {
-        opacity: 1;
-    }
+/* Status indicators */
+.status-badge {
+  display: inline-block;
+  padding: 0.25em 0.6em;
+  font-size: 0.75em;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 50rem;
 }
 
-/* Animation for streaming responses */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+.status-healthy {
+  background-color: var(--success-color);
+  color: #fff;
 }
 
-.streaming-text {
-    animation: fadeIn 0.3s ease-in-out;
+.status-warning {
+  background-color: var(--warning-color);
+  color: #212529;
 }
 
-/* Vector database visualization */
-#network-topology {
-    background-color: var(--bs-dark);
+.status-critical {
+  background-color: var(--danger-color);
+  color: #fff;
 }
 
-/* Card hover effects */
-.card {
-    transition: transform 0.2s, box-shadow 0.2s;
+.status-inactive {
+  background-color: var(--text-color);
+  color: #212529;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+/* Table styles */
+.data-table {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: var(--text-color);
+  vertical-align: top;
+  border-color: var(--border-color);
 }
 
-/* Loading spinner */
-.loading-spinner {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    margin: 20px auto;
+.data-table th,
+.data-table td {
+  padding: 0.75rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.loading-spinner:before {
-    content: '';
-    box-sizing: border-box;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 3px solid transparent;
-    border-top-color: var(--bs-primary);
-    border-bottom-color: var(--bs-primary);
-    animation: spinner 0.8s ease infinite;
+.data-table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--border-color);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
-@keyframes spinner {
-    to {
-        transform: rotate(360deg);
-    }
+.data-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Network visualization styles */
-.node {
-    stroke: var(--bs-light);
-    stroke-width: 1.5px;
+/* Form elements */
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-color);
+  background-color: var(--body-bg);
+  background-clip: padding-box;
+  border: 1px solid var(--border-color);
+  appearance: none;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.link {
-    stroke: var(--bs-secondary);
-    stroke-opacity: 0.6;
+.form-control:focus {
+  border-color: var(--link-color);
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .message {
-        max-width: 90%;
-    }
-    
-    .system-message {
-        max-width: 90%;
-    }
+.form-label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Code styling */
+pre, code {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+}
+
+pre {
+  display: block;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  overflow: auto;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 0.25rem;
+}
+
+code {
+  color: var(--info-color);
+  word-wrap: break-word;
+}
+
+/* Custom scrollbar (WebKit browsers) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--body-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-color);
 }
