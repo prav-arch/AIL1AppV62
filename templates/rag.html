@@ -12,23 +12,23 @@
             </div>
             <div class="card-body">
                 <ul class="nav nav-tabs" id="rag-tabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="true">Documents</button>
+                    <li class="active">
+                        <a href="#documents" id="documents-tab" data-toggle="tab" role="tab">Documents</a>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="vectordb-tab" data-bs-toggle="tab" data-bs-target="#vectordb" type="button" role="tab" aria-controls="vectordb" aria-selected="false">Vector Database</button>
+                    <li>
+                        <a href="#vectordb" id="vectordb-tab" data-toggle="tab" role="tab">Vector Database</a>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="filestore-tab" data-bs-toggle="tab" data-bs-target="#filestore" type="button" role="tab" aria-controls="filestore" aria-selected="false">File Storage</button>
+                    <li>
+                        <a href="#filestore" id="filestore-tab" data-toggle="tab" role="tab">File Storage</a>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
+                    <li>
+                        <a href="#settings" id="settings-tab" data-toggle="tab" role="tab">Settings</a>
                     </li>
                 </ul>
                 
-                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="rag-tab-content">
+                <div class="tab-content" id="rag-tab-content">
                     <!-- Documents Tab -->
-                    <div class="tab-pane fade show active" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+                    <div class="tab-pane active" id="documents" role="tabpanel">
                         <div class="d-flex justify-content-between mb-3">
                             <h5>Document Repository</h5>
                             <div>
@@ -106,7 +106,7 @@
                     </div>
                     
                     <!-- Vector Database Tab -->
-                    <div class="tab-pane fade" id="vectordb" role="tabpanel" aria-labelledby="vectordb-tab">
+                    <div class="tab-pane" id="vectordb" role="tabpanel">
                         <div class="d-flex justify-content-between mb-3">
                             <h5>FAISS Vector Database</h5>
                             <div>
@@ -199,7 +199,7 @@
                     </div>
                     
                     <!-- File Storage Tab -->
-                    <div class="tab-pane fade" id="filestore" role="tabpanel" aria-labelledby="filestore-tab">
+                    <div class="tab-pane" id="filestore" role="tabpanel">
                         <div class="d-flex justify-content-between mb-3">
                             <h5>MinIO File Storage</h5>
                             <div>
