@@ -36,6 +36,20 @@ app.register_blueprint(kafka_browser_bp)
 
 # Global API routes that match what the JavaScript is expecting
 
+@app.route('/test-urls')
+def test_urls():
+    """Debug endpoint to test url_for generation"""
+    from flask import url_for
+    urls = {
+        'dashboard': url_for('dashboard.index'),
+        'llm_assistant': url_for('llm_assistant.index'),
+        'rag': url_for('rag.index'),
+        'anomalies': url_for('anomalies.index'),
+        'data_pipeline': url_for('data_pipeline.index'),
+        'kafka_browser': url_for('kafka_browser.index')
+    }
+    return jsonify(urls)
+
 @app.route('/api/dashboard/metrics', methods=['GET'])
 def api_dashboard_metrics():
     """Return dashboard metrics for display"""
