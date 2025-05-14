@@ -280,7 +280,7 @@ class LLMService:
                 async with session.post(
                     url,
                     json=payload,
-                    ssl=None if not self.verify_ssl else True,
+                    ssl=bool(self.verify_ssl),  # Convert to bool to avoid type issues
                     timeout=aiohttp.ClientTimeout(total=120)  # 2-minute timeout
                 ) as response:
                     # Check for successful response
