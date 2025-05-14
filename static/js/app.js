@@ -15,46 +15,60 @@ const socket = {
 };
 
 // Global utility functions
-function showToast(message, type = 'primary') {
+function showToast(message, type = 'info') {
+    // Create a bootstrap 3.4.1 compatible alert that will be shown at the top of the page
+    
     // Create toast container if it doesn't exist
-    if (!document.querySelector('.toast-container')) {
+    if (!document.getElementById('toast-container')) {
         const toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'container';
+        toastContainer.style.position = 'fixed';
+        toastContainer.style.top = '10px';
+        toastContainer.style.left = '50%';
+        toastContainer.style.transform = 'translateX(-50%)';
+        toastContainer.style.zIndex = '9999';
+        toastContainer.style.width = '80%';
+        toastContainer.style.maxWidth = '600px';
         document.body.appendChild(toastContainer);
     }
     
-    const toastContainer = document.querySelector('.toast-container');
+    const toastContainer = document.getElementById('toast-container');
+    
+    // Map to bootstrap 3 alert types
+    const alertType = type === 'error' ? 'danger' : 
+                     (type === 'success' ? 'success' : 
+                     (type === 'warning' ? 'warning' : 'info'));
     
     // Create toast element
     const toastId = 'toast-' + Date.now();
     const toastHtml = `
-        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto">AI Assistant Platform</strong>
-                <small>Just now</small>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body bg-${type} text-white">
-                ${message}
-            </div>
+        <div id="${toastId}" class="alert alert-${alertType} alert-dismissible fade in" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <strong>Notification</strong>: ${message}
         </div>
     `;
     
     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
     
-    // Initialize and show the toast
-    const toastElement = document.getElementById(toastId);
-    const bsToast = new bootstrap.Toast(toastElement, {
-        autohide: true,
-        delay: 5000
-    });
-    
-    bsToast.show();
-    
-    // Remove toast after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', () => {
-        toastElement.remove();
-    });
+    // Automatically remove after 5 seconds
+    setTimeout(() => {
+        const toast = document.getElementById(toastId);
+        if (toast) {
+            // Fade out manually
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.5s';
+            
+            // Remove after fade
+            setTimeout(() => {
+                if (toast && toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 500);
+        }
+    }, 5000);
 }
 
 // Update system status indicator

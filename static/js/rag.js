@@ -268,8 +268,12 @@ function setupDocumentUploadModal() {
             }
             
             const file = fileInput.files[0];
+            console.log('Selected file:', file.name, file.size, file.type);
+            
             const formData = new FormData();
-            formData.append('document', file);
+            // Make sure we're using the exact field name the server expects
+            formData.append('document', file, file.name);
+            console.log('FormData created with document field');
             
             if (nameInput.value) {
                 formData.append('name', nameInput.value);
@@ -291,7 +295,14 @@ function setupDocumentUploadModal() {
                     body: formData
                 });
                 
+                console.log('Response status:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (data.success) {
                     showToast('Document uploaded successfully', 'success');

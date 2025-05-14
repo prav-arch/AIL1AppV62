@@ -307,9 +307,15 @@ def upload_document():
     remote_dir = '/home/users/praveen.joe/uploads'  # This is just for reference
     
     # Log request details for debugging
-    logger.info(f"Upload document request received")
-    logger.info(f"Request form data: {request.form}")
-    logger.info(f"Request files: {request.files}")
+    logger.info(f"====== Upload document request received ======")
+    logger.info(f"Request form data keys: {list(request.form.keys())}")
+    logger.info(f"Request files keys: {list(request.files.keys())}")
+    for key in request.files:
+        file_obj = request.files[key]
+        logger.info(f"File '{key}': {file_obj.filename}, {file_obj.content_type}, {file_obj.content_length}")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request content type: {request.content_type}")
+    logger.info(f"=======================================")
     
     try:
         # Create upload directory if it doesn't exist
