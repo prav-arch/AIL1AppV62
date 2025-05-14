@@ -1,0 +1,1104 @@
+{% extends "base.html" %}
+{% set active_tab = 'rag' %}
+
+{% block title %}RAG - AI Assistant Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Retrieval-Augmented Generation (RAG)</h5>
+                <div>
+                    <button class="btn btn-sm btn-light" id="help-btn" data-bs-toggle="modal" data-bs-target="#helpModal">
+                        <i class="fas fa-question-circle"></i> Help
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Main RAG Interface -->
+                <div class="row">
+                    <!-- Left Side: Chat and Query Interface -->
+                    <div class="col-lg-7 mb-4 mb-lg-0">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="rag-chat-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#rag-chat" type="button" role="tab" 
+                                                aria-controls="rag-chat" aria-selected="true">
+                                            <i class="fas fa-comments"></i> RAG Chat
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="search-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#search" type="button" role="tab" 
+                                                aria-controls="search" aria-selected="false">
+                                            <i class="fas fa-search"></i> Advanced Search
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                <div class="tab-content">
+                                    <!-- RAG Chat Interface -->
+                                    <div class="tab-pane fade show active" id="rag-chat" role="tabpanel" aria-labelledby="rag-chat-tab">
+                                        <div class="chat-messages" id="rag-messages" style="height: 400px; overflow-y: auto; padding: 10px; background-color: #f8f9fa; border-radius: 5px; margin-bottom: 15px;">
+                                            <div class="system-message">
+                                                <div class="message-content">
+                                                    <p>Welcome to the FAISS powered RAG system. I can answer questions based on your document repository.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="chat-input-container">
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="rag-query-input" 
+                                                       placeholder="Ask a question about your documents...">
+                                                <button class="btn btn-primary" id="rag-query-submit">
+                                                    <i class="fas fa-paper-plane"></i> Send
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Advanced Search Interface -->
+                                    <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">
+                                        <form id="advanced-search-form">
+                                            <div class="mb-3">
+                                                <label for="search-query" class="form-label">Search Query</label>
+                                                <input type="text" class="form-control" id="search-query" placeholder="Enter search keywords...">
+                                            </div>
+                                            
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label for="search-category" class="form-label">Category</label>
+                                                    <select class="form-select" id="search-category">
+                                                        <option value="">All Categories</option>
+                                                        <option value="Technical">Technical</option>
+                                                        <option value="Finance">Finance</option>
+                                                        <option value="Product">Product</option>
+                                                        <option value="Research">Research</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="search-file-type" class="form-label">File Type</label>
+                                                    <select class="form-select" id="search-file-type">
+                                                        <option value="">All Types</option>
+                                                        <option value="PDF">PDF</option>
+                                                        <option value="Word">Word</option>
+                                                        <option value="Excel">Excel</option>
+                                                        <option value="Text">Text</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mb-3">
+                                                <label class="form-label">Search Options</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="search-exact-match">
+                                                    <label class="form-check-label" for="search-exact-match">
+                                                        Exact phrase matching
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="search-recent" checked>
+                                                    <label class="form-check-label" for="search-recent">
+                                                        Most recent documents first
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-primary" id="advanced-search-btn">
+                                                    <i class="fas fa-search"></i> Search
+                                                </button>
+                                            </div>
+                                        </form>
+                                        
+                                        <div id="search-results" class="mt-4" style="display: none;">
+                                            <h6>Search Results</h6>
+                                            <div class="list-group" id="search-results-container">
+                                                <!-- Search results will be displayed here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Side: Knowledge Base Explorer -->
+                    <div class="col-lg-5">
+                        <div class="card h-100">
+                            <div class="card-header bg-light">
+                                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="documents-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#documents" type="button" role="tab" 
+                                                aria-controls="documents" aria-selected="true">
+                                            <i class="fas fa-file-alt"></i> Documents
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="stats-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#stats" type="button" role="tab" 
+                                                aria-controls="stats" aria-selected="false">
+                                            <i class="fas fa-chart-bar"></i> Statistics
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#upload" type="button" role="tab" 
+                                                aria-controls="upload" aria-selected="false">
+                                            <i class="fas fa-upload"></i> Add Content
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body">
+                                <div class="tab-content">
+                                    <!-- Documents Tab -->
+                                    <div class="tab-pane fade show active" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <h6 class="card-title">Knowledge Base</h6>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-secondary" id="refresh-docs-btn">
+                                                    <i class="fas fa-sync"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-sort"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="#" data-sort="name">Sort by Name</a></li>
+                                                    <li><a class="dropdown-item" href="#" data-sort="date">Sort by Date</a></li>
+                                                    <li><a class="dropdown-item" href="#" data-sort="type">Sort by Type</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="list-group" id="document-list">
+                                            <div class="text-center my-5">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Loading documents...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Statistics Tab -->
+                                    <div class="tab-pane fade" id="stats" role="tabpanel" aria-labelledby="stats-tab">
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-body text-center p-3">
+                                                        <h6 class="card-subtitle mb-1 text-muted">Documents</h6>
+                                                        <h3 id="stats-doc-count">85</h3>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-body text-center p-3">
+                                                        <h6 class="card-subtitle mb-1 text-muted">Chunks</h6>
+                                                        <h3 id="stats-chunk-count">1,245</h3>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card mb-3">
+                                            <div class="card-header py-2">
+                                                <h6 class="mb-0">Document Categories</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="chart-container" style="position: relative; height:150px;">
+                                                    <canvas id="categories-chart"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card">
+                                            <div class="card-header py-2">
+                                                <h6 class="mb-0">Knowledge Growth</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="chart-container" style="position: relative; height:150px;">
+                                                    <canvas id="growth-chart"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Upload Tab -->
+                                    <div class="tab-pane fade" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                                        <ul class="nav nav-tabs mb-3" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="upload-file-tab" data-bs-toggle="tab" 
+                                                        data-bs-target="#upload-file" type="button" role="tab">
+                                                    <i class="fas fa-file-upload"></i> Upload File
+                                                </button>
+                                            </li>
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="scrape-web-tab" data-bs-toggle="tab" 
+                                                        data-bs-target="#scrape-web" type="button" role="tab">
+                                                    <i class="fas fa-globe"></i> Scrape Web
+                                                </button>
+                                            </li>
+                                        </ul>
+                                        
+                                        <div class="tab-content">
+                                            <!-- File Upload Form -->
+                                            <div class="tab-pane fade show active" id="upload-file" role="tabpanel">
+                                                <form id="document-upload-form">
+                                                    <div class="mb-3">
+                                                        <label for="document-file" class="form-label">Select Document</label>
+                                                        <input class="form-control" type="file" id="document-file">
+                                                    </div>
+                                                    
+                                                    <div class="mb-3">
+                                                        <label for="document-category" class="form-label">Category</label>
+                                                        <select class="form-select" id="document-category">
+                                                            <option value="Technical">Technical</option>
+                                                            <option value="Finance">Finance</option>
+                                                            <option value="Product">Product</option>
+                                                            <option value="Research">Research</option>
+                                                            <option value="Other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                    
+                                                    <div class="mb-3">
+                                                        <label for="document-description" class="form-label">Description (Optional)</label>
+                                                        <textarea class="form-control" id="document-description" rows="2"></textarea>
+                                                    </div>
+                                                    
+                                                    <div class="d-grid">
+                                                        <button type="submit" class="btn btn-primary" id="upload-document-btn">
+                                                            <i class="fas fa-upload"></i> Upload Document
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            
+                                            <!-- Web Scraping Form -->
+                                            <div class="tab-pane fade" id="scrape-web" role="tabpanel">
+                                                <form id="webpage-scrape-form">
+                                                    <div class="mb-3">
+                                                        <label for="webpage-url" class="form-label">Webpage URL</label>
+                                                        <input type="url" class="form-control" id="webpage-url" 
+                                                               placeholder="https://example.com/page-to-scrape">
+                                                    </div>
+                                                    
+                                                    <div class="mb-3">
+                                                        <label for="webpage-category" class="form-label">Category</label>
+                                                        <select class="form-select" id="webpage-category">
+                                                            <option value="Technical">Technical</option>
+                                                            <option value="Finance">Finance</option>
+                                                            <option value="Product">Product</option>
+                                                            <option value="Research">Research</option>
+                                                            <option value="Other">Other</option>
+                                                        </select>
+                                                    </div>
+                                                    
+                                                    <div class="mb-3">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="scrape-subpages">
+                                                            <label class="form-check-label" for="scrape-subpages">
+                                                                Scrape linked pages (up to 5 levels deep)
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="d-grid">
+                                                        <button type="submit" class="btn btn-primary" id="scrape-webpage-btn">
+                                                            <i class="fas fa-globe"></i> Scrape Webpage
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="preview-document-title">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>
+                        <span class="badge bg-secondary me-2" id="preview-document-type">PDF</span>
+                        <span class="text-muted" id="preview-document-date">Added: 2023-05-20</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary" id="preview-document-chunks">45 chunks</span>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Document Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <th style="width: 120px;">ID:</th>
+                                <td id="preview-document-id">doc_001</td>
+                            </tr>
+                            <tr>
+                                <th>Category:</th>
+                                <td id="preview-document-category">Technical</td>
+                            </tr>
+                            <tr>
+                                <th>Size:</th>
+                                <td id="preview-document-size">1.2 MB</td>
+                            </tr>
+                            <tr>
+                                <th>Status:</th>
+                                <td><span class="badge bg-success" id="preview-document-status">Indexed</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Content Preview</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="preview-document-content" style="max-height: 300px; overflow-y: auto;">
+                            <p>Loading document content...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" id="delete-document-btn">Delete</button>
+                <button type="button" class="btn btn-outline-secondary" id="reindex-document-btn">Re-index</button>
+                <button type="button" class="btn btn-primary" id="download-document-btn">Download</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">RAG System Help</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6>What is RAG?</h6>
+                <p>Retrieval-Augmented Generation (RAG) combines information retrieval with text generation to create responses that are both relevant and contextually accurate.</p>
+                
+                <h6>How to use this system:</h6>
+                <ol>
+                    <li><strong>Add Documents</strong> - Upload files or scrape webpages to create your knowledge base</li>
+                    <li><strong>Ask Questions</strong> - Use the RAG Chat to ask questions about your documents</li>
+                    <li><strong>Explore Documents</strong> - Browse and manage your document repository</li>
+                    <li><strong>View Statistics</strong> - Monitor system usage and performance</li>
+                </ol>
+                
+                <h6>Supported File Types:</h6>
+                <ul>
+                    <li>PDF Files (.pdf)</li>
+                    <li>Word Documents (.docx, .doc)</li>
+                    <li>Excel Spreadsheets (.xlsx, .xls)</li>
+                    <li>Text Files (.txt)</li>
+                    <li>CSV Files (.csv)</li>
+                    <li>HTML Files (.html)</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize charts
+    initializeCharts();
+    
+    // Load documents
+    loadDocuments();
+    
+    // Load statistics
+    loadStatistics();
+    
+    // Setup event listeners
+    setupEventListeners();
+});
+
+// Initialize charts for statistics tab
+function initializeCharts() {
+    // Categories chart
+    const categoriesCtx = document.getElementById('categories-chart').getContext('2d');
+    window.categoriesChart = new Chart(categoriesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Technical', 'Finance', 'Product', 'Research', 'Other'],
+            datasets: [{
+                data: [35, 20, 25, 15, 5],
+                backgroundColor: ['#4285F4', '#34A853', '#FBBC05', '#EA4335', '#9E9E9E']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 12
+                    }
+                }
+            }
+        }
+    });
+    
+    // Growth chart
+    const growthCtx = document.getElementById('growth-chart').getContext('2d');
+    window.growthChart = new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+            datasets: [{
+                label: 'Documents',
+                data: [25, 37, 52, 68, 85],
+                borderColor: '#4285F4',
+                backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            },
+            {
+                label: 'Chunks',
+                data: [320, 480, 670, 820, 1245],
+                borderColor: '#34A853',
+                backgroundColor: 'rgba(52, 168, 83, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Documents'
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Chunks'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+
+// Load documents from the API
+function loadDocuments() {
+    // Show loading state
+    document.getElementById('document-list').innerHTML = `
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading documents...</p>
+        </div>
+    `;
+    
+    fetch('/rag/api/documents')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load documents');
+            }
+            return response.json();
+        })
+        .then(documents => {
+            renderDocuments(documents);
+        })
+        .catch(error => {
+            console.error('Error loading documents:', error);
+            document.getElementById('document-list').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> Failed to load documents. Please try again.
+                </div>
+            `;
+        });
+}
+
+// Render documents in the list
+function renderDocuments(documents) {
+    const documentList = document.getElementById('document-list');
+    
+    if (documents.length === 0) {
+        documentList.innerHTML = `
+            <div class="text-center my-5">
+                <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                <p>No documents found in the knowledge base.</p>
+                <p class="mt-3">
+                    <a href="#" id="add-first-document-link">Add your first document</a>
+                </p>
+            </div>
+        `;
+        
+        // Set up event listener for the "Add your first document" link
+        document.getElementById('add-first-document-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            // Switch to the upload tab
+            document.getElementById('upload-tab').click();
+        });
+        
+        return;
+    }
+    
+    // Generate document items
+    let html = '';
+    documents.forEach(doc => {
+        const statusBadge = getStatusBadge(doc.status);
+        
+        html += `
+            <div class="list-group-item list-group-item-action" data-document-id="${doc.id}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            ${getFileIcon(doc.type)}
+                        </div>
+                        <div>
+                            <h6 class="mb-0">${doc.name}</h6>
+                            <small class="text-muted">
+                                ${doc.size} • Added: ${doc.date_added}
+                            </small>
+                        </div>
+                    </div>
+                    <div>
+                        ${statusBadge}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    documentList.innerHTML = html;
+    
+    // Add event listeners for document items
+    document.querySelectorAll('.list-group-item[data-document-id]').forEach(item => {
+        item.addEventListener('click', function() {
+            const documentId = this.getAttribute('data-document-id');
+            showDocumentPreview(documentId, documents);
+        });
+    });
+}
+
+// Get the appropriate icon for file type
+function getFileIcon(fileType) {
+    const iconMap = {
+        'PDF': '<i class="fas fa-file-pdf fa-2x text-danger"></i>',
+        'Word': '<i class="fas fa-file-word fa-2x text-primary"></i>',
+        'Excel': '<i class="fas fa-file-excel fa-2x text-success"></i>',
+        'Text': '<i class="fas fa-file-alt fa-2x text-secondary"></i>',
+        'PCAP': '<i class="fas fa-file-code fa-2x text-info"></i>',
+        'HTML': '<i class="fas fa-file-code fa-2x text-warning"></i>'
+    };
+    
+    return iconMap[fileType] || '<i class="fas fa-file fa-2x text-secondary"></i>';
+}
+
+// Get the appropriate badge for document status
+function getStatusBadge(status) {
+    const badgeMap = {
+        'indexed': '<span class="badge bg-success">Indexed</span>',
+        'processing': '<span class="badge bg-warning">Processing</span>',
+        'failed': '<span class="badge bg-danger">Failed</span>',
+        'pending': '<span class="badge bg-secondary">Pending</span>'
+    };
+    
+    return badgeMap[status] || '<span class="badge bg-secondary">Unknown</span>';
+}
+
+// Show document preview in modal
+function showDocumentPreview(documentId, documents) {
+    // Find the document in the list
+    const document = documents.find(doc => doc.id === documentId);
+    
+    if (!document) {
+        console.error('Document not found:', documentId);
+        return;
+    }
+    
+    // Set document information in the modal
+    document.getElementById('preview-document-title').textContent = document.name;
+    document.getElementById('preview-document-type').textContent = document.type;
+    document.getElementById('preview-document-date').textContent = `Added: ${document.date_added}`;
+    document.getElementById('preview-document-chunks').textContent = `${document.chunks} chunks`;
+    document.getElementById('preview-document-id').textContent = document.id;
+    document.getElementById('preview-document-category').textContent = document.category;
+    document.getElementById('preview-document-size').textContent = document.size;
+    document.getElementById('preview-document-status').textContent = document.status.charAt(0).toUpperCase() + document.status.slice(1);
+    document.getElementById('preview-document-status').className = `badge ${document.status === 'indexed' ? 'bg-success' : document.status === 'processing' ? 'bg-warning' : 'bg-danger'}`;
+    
+    // Generate a random document content preview (in a real application, this would fetch from the API)
+    document.getElementById('preview-document-content').innerHTML = generateDocumentPreview(document);
+    
+    // Show the modal
+    new bootstrap.Modal(document.getElementById('documentPreviewModal')).show();
+}
+
+// Generate random document content preview
+function generateDocumentPreview(document) {
+    // In a real application, you would fetch this from an API
+    const previewContent = {
+        'Technical': `
+            <h4>Network Configuration Guide</h4>
+            <p>This guide provides comprehensive instructions for configuring network settings across multiple operating systems...</p>
+            <h5>Basic Network Concepts</h5>
+            <p>Understanding IP addressing, subnet masks, and default gateways is essential for proper network configuration...</p>
+            <h5>Linux Configuration</h5>
+            <p>To configure network settings on a Linux system, you need to edit the interface configuration files...</p>
+        `,
+        'Finance': `
+            <h4>Quarterly Financial Report</h4>
+            <p>This report provides a comprehensive analysis of financial performance for Q2 2023...</p>
+            <h5>Revenue Highlights</h5>
+            <p>Revenue increased by 12% compared to the previous quarter, primarily driven by growth in the Software division...</p>
+            <h5>Expense Analysis</h5>
+            <p>Operating expenses decreased by 5% due to cost optimization initiatives and improved vendor management...</p>
+        `,
+        'Product': `
+            <h4>Product Documentation</h4>
+            <p>This document describes the features and configurations of the XYZ product line...</p>
+            <h5>Installation</h5>
+            <p>To install the product, follow these steps: 1. Download the installation package, 2. Run the setup wizard...</p>
+            <h5>Configuration</h5>
+            <p>The product includes advanced configuration options accessible through the admin panel...</p>
+        `,
+        'Research': `
+            <h4>Research Paper: Advanced AI Techniques</h4>
+            <p>Abstract: This paper presents novel approaches to large language model training and optimization...</p>
+            <h5>Introduction</h5>
+            <p>Large language models have transformed natural language processing capabilities but face challenges...</p>
+            <h5>Methodology</h5>
+            <p>We propose a hybrid approach combining transformer architectures with knowledge graph integration...</p>
+        `
+    };
+    
+    return previewContent[document.category] || `<p>No preview available for ${document.name}</p>`;
+}
+
+// Load statistics for the RAG system
+function loadStatistics() {
+    fetch('/rag/api/vectordb/stats')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load vector database statistics');
+            }
+            return response.json();
+        })
+        .then(stats => {
+            // Update statistics display
+            document.getElementById('stats-doc-count').textContent = stats.monthly_stats.documents[stats.monthly_stats.documents.length - 1];
+            document.getElementById('stats-chunk-count').textContent = stats.total_chunks.toLocaleString();
+            
+            // Update charts with real data
+            updateCharts(stats);
+        })
+        .catch(error => {
+            console.error('Error loading statistics:', error);
+        });
+}
+
+// Update charts with real data
+function updateCharts(stats) {
+    // Update growth chart
+    if (window.growthChart) {
+        window.growthChart.data.labels = stats.monthly_stats.labels;
+        window.growthChart.data.datasets[0].data = stats.monthly_stats.documents;
+        window.growthChart.data.datasets[1].data = stats.monthly_stats.chunks;
+        window.growthChart.update();
+    }
+    
+    // In a real application, we would fetch category distribution data and update categoriesChart
+}
+
+// Set up event listeners for the RAG interface
+function setupEventListeners() {
+    // RAG Chat query submission
+    document.getElementById('rag-query-submit').addEventListener('click', function() {
+        const queryInput = document.getElementById('rag-query-input');
+        const query = queryInput.value.trim();
+        
+        if (query) {
+            submitRAGQuery(query);
+            queryInput.value = '';
+        }
+    });
+    
+    // Allow Enter key to submit query
+    document.getElementById('rag-query-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('rag-query-submit').click();
+        }
+    });
+    
+    // Advanced search form submission
+    document.getElementById('advanced-search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        performAdvancedSearch();
+    });
+    
+    // Document upload form submission
+    document.getElementById('document-upload-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        uploadDocument();
+    });
+    
+    // Webpage scrape form submission
+    document.getElementById('webpage-scrape-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        scrapeWebpage();
+    });
+    
+    // Refresh documents button
+    document.getElementById('refresh-docs-btn').addEventListener('click', function() {
+        loadDocuments();
+    });
+    
+    // Document preview modal buttons
+    document.getElementById('delete-document-btn').addEventListener('click', function() {
+        const documentId = document.getElementById('preview-document-id').textContent;
+        if (confirm('Are you sure you want to delete this document?')) {
+            deleteDocument(documentId);
+        }
+    });
+    
+    document.getElementById('reindex-document-btn').addEventListener('click', function() {
+        const documentId = document.getElementById('preview-document-id').textContent;
+        reindexDocument(documentId);
+    });
+    
+    document.getElementById('download-document-btn').addEventListener('click', function() {
+        const documentId = document.getElementById('preview-document-id').textContent;
+        const documentName = document.getElementById('preview-document-title').textContent;
+        downloadDocument(documentId, documentName);
+    });
+}
+
+// Submit a RAG query and display the response
+function submitRAGQuery(query) {
+    const messagesContainer = document.getElementById('rag-messages');
+    
+    // Add user message
+    messagesContainer.innerHTML += `
+        <div class="user-message message">
+            <div class="message-content">
+                <p>${query}</p>
+            </div>
+        </div>
+    `;
+    
+    // Add loading indicator
+    messagesContainer.innerHTML += `
+        <div class="assistant-message message" id="loading-message">
+            <div class="message-content">
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Scroll to bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Send the query to the API
+    fetch('/rag/api/rag/search', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: query })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to get response from RAG system');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Remove loading indicator
+        document.getElementById('loading-message').remove();
+        
+        // Process the results to generate a coherent response
+        const response = generateRAGResponse(data);
+        
+        // Add assistant message
+        messagesContainer.innerHTML += `
+            <div class="assistant-message message">
+                <div class="message-content">
+                    <p>${response}</p>
+                    <p class="text-muted small mt-2">Sources: ${data.results.map(r => r.document_name).join(', ')}</p>
+                </div>
+            </div>
+        `;
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    })
+    .catch(error => {
+        console.error('Error submitting RAG query:', error);
+        
+        // Remove loading indicator
+        document.getElementById('loading-message').remove();
+        
+        // Add error message
+        messagesContainer.innerHTML += `
+            <div class="system-message message">
+                <div class="message-content">
+                    <p>Sorry, I encountered an error processing your query. Please try again.</p>
+                </div>
+            </div>
+        `;
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
+}
+
+// Generate a coherent response from RAG results
+function generateRAGResponse(data) {
+    // In a real application, this would combine the results in a more sophisticated way,
+    // potentially using an LLM to generate a coherent answer
+    
+    if (data.results.length === 0) {
+        return "I couldn't find any relevant information in the knowledge base to answer your question.";
+    }
+    
+    // Simple response generation based on the most relevant result
+    return data.results[0].text;
+}
+
+// Perform advanced search with filters
+function performAdvancedSearch() {
+    const query = document.getElementById('search-query').value.trim();
+    const category = document.getElementById('search-category').value;
+    const fileType = document.getElementById('search-file-type').value;
+    const exactMatch = document.getElementById('search-exact-match').checked;
+    const recentFirst = document.getElementById('search-recent').checked;
+    
+    if (!query) {
+        alert('Please enter a search query.');
+        return;
+    }
+    
+    // Show loading state
+    document.getElementById('search-results').style.display = 'block';
+    document.getElementById('search-results-container').innerHTML = `
+        <div class="text-center my-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Searching...</p>
+        </div>
+    `;
+    
+    // In a real application, you would send these parameters to your API
+    // For now, simulate a search with sample results
+    setTimeout(() => {
+        const results = [
+            {
+                document_name: 'network_guide.pdf',
+                document_id: 'doc_001',
+                text: 'To configure network settings on a Linux system, you need to edit the interface configuration files...',
+                page: 15,
+                relevance: 0.92
+            },
+            {
+                document_name: 'product_documentation.docx',
+                document_id: 'doc_004',
+                text: 'The product includes advanced network configuration options. Users can modify interface settings through the admin panel...',
+                page: 32,
+                relevance: 0.87
+            }
+        ];
+        
+        displaySearchResults(results);
+    }, 1000);
+}
+
+// Display search results
+function displaySearchResults(results) {
+    const resultsContainer = document.getElementById('search-results-container');
+    
+    if (results.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="alert alert-info">
+                No results found. Try different search terms or filters.
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    results.forEach(result => {
+        html += `
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">${result.document_name}</h6>
+                        <p class="mb-1">${result.text}</p>
+                        <small class="text-muted">Page ${result.page}</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">${Math.round(result.relevance * 100)}%</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    resultsContainer.innerHTML = html;
+}
+
+// Upload a document
+function uploadDocument() {
+    const fileInput = document.getElementById('document-file');
+    const category = document.getElementById('document-category').value;
+    const description = document.getElementById('document-description').value;
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select a file to upload.');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    
+    // In a real application, you would use FormData to send the file
+    // For now, just show a success message
+    alert(`File "${file.name}" uploaded successfully!`);
+    
+    // Reset the form
+    document.getElementById('document-upload-form').reset();
+    
+    // Reload documents to show the new one
+    loadDocuments();
+}
+
+// Scrape a webpage
+function scrapeWebpage() {
+    const url = document.getElementById('webpage-url').value.trim();
+    const category = document.getElementById('webpage-category').value;
+    const scrapeSubpages = document.getElementById('scrape-subpages').checked;
+    
+    if (!url) {
+        alert('Please enter a URL to scrape.');
+        return;
+    }
+    
+    // Send the request to the API
+    fetch('/rag/api/documents/scrape', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            url: url,
+            category: category,
+            scrape_subpages: scrapeSubpages
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to scrape webpage');
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert(`Webpage "${url}" is being scraped. You will be notified when the processing is complete.`);
+        
+        // Reset the form
+        document.getElementById('webpage-scrape-form').reset();
+        
+        // Reload documents to show the new one
+        loadDocuments();
+    })
+    .catch(error => {
+        console.error('Error scraping webpage:', error);
+        alert('Failed to scrape webpage. Please check the URL and try again.');
+    });
+}
+
+// Delete a document
+function deleteDocument(documentId) {
+    // In a real application, you would send a DELETE request to your API
+    alert(`Document "${documentId}" has been deleted.`);
+    
+    // Close the modal
+    bootstrap.Modal.getInstance(document.getElementById('documentPreviewModal')).hide();
+    
+    // Reload documents to reflect the deletion
+    loadDocuments();
+}
+
+// Reindex a document
+function reindexDocument(documentId) {
+    // In a real application, you would send a request to your API
+    alert(`Document "${documentId}" is being reindexed.`);
+    
+    // Close the modal
+    bootstrap.Modal.getInstance(document.getElementById('documentPreviewModal')).hide();
+    
+    // Reload documents to reflect the status change
+    loadDocuments();
+}
+
+// Download a document
+function downloadDocument(documentId, documentName) {
+    // In a real application, you would redirect to a download URL
+    alert(`Downloading document "${documentName}"...`);
+}
+</script>
+{% endblock %}
