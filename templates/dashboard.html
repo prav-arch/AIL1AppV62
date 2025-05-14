@@ -1,3 +1,9 @@
+{% extends "base.html" %}
+{% set active_tab = 'dashboard' %}
+
+{% block title %}Dashboard - AI Assistant Platform{% endblock %}
+
+{% block content %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow-sm">
@@ -233,3 +239,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

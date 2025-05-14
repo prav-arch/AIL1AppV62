@@ -9,7 +9,7 @@ def index():
 
 @llm_assistant_bp.route('/query', methods=['POST'])
 def query_llm():
-    data = request.json
+    data = request.json or {}
     prompt = data.get('prompt', '')
     
     if not prompt:

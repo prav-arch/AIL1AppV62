@@ -2,7 +2,7 @@ import logging
 import json
 import os
 import requests
-from typing import Dict, Any, List, Optional, Generator, AsyncGenerator
+from typing import Dict, Any, List, Optional, Generator, AsyncGenerator, Union, Literal
 import asyncio
 import aiohttp
 from urllib.parse import urljoin
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class LLMService:
     """Service for interacting with LLM API"""
     
-    def __init__(self, base_url: str = None, verify_ssl: bool = False):
+    def __init__(self, base_url: Optional[str] = None, verify_ssl: bool = False):
         """
         Initialize the LLM service.
         
@@ -215,7 +215,7 @@ class LLMService:
                 async with session.post(
                     url,
                     json=payload,
-                    ssl=None if not self.verify_ssl else True,
+                    ssl=bool(self.verify_ssl),  # Convert to bool to avoid type issues
                     timeout=aiohttp.ClientTimeout(total=60)  # 60-second timeout
                 ) as response:
                     # Check for successful response
