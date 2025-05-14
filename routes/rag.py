@@ -233,15 +233,45 @@ def search_rag():
 def upload_document():
     """Upload a document to the RAG system"""
     try:
-        # In a real implementation, we would handle file upload here
-        document_name = request.form.get('name', 'unnamed_document.pdf')
+        import os
+        from werkzeug.utils import secure_filename
         
-        # Return success response with mock data
+        # Create upload directory if it doesn't exist
+        upload_dir = '/home/users/praveen.joe/uploads'
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        if 'document' not in request.files:
+            return jsonify({'error': 'No file part in the request'}), 400
+            
+        file = request.files['document']
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected for uploading'}), 400
+            
+        # Get form data
+        document_name = request.form.get('name', file.filename)
+        description = request.form.get('description', '')
+        index_immediately = request.form.get('index_immediately', 'false') == 'true'
+        
+        # Make sure the filename is secure
+        if file.filename:
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(upload_dir, filename)
+        else:
+            return jsonify({'error': 'Invalid filename'}), 400
+        
+        # Save the file
+        file.save(file_path)
+        
+        logger.info(f"File uploaded successfully to {file_path}")
+        
+        # Return success response
         return jsonify({
             'success': True,
             'document_id': f'doc_{random.randint(100, 999)}',
             'name': document_name,
-            'status': 'processing'
+            'path': file_path,
+            'status': 'processing' if index_immediately else 'uploaded'
         })
     except Exception as e:
         logger.error(f"Error uploading document: {str(e)}")

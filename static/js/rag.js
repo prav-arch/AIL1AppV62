@@ -278,7 +278,7 @@ function setupDocumentUploadModal() {
             showToast('Uploading document...', 'info');
             
             try {
-                const response = await fetchWithTimeout('/api/rag/upload-document', {
+                const response = await fetchWithTimeout('/api/rag/documents/upload', {
                     method: 'POST',
                     body: formData
                 });
