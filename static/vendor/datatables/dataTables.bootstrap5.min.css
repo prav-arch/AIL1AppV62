@@ -1,0 +1,120 @@
+/* DataTables Bootstrap 5 integration - Dark mode */
+
+table.dataTable {
+  width: 100%;
+  margin-bottom: 1rem;
+  color: #adb5bd;
+  border-collapse: collapse;
+}
+
+table.dataTable thead th,
+table.dataTable tfoot th {
+  font-weight: 600;
+  vertical-align: bottom;
+  padding: 0.75rem;
+  border-bottom: 2px solid #495057;
+  background-color: #343a40;
+}
+
+table.dataTable tbody tr {
+  background-color: #2b3035;
+}
+
+table.dataTable tbody tr:hover {
+  background-color: #343a40;
+}
+
+table.dataTable tbody td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #495057;
+}
+
+table.dataTable.row-border tbody th, 
+table.dataTable.row-border tbody td, 
+table.dataTable.display tbody th, 
+table.dataTable.display tbody td {
+  border-top: 1px solid #495057;
+}
+
+table.dataTable.no-footer {
+  border-bottom: 1px solid #495057;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+  color: #adb5bd;
+  margin-bottom: 1rem;
+}
+
+.dataTables_wrapper .dataTables_length select {
+  background-color: #212529;
+  border: 1px solid #495057;
+  color: #adb5bd;
+  padding: 0.25rem 1.5rem 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 16px 12px;
+  appearance: none;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  background-color: #212529;
+  border: 1px solid #495057;
+  color: #adb5bd;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border: 1px solid transparent;
+  padding: 0.375rem 0.75rem;
+  margin-left: 2px;
+  border-radius: 0.25rem;
+  color: #adb5bd !important;
+  background-color: transparent;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  color: #fff !important;
+  background-color: #343a40;
+  border-color: #495057;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  color: #fff !important;
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:focus {
+  color: #6c757d !important;
+  background-color: transparent;
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.dataTables_wrapper .dataTables_processing {
+  background-color: rgba(43, 48, 53, 0.8);
+  border: 1px solid #495057;
+}
+
+.dataTables_wrapper .dataTables_scroll {
+  clear: both;
+}
+
+.dataTables_wrapper .dataTables_scrollBody {
+  background-color: #2b3035;
+}
+
+.dataTables_scrollHead {
+  background-color: #343a40;
+}
