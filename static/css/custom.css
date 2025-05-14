@@ -92,6 +92,66 @@ body {
     min-height: 350px;
 }
 
+/* File Upload Styles */
+.upload-zone {
+    transition: all 0.3s ease;
+    border: 2px dashed #ccc !important;
+    border-radius: 5px !important;
+    padding: 30px !important;
+    background-color: #f9f9f9 !important;
+    margin-bottom: 20px !important;
+    cursor: pointer !important;
+    text-align: center !important;
+}
+
+.upload-zone:hover {
+    background-color: #f0f7ff !important;
+    border-color: #337ab7 !important;
+}
+
+.upload-zone h4 {
+    margin-top: 15px !important;
+    font-weight: normal !important;
+    color: #777 !important;
+}
+
+.upload-zone .fas {
+    font-size: 3rem !important;
+    color: #337ab7 !important;
+    margin-bottom: 10px !important;
+}
+
+#selected-file-info {
+    margin-bottom: 20px !important;
+}
+
+#selected-file-info .alert {
+    margin-bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+#selected-file-info .fas {
+    margin-right: 10px !important;
+}
+
+/* Modal Styles */
+.modal-header.bg-primary {
+    border-radius: 3px 3px 0 0 !important;
+}
+
+.modal-header .modal-title {
+    color: white !important;
+    font-weight: bold !important;
+}
+
+.modal-footer {
+    background-color: #f9f9f9 !important;
+    border-top: 1px solid #e5e5e5 !important;
+    border-radius: 0 0 3px 3px !important;
+}
+
 /* Footer styles */
 .footer {
     margin-top: 30px;
