@@ -238,7 +238,7 @@ def get_storage_info():
 def search_rag():
     """Perform RAG search with the given query"""
     try:
-        query = request.json.get('query', '')
+        query = request.json.get('query', '') if request.json else ''
         
         if not query:
             return jsonify({'error': 'Query is required'}), 400
@@ -389,7 +389,7 @@ def upload_document():
 def scrape_webpage():
     """Scrape a webpage and add it to the RAG system"""
     try:
-        url = request.json.get('url', '')
+        url = request.json.get('url', '') if request.json else ''
         
         if not url:
             return jsonify({'error': 'URL is required'}), 400

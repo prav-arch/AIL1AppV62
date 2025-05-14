@@ -299,7 +299,6 @@ function setupDocumentUploadModal() {
             }
         }
     }
-    }
     
     // Setup form submission
     if (uploadSubmitBtn) {
@@ -340,7 +339,7 @@ function setupDocumentUploadModal() {
             
             try {
                 console.log('Sending file upload request...');
-                const response = await fetch('/rag/api/documents/upload', {
+                const response = await fetch('/rag/api/upload-document', {
                     method: 'POST',
                     body: formData
                 });
