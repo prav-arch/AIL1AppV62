@@ -232,50 +232,81 @@ def search_rag():
 @rag_bp.route('/api/documents/upload', methods=['POST'])
 def upload_document():
     """Upload a document to the RAG system"""
+    import os
+    import traceback
+    from werkzeug.utils import secure_filename
+    
+    # Create a local directory that we can definitely write to
+    upload_dir = os.path.join(os.getcwd(), 'uploads')
+    remote_dir = '/home/users/praveen.joe/uploads'
+    
+    # Log request details for debugging
+    logger.info(f"Upload document request received")
+    logger.info(f"Request form data: {request.form}")
+    logger.info(f"Request files: {request.files}")
+    
     try:
-        import os
-        from werkzeug.utils import secure_filename
-        
         # Create upload directory if it doesn't exist
-        upload_dir = '/home/users/praveen.joe/uploads'
         os.makedirs(upload_dir, exist_ok=True)
+        logger.info(f"Ensuring upload directory exists: {upload_dir}")
         
+        # Check for file in request
         if 'document' not in request.files:
-            return jsonify({'error': 'No file part in the request'}), 400
+            logger.error("No 'document' field in the request files")
+            return jsonify({'error': 'No file part in the request. Make sure the file field is named "document"'}), 400
             
         file = request.files['document']
+        logger.info(f"File received: {file.filename}")
         
         if file.filename == '':
+            logger.error("Empty filename")
             return jsonify({'error': 'No file selected for uploading'}), 400
             
         # Get form data
-        document_name = request.form.get('name', file.filename)
+        document_name = request.form.get('name', file.filename) 
         description = request.form.get('description', '')
         index_immediately = request.form.get('index_immediately', 'false') == 'true'
         
-        # Make sure the filename is secure
-        if file.filename:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(upload_dir, filename)
-        else:
-            return jsonify({'error': 'Invalid filename'}), 400
+        logger.info(f"Document name: {document_name}, Index immediately: {index_immediately}")
         
+        # Make sure the filename is secure
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(upload_dir, filename)
+        # Also log the intended remote path even though we may not be able to write to it
+        remote_path = os.path.join(remote_dir, filename)
+        
+        logger.info(f"Saving file to: {file_path}")
         # Save the file
         file.save(file_path)
+        logger.info(f"File saved successfully to {file_path}")
         
-        logger.info(f"File uploaded successfully to {file_path}")
+        # Also try to save to the remote path if possible
+        try:
+            os.makedirs(remote_dir, exist_ok=True)
+            with open(file_path, 'rb') as src_file:
+                with open(remote_path, 'wb') as dst_file:
+                    dst_file.write(src_file.read())
+            logger.info(f"File also copied to remote path: {remote_path}")
+        except Exception as remote_e:
+            logger.warning(f"Could not save to remote path {remote_path}: {str(remote_e)}")
         
         # Return success response
-        return jsonify({
+        response_data = {
             'success': True,
             'document_id': f'doc_{random.randint(100, 999)}',
             'name': document_name,
             'path': file_path,
+            'remote_path': remote_path,
             'status': 'processing' if index_immediately else 'uploaded'
-        })
+        }
+        logger.info(f"Returning success response: {response_data}")
+        return jsonify(response_data)
+        
     except Exception as e:
+        error_details = traceback.format_exc()
         logger.error(f"Error uploading document: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Traceback: {error_details}")
+        return jsonify({'error': str(e), 'traceback': error_details}), 500
 
 @rag_bp.route('/api/documents/scrape', methods=['POST'])
 def scrape_webpage():
