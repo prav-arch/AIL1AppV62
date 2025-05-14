@@ -4,90 +4,210 @@
 {% block title %}Dashboard - AI Assistant Platform{% endblock %}
 
 {% block content %}
-<!-- Simplified dashboard for testing -->
-<div class="row p-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title">Dashboard Test</h5>
+<div class="row g-3 mb-4 mt-3">
+    <!-- Weekly Sales Card -->
+    <div class="col-md-3">
+        <div class="falcon-card">
+            <div class="falcon-card-body stats-card">
+                <div class="mb-2 text-muted">Weekly Sales</div>
+                <div class="stat-value">$47K</div>
+                <div class="percent-change positive">+3.5%</div>
+                <div class="d-flex mt-3 justify-content-center">
+                    <div style="width: 100%; height: 50px;">
+                        <canvas id="weeklySalesChart"></canvas>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <p>Testing simplified dashboard</p>
-                <div id="api-test-results"></div>
-                <button id="test-api-btn" class="btn btn-primary">Test API</button>
+        </div>
+    </div>
+
+    <!-- Total Order Card -->
+    <div class="col-md-3">
+        <div class="falcon-card">
+            <div class="falcon-card-body stats-card">
+                <div class="mb-2 text-muted">Total Order</div>
+                <div class="stat-value">58.4K</div>
+                <div class="percent-change positive">+12.6%</div>
+                <div class="d-flex mt-3 justify-content-center">
+                    <div style="width: 100%; height: 50px;">
+                        <canvas id="totalOrderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Market Share Card -->
+    <div class="col-md-3">
+        <div class="falcon-card">
+            <div class="falcon-card-body stats-card">
+                <div class="mb-2 text-muted">Market Share</div>
+                <div class="stat-value">26M</div>
+                <div class="d-flex mt-3 justify-content-center">
+                    <div style="width: 100px; height: 100px;">
+                        <canvas id="marketShareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather Card -->
+    <div class="col-md-3">
+        <div class="falcon-card">
+            <div class="falcon-card-body weather-card">
+                <div class="weather-icon">
+                    <i class="fas fa-sun"></i>
+                </div>
+                <div class="weather-temp">31°</div>
+                <div class="weather-location">New York City</div>
+                <div class="weather-info mt-2">
+                    <span>Sunny</span>
+                    <span>Precipitation: 10%</span>
+                    <span>32° / 25°</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('test-api-btn').addEventListener('click', async function() {
-        const resultDiv = document.getElementById('api-test-results');
-        resultDiv.innerHTML = 'Testing API...';
-        
-        try {
-            const response = await fetch('/api/dashboard/metrics');
-            const data = await response.json();
-            resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-        } catch (error) {
-            resultDiv.innerHTML = 'Error: ' + error.message;
-        }
-    });
-});
-</script>
-
-<!-- Original dashboard content below -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">System Overview</h5>
+<div class="row g-3 mb-4">
+    <!-- Running Projects Card -->
+    <div class="col-md-6">
+        <div class="falcon-card">
+            <div class="falcon-card-header">
+                <h5 class="falcon-card-title">Running Projects</h5>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">LLM Requests</h6>
-                                <h2 class="display-4" id="llm-request-count">0</h2>
-                                <div class="small text-success">
-                                    <i class="fas fa-arrow-up"></i> 5% from yesterday
-                                </div>
+            <div class="falcon-card-body">
+                <div class="project-card">
+                    <div class="project-avatar bg-falcon-primary">F</div>
+                    <div class="project-details">
+                        <div class="project-name">Falcon</div>
+                        <div class="project-progress">
+                            <div class="project-progress-bar">
+                                <div class="fill" style="width: 38%; background-color: #2c7be5;"></div>
                             </div>
+                            <div class="project-percent">38%</div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Documents Indexed</h6>
-                                <h2 class="display-4" id="docs-indexed-count">0</h2>
-                                <div class="small text-success">
-                                    <i class="fas fa-arrow-up"></i> 12% from yesterday
-                                </div>
+                    <div class="project-time">12:50:00</div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-avatar bg-falcon-success">R</div>
+                    <div class="project-details">
+                        <div class="project-name">Reign</div>
+                        <div class="project-progress">
+                            <div class="project-progress-bar">
+                                <div class="fill" style="width: 78%; background-color: #00d27a;"></div>
                             </div>
+                            <div class="project-percent">78%</div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Anomalies Detected</h6>
-                                <h2 class="display-4" id="anomalies-count">0</h2>
-                                <div class="small text-danger">
-                                    <i class="fas fa-arrow-up"></i> 8% from yesterday
-                                </div>
+                    <div class="project-time">25:20:00</div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-avatar bg-falcon-info">B</div>
+                    <div class="project-details">
+                        <div class="project-name">Boots4</div>
+                        <div class="project-progress">
+                            <div class="project-progress-bar">
+                                <div class="fill" style="width: 45%; background-color: #27bcfd;"></div>
                             </div>
+                            <div class="project-percent">45%</div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card mb-3">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Active Pipelines</h6>
-                                <h2 class="display-4" id="pipelines-count">0</h2>
-                                <div class="small text-muted">
-                                    <i class="fas fa-equals"></i> No change
-                                </div>
+                    <div class="project-time">58:20:00</div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-avatar bg-falcon-warning">R</div>
+                    <div class="project-details">
+                        <div class="project-name">Raven</div>
+                        <div class="project-progress">
+                            <div class="project-progress-bar">
+                                <div class="fill" style="width: 40%; background-color: #f5803e;"></div>
                             </div>
+                            <div class="project-percent">40%</div>
+                        </div>
+                    </div>
+                    <div class="project-time">21:20:00</div>
+                </div>
+
+                <div class="project-card">
+                    <div class="project-avatar bg-falcon-danger">S</div>
+                    <div class="project-details">
+                        <div class="project-name">Slick</div>
+                        <div class="project-progress">
+                            <div class="project-progress-bar">
+                                <div class="fill" style="width: 70%; background-color: #e63757;"></div>
+                            </div>
+                            <div class="project-percent">70%</div>
+                        </div>
+                    </div>
+                    <div class="project-time">31:20:00</div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="#" class="view-all">Show all projects</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Sales Card -->
+    <div class="col-md-6">
+        <div class="falcon-card">
+            <div class="falcon-card-header">
+                <h5 class="falcon-card-title">Total Sales</h5>
+                <div>
+                    <span>January</span>
+                    <i class="fas fa-chevron-down ms-1"></i>
+                </div>
+            </div>
+            <div class="falcon-card-body">
+                <div style="height: 300px;">
+                    <canvas id="totalSalesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Storage Usage Card -->
+    <div class="col-12">
+        <div class="falcon-card">
+            <div class="falcon-card-body">
+                <div class="storage-usage">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Using Storage 1775.06 MB of 2 GB</span>
+                    </div>
+                    <div class="storage-bar">
+                        <div style="display: flex; height: 100%;">
+                            <div style="width: 40%; background-color: #2c7be5;"></div>
+                            <div style="width: 20%; background-color: #27bcfd;"></div>
+                            <div style="width: 15%; background-color: #00d27a;"></div>
+                            <div style="width: 25%; background-color: #e63757;"></div>
+                        </div>
+                    </div>
+                    <div class="storage-legend mt-2">
+                        <div class="storage-legend-item">
+                            <span class="storage-legend-color" style="background-color: #2c7be5;"></span>
+                            <span>Regular (355MB)</span>
+                        </div>
+                        <div class="storage-legend-item">
+                            <span class="storage-legend-color" style="background-color: #27bcfd;"></span>
+                            <span>System (379MB)</span>
+                        </div>
+                        <div class="storage-legend-item">
+                            <span class="storage-legend-color" style="background-color: #00d27a;"></span>
+                            <span>Shared (192MB)</span>
+                        </div>
+                        <div class="storage-legend-item">
+                            <span class="storage-legend-color" style="background-color: #e63757;"></span>
+                            <span>Free (576MB)</span>
                         </div>
                     </div>
                 </div>
@@ -96,179 +216,172 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<div class="row mb-4">
+<div class="row g-3 mb-4">
+    <!-- Best Selling Products -->
     <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">LLM Usage Trends</h5>
-            </div>
-            <div class="card-body">
-                <div class="chart-container" style="position: relative; height:300px;">
-                    <canvas id="llmUsageChart"></canvas>
+        <div class="falcon-card">
+            <div class="falcon-card-header">
+                <h5 class="falcon-card-title">Best Selling Products</h5>
+                <div class="d-flex">
+                    <div>Revenue ($3333)</div>
+                    <div class="ms-3">Revenue (%)</div>
                 </div>
+            </div>
+            <div class="falcon-card-body">
+                <table class="falcon-table">
+                    <tbody>
+                        <tr>
+                            <td style="width: 40px;">
+                                <div>-</div>
+                            </td>
+                            <td style="width: 40px">
+                                <img src="https://via.placeholder.com/36" alt="Product" width="36" height="36" style="border-radius: 4px;">
+                            </td>
+                            <td>
+                                <strong>Raven Pro</strong>
+                                <div class="text-muted">Landing</div>
+                            </td>
+                            <td class="text-end">$1311</td>
+                            <td style="width: 200px">
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar" style="width: 39%; background-color: #2c7be5;"></div>
+                                </div>
+                            </td>
+                            <td class="text-end">39%</td>
+                        </tr>
+                        <tr>
+                            <td>-</td>
+                            <td>
+                                <img src="https://via.placeholder.com/36" alt="Product" width="36" height="36" style="border-radius: 4px;">
+                            </td>
+                            <td>
+                                <strong>Boots4</strong>
+                                <div class="text-muted">Portfolio</div>
+                            </td>
+                            <td class="text-end">$860</td>
+                            <td>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar" style="width: 26%; background-color: #2c7be5;"></div>
+                                </div>
+                            </td>
+                            <td class="text-end">26%</td>
+                        </tr>
+                        <tr>
+                            <td>-</td>
+                            <td>
+                                <img src="https://via.placeholder.com/36" alt="Product" width="36" height="36" style="border-radius: 4px;">
+                            </td>
+                            <td>
+                                <strong>Falcon</strong>
+                                <div class="text-muted">Admin</div>
+                            </td>
+                            <td class="text-end">$539</td>
+                            <td>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar" style="width: 16%; background-color: #2c7be5;"></div>
+                                </div>
+                            </td>
+                            <td class="text-end">16%</td>
+                        </tr>
+                        <tr>
+                            <td>-</td>
+                            <td>
+                                <img src="https://via.placeholder.com/36" alt="Product" width="36" height="36" style="border-radius: 4px;">
+                            </td>
+                            <td>
+                                <strong>Slick</strong>
+                                <div class="text-muted">Builder</div>
+                            </td>
+                            <td class="text-end">$343</td>
+                            <td>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar" style="width: 10%; background-color: #2c7be5;"></div>
+                                </div>
+                            </td>
+                            <td class="text-end">10%</td>
+                        </tr>
+                        <tr>
+                            <td>-</td>
+                            <td>
+                                <img src="https://via.placeholder.com/36" alt="Product" width="36" height="36" style="border-radius: 4px;">
+                            </td>
+                            <td>
+                                <strong>Reign Pro</strong>
+                                <div class="text-muted">Agency</div>
+                            </td>
+                            <td class="text-end">$280</td>
+                            <td>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar" style="width: 8%; background-color: #2c7be5;"></div>
+                                </div>
+                            </td>
+                            <td class="text-end">8%</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Resource Distribution</h5>
-            </div>
-            <div class="card-body">
-                <div class="chart-container" style="position: relative; height:300px;">
-                    <canvas id="resourceDistributionChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">GPU Utilization</h5>
+    <!-- Shared Files -->
+    <div class="col-md-4">
+        <div class="falcon-card">
+            <div class="falcon-card-header">
+                <h5 class="falcon-card-title">Shared Files</h5>
+                <a href="#" class="view-all">View All</a>
             </div>
-            <div class="card-body">
-                <div class="chart-container" style="position: relative; height:250px;">
-                    <canvas id="gpuUtilizationChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">System Health</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Memory Usage</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="memory-usage" class="progress-bar bg-info" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">75%</div>
-                        </div>
+            <div class="falcon-card-body">
+                <div class="file-item">
+                    <div class="file-icon">
+                        <img src="https://via.placeholder.com/40" alt="File thumbnail">
                     </div>
-                    <div class="col-md-6">
-                        <h6>CPU Load</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="cpu-load" class="progress-bar bg-success" role="progressbar" style="width: 42%;" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100">42%</div>
+                    <div class="file-info">
+                        <div class="file-name text-truncate">apple-smart-watch.png</div>
+                        <div class="file-meta">
+                            <span class="me-2">Antony</span>
+                            <span>Just Now</span>
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Disk Usage</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="disk-usage" class="progress-bar bg-warning" role="progressbar" style="width: 68%;" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100">68%</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Network Throughput</h6>
-                        <div class="progress mb-3" style="height: 25px;">
-                            <div id="network-throughput" class="progress-bar bg-primary" role="progressbar" style="width: 35%;" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100">35%</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Recent Kafka Messages</h5>
-            </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                <ul class="list-group" id="recent-messages">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>logs-queue</strong>
-                            <div class="text-muted small">System startup completed</div>
+                <div class="file-item">
+                    <div class="file-icon">
+                        <img src="https://via.placeholder.com/40" alt="File thumbnail">
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name text-truncate">iphone.jpg</div>
+                        <div class="file-meta">
+                            <span class="me-2">Antony</span>
+                            <span>Yesterday at 1:30 PM</span>
                         </div>
-                        <span class="badge bg-primary rounded-pill">2m ago</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>metrics-queue</strong>
-                            <div class="text-muted small">CPU spike detected</div>
+                    </div>
+                </div>
+
+                <div class="file-item">
+                    <div class="file-icon">
+                        <i class="fas fa-file-alt fa-2x text-primary"></i>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name text-truncate">Falcon v1.8.2</div>
+                        <div class="file-meta">
+                            <span class="me-2">Jane_27</span>
+                            <span>Sep at 10:30 AM</span>
                         </div>
-                        <span class="badge bg-primary rounded-pill">5m ago</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>alerts-queue</strong>
-                            <div class="text-muted small">New anomaly detected</div>
+                    </div>
+                </div>
+
+                <div class="file-item">
+                    <div class="file-icon">
+                        <img src="https://via.placeholder.com/40" alt="File thumbnail">
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name text-truncate">iMac.jpg</div>
+                        <div class="file-meta">
+                            <span class="me-2">Rowen</span>
+                            <span>23 Sep at 6:10 PM</span>
                         </div>
-                        <span class="badge bg-danger rounded-pill">10m ago</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Pipeline Status</h5>
-            </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                <ul class="list-group" id="pipeline-status">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Data Ingestion</strong>
-                            <div class="text-muted small">Processing files</div>
-                        </div>
-                        <span class="badge bg-success rounded-pill">Running</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>ETL Process</strong>
-                            <div class="text-muted small">Transforming data</div>
-                        </div>
-                        <span class="badge bg-success rounded-pill">Running</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Model Training</strong>
-                            <div class="text-muted small">Scheduled for 22:00</div>
-                        </div>
-                        <span class="badge bg-secondary rounded-pill">Scheduled</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Latest Anomalies</h5>
-            </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                <ul class="list-group" id="latest-anomalies">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Network Traffic Spike</strong>
-                            <div class="text-muted small">Unusual outbound traffic</div>
-                        </div>
-                        <a href="/anomalies" class="btn btn-sm btn-outline-primary">Details</a>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Memory Leak</strong>
-                            <div class="text-muted small">In application server</div>
-                        </div>
-                        <a href="/anomalies" class="btn btn-sm btn-outline-primary">Details</a>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>API Response Time</strong>
-                            <div class="text-muted small">Increased latency detected</div>
-                        </div>
-                        <a href="/anomalies" class="btn btn-sm btn-outline-primary">Details</a>
-                    </li>
-                </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -276,5 +389,126 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to generate random data for charts
+    function generateRandomData(count, min, max) {
+        return Array.from({ length: count }, () => Math.floor(Math.random() * (max - min + 1)) + min);
+    }
+
+    // Weekly Sales Chart
+    const weeklySalesCtx = document.getElementById('weeklySalesChart').getContext('2d');
+    new Chart(weeklySalesCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                data: [5, 10, 7, 14, 5, 12, 15],
+                backgroundColor: '#2c7be5',
+                barPercentage: 0.5,
+                borderRadius: 3
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            maintainAspectRatio: false
+        }
+    });
+
+    // Total Order Chart
+    const totalOrderCtx = document.getElementById('totalOrderChart').getContext('2d');
+    new Chart(totalOrderCtx, {
+        type: 'line',
+        data: {
+            labels: Array.from({ length: 10 }, (_, i) => i + 1),
+            datasets: [{
+                data: [5, 7, 10, 12, 15, 18, 20, 23, 25, 28],
+                borderColor: '#2c7be5',
+                backgroundColor: 'rgba(44, 123, 229, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { display: false },
+                y: { display: false }
+            },
+            maintainAspectRatio: false
+        }
+    });
+
+    // Market Share Chart
+    const marketShareCtx = document.getElementById('marketShareChart').getContext('2d');
+    new Chart(marketShareCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Samsung', 'Huawei', 'Apple'],
+            datasets: [{
+                data: [60, 25, 15],
+                backgroundColor: ['#2c7be5', '#27bcfd', '#edf2f9']
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false }
+            },
+            cutout: '75%',
+            maintainAspectRatio: false
+        }
+    });
+
+    // Total Sales Chart
+    const totalSalesCtx = document.getElementById('totalSalesChart').getContext('2d');
+    new Chart(totalSalesCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan 6', 'Jan 7', 'Jan 8', 'Jan 9', 'Jan 11', 'Jan 13', 'Jan 15'],
+            datasets: [{
+                data: [30, 60, 40, 70, 40, 30, 70],
+                borderColor: '#2c7be5',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#2c7be5',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    grid: { display: false }
+                },
+                y: {
+                    grid: {
+                        borderDash: [2, 2],
+                        drawBorder: false
+                    },
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            },
+            maintainAspectRatio: false
+        }
+    });
+});
+</script>
 {% endblock %}
