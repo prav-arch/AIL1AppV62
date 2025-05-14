@@ -289,8 +289,8 @@ function setupDocumentUploadModal() {
                 if (data.success) {
                     showToast('Document uploaded successfully', 'success');
                     
-                    // Close modal
-                    bootstrap.Modal.getInstance(document.getElementById('uploadDocumentModal')).hide();
+                    // Close modal using jQuery (Bootstrap 3 compatible)
+                    $('#uploadDocumentModal').modal('hide');
                     
                     // Reset form
                     document.getElementById('upload-document-form').reset();
@@ -298,10 +298,12 @@ function setupDocumentUploadModal() {
                     // Refresh documents table
                     fetchDocumentsData();
                 } else {
-                    throw new Error(data.message || 'Failed to upload document');
+                    console.error('Upload failed:', data);
+                    showToast(`Error: ${data.error || 'Failed to upload document'}`, 'error');
                 }
             } catch (error) {
-                handleFetchError(error, 'upload document');
+                console.error('Error uploading document:', error);
+                showToast(`Upload error: ${error.message || 'Connection failed'}`, 'error');
             }
         });
     }

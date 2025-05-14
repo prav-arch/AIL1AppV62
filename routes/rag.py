@@ -11,6 +11,69 @@ rag_bp = Blueprint('rag', __name__, url_prefix='/rag')
 @rag_bp.route('/')
 def index():
     return render_template('rag.html')
+    
+@rag_bp.route('/api/upload-test', methods=['GET'])
+def test_upload():
+    """A simple test endpoint to verify that the upload directory can be created and written to"""
+    import os
+    import tempfile
+    
+    # Local directory that should always be writable
+    local_dir = os.path.join(os.getcwd(), 'uploads')
+    # Remote directory that may not be writable
+    remote_dir = '/home/users/praveen.joe/uploads'
+    
+    # Test results
+    results = {
+        'local': {
+            'directory': local_dir,
+            'exists': os.path.exists(local_dir),
+            'is_dir': os.path.isdir(local_dir) if os.path.exists(local_dir) else False,
+            'writable': os.access(local_dir, os.W_OK) if os.path.exists(local_dir) else False,
+            'test_file_created': False
+        },
+        'remote': {
+            'directory': remote_dir,
+            'exists': os.path.exists(remote_dir),
+            'is_dir': os.path.isdir(remote_dir) if os.path.exists(remote_dir) else False,
+            'writable': os.access(remote_dir, os.W_OK) if os.path.exists(remote_dir) else False,
+            'test_file_created': False
+        }
+    }
+    
+    # Try to create directories
+    try:
+        os.makedirs(local_dir, exist_ok=True)
+        results['local']['directory_created'] = True
+    except Exception as e:
+        results['local']['directory_error'] = str(e)
+    
+    try:
+        os.makedirs(remote_dir, exist_ok=True)
+        results['remote']['directory_created'] = True
+    except Exception as e:
+        results['remote']['directory_error'] = str(e)
+    
+    # Try to write test files
+    try:
+        test_file_path = os.path.join(local_dir, 'test_upload.txt')
+        with open(test_file_path, 'w') as f:
+            f.write('Test file content')
+        results['local']['test_file_created'] = True
+        results['local']['test_file_path'] = test_file_path
+    except Exception as e:
+        results['local']['test_file_error'] = str(e)
+    
+    try:
+        test_file_path = os.path.join(remote_dir, 'test_upload.txt')
+        with open(test_file_path, 'w') as f:
+            f.write('Test file content')
+        results['remote']['test_file_created'] = True
+        results['remote']['test_file_path'] = test_file_path
+    except Exception as e:
+        results['remote']['test_file_error'] = str(e)
+    
+    return jsonify(results)
 
 @rag_bp.route('/api/documents', methods=['GET'])
 def get_documents():
@@ -230,6 +293,7 @@ def search_rag():
         return jsonify({'error': str(e)}), 500
 
 @rag_bp.route('/api/documents/upload', methods=['POST'])
+@rag_bp.route('/api/upload-document', methods=['POST'])  # Added alternate route to match frontend
 def upload_document():
     """Upload a document to the RAG system"""
     import os
@@ -238,7 +302,9 @@ def upload_document():
     
     # Create a local directory that we can definitely write to
     upload_dir = os.path.join(os.getcwd(), 'uploads')
-    remote_dir = '/home/users/praveen.joe/uploads'
+    # The remote directory can't be created because of filesystem restrictions
+    # So we'll record it for reference but only save to the local directory
+    remote_dir = '/home/users/praveen.joe/uploads'  # This is just for reference
     
     # Log request details for debugging
     logger.info(f"Upload document request received")
@@ -270,7 +336,11 @@ def upload_document():
         logger.info(f"Document name: {document_name}, Index immediately: {index_immediately}")
         
         # Make sure the filename is secure
-        filename = secure_filename(file.filename)
+        if not file.filename:
+            return jsonify({'error': 'Filename cannot be empty'}), 400
+            
+        # At this point we know file.filename is a valid string
+        filename = secure_filename(str(file.filename))
         file_path = os.path.join(upload_dir, filename)
         # Also log the intended remote path even though we may not be able to write to it
         remote_path = os.path.join(remote_dir, filename)
