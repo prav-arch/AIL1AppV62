@@ -15,6 +15,17 @@ local_llm_bp = Blueprint('local_llm', __name__, url_prefix='/api/local-llm')
 model_path = os.environ.get('LLM_MODEL_PATH', '/tmp/llm_models/mistral-7b-instruct-v0.2.Q4_K_M.gguf')
 llm_service = LocalLLMService(model_path=model_path)
 
+# Log a more user-friendly message about the missing model
+if not llm_service.is_ready():
+    logger.warning("""
+    -------------------------------------------------------------------------
+    WARNING: LLM model not found. 
+    The LLM functionality will be disabled. To enable it:
+    1. Download the Mistral 7B model (mistral-7b-instruct-v0.2.Q4_K_M.gguf)
+    2. Place it in /tmp/llm_models/ or set LLM_MODEL_PATH environment variable
+    -------------------------------------------------------------------------
+    """)
+
 @local_llm_bp.route('/status', methods=['GET'])
 def get_status():
     """Check if the LLM is ready"""

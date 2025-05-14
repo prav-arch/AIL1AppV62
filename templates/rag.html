@@ -29,7 +29,7 @@
                 <div class="tab-content" id="rag-tab-content">
                     <!-- Documents Tab -->
                     <div class="tab-pane active" id="documents" role="tabpanel">
-                        <div class="d-flex justify-content-between mb-3">
+                        <div class="row" style="margin-bottom: 15px;">
                             <h5>Document Repository</h5>
                             <div>
                                 <button class="btn btn-primary" data-toggle="modal" data-target="#uploadDocumentModal">
@@ -107,7 +107,7 @@
                     
                     <!-- Vector Database Tab -->
                     <div class="tab-pane" id="vectordb" role="tabpanel">
-                        <div class="d-flex justify-content-between mb-3">
+                        <div class="row" style="margin-bottom: 15px;">
                             <h5>FAISS Vector Database</h5>
                             <div>
                                 <button class="btn btn-primary" id="search-vector-btn">
@@ -200,7 +200,7 @@
                     
                     <!-- File Storage Tab -->
                     <div class="tab-pane" id="filestore" role="tabpanel">
-                        <div class="d-flex justify-content-between mb-3">
+                        <div class="row" style="margin-bottom: 15px;">
                             <h5>MinIO File Storage</h5>
                             <div>
                                 <button class="btn btn-primary" id="refresh-minio-btn">
@@ -533,7 +533,7 @@
                     <input type="number" class="form-control" id="vector-search-top-k" value="5" min="1" max="20">
                 </div>
                 
-                <div id="vector-search-results" class="d-none">
+                <div id="vector-search-results" class="hidden">
                     <h6 class="form-group">Search Results</h6>
                     <div class="list-group" id="vector-results-list">
                         <!-- Results will be shown here -->
