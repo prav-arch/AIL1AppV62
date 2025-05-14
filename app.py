@@ -36,19 +36,31 @@ app.register_blueprint(kafka_browser_bp)
 
 # Global API routes that match what the JavaScript is expecting
 
-@app.route('/test-urls')
-def test_urls():
-    """Debug endpoint to test url_for generation"""
-    from flask import url_for
-    urls = {
-        'dashboard': url_for('dashboard.index'),
-        'llm_assistant': url_for('llm_assistant.index'),
-        'rag': url_for('rag.index'),
-        'anomalies': url_for('anomalies.index'),
-        'data_pipeline': url_for('data_pipeline.index'),
-        'kafka_browser': url_for('kafka_browser.index')
-    }
-    return jsonify(urls)
+# Direct navigation routes to handle tab navigation
+@app.route('/llm-assistant')
+def llm_assistant_direct():
+    from flask import redirect, url_for
+    return redirect(url_for('llm_assistant.index'))
+
+@app.route('/rag')
+def rag_direct():
+    from flask import redirect, url_for
+    return redirect(url_for('rag.index'))
+
+@app.route('/anomalies')
+def anomalies_direct():
+    from flask import redirect, url_for
+    return redirect(url_for('anomalies.index'))
+
+@app.route('/data-pipeline')
+def data_pipeline_direct():
+    from flask import redirect, url_for
+    return redirect(url_for('data_pipeline.index'))
+
+@app.route('/kafka-browser')
+def kafka_browser_direct():
+    from flask import redirect, url_for
+    return redirect(url_for('kafka_browser.index'))
 
 @app.route('/api/dashboard/metrics', methods=['GET'])
 def api_dashboard_metrics():
@@ -97,7 +109,7 @@ def api_recent_kafka_messages():
             'time_ago': f"{random.randint(1, 30)}m ago"
         })
     
-    return jsonify(messages)
+    return jsonify({'messages': messages})
 
 @app.route('/api/pipeline/status', methods=['GET'])
 def api_pipeline_status():
@@ -120,7 +132,7 @@ def api_pipeline_status():
         }
     ]
     
-    return jsonify(pipelines)
+    return jsonify({'pipelines': pipelines})
 
 @app.route('/api/anomalies/latest', methods=['GET'])
 def api_latest_anomalies():
@@ -143,7 +155,7 @@ def api_latest_anomalies():
         }
     ]
     
-    return jsonify(anomalies)
+    return jsonify({'anomalies': anomalies})
 
 @app.route('/api/anomalies/stats', methods=['GET'])
 def api_anomaly_stats():
