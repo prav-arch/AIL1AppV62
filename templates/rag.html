@@ -32,10 +32,10 @@
                         <div class="d-flex justify-content-between mb-3">
                             <h5>Document Repository</h5>
                             <div>
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+                                <button class="btn btn-primary" data-toggle="modal" data-target="#uploadDocumentModal">
                                     <i class="fas fa-upload"></i> Upload Document
                                 </button>
-                                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#scrapeWebpageModal">
+                                <button class="btn btn-outline-primary" data-toggle="modal" data-target="#scrapeWebpageModal">
                                     <i class="fas fa-globe"></i> Scrape Webpage
                                 </button>
                             </div>
@@ -304,7 +304,7 @@
                     </div>
                     
                     <!-- Settings Tab -->
-                    <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                    <div class="tab-pane" id="settings" role="tabpanel">
                         <h5 class="mb-3">RAG Configuration</h5>
                         
                         <form id="rag-settings-form">
@@ -439,8 +439,8 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                 <h5 class="modal-title" id="uploadDocumentModalLabel">Upload Document</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="upload-document-form">
@@ -468,7 +468,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="upload-document-submit">Upload</button>
             </div>
         </div>
@@ -481,7 +481,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="scrapeWebpageModalLabel">Scrape Webpage</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="scrape-webpage-form">
@@ -508,7 +508,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="scrape-webpage-submit">Scrape</button>
             </div>
         </div>
@@ -521,7 +521,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="vectorSearchModalLabel">Vector Search</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
@@ -541,7 +541,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" id="run-vector-search">Search</button>
             </div>
         </div>
