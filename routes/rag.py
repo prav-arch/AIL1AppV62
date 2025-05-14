@@ -367,11 +367,29 @@ def upload_document():
         logger.info(f"Ensuring upload directory exists: {upload_dir}")
         
         # Check for file in request
-        if 'document' not in request.files:
-            logger.error("No 'document' field in the request files")
-            return jsonify({'error': 'No file part in the request. Make sure the file field is named "document"'}), 400
+        file_key = None
+        
+        # First try with 'document' key as expected
+        if 'document' in request.files:
+            file_key = 'document'
+        else:
+            # Otherwise, check if there's any file field, regardless of its name
+            for key in request.files:
+                if key or 'file' in key.lower() or 'document' in key.lower():
+                    file_key = key
+                    logger.info(f"Found alternative file field name: {key}")
+                    break
+                    
+            # If we still don't have a file key but there are files, use the first one
+            if not file_key and len(request.files) > 0:
+                file_key = list(request.files.keys())[0]
+                logger.info(f"Using first available file key: {file_key}")
+        
+        if not file_key:
+            logger.error("No file field found in the request files")
+            return jsonify({'error': 'No file part in the request'}), 400
             
-        file = request.files['document']
+        file = request.files[file_key]
         logger.info(f"File received: {file.filename}")
         
         if file.filename == '':

@@ -410,18 +410,25 @@ function setupWebScraperModal() {
             console.log(`Scraping URL: ${urlInput.value.trim()}, ignoreSSL: ${ignoreSSLErrors}`);
             
             try {
+                // Use FormData instead of JSON to be compatible with both approaches
+                const formData = new FormData();
+                formData.append('url', urlInput.value.trim());
+                formData.append('name', nameInput.value.trim());
+                formData.append('description', descriptionInput.value.trim());
+                formData.append('index_immediately', indexImmediately.toString());
+                formData.append('ignore_ssl_errors', ignoreSSLErrors.toString());
+                
+                console.log("Sending form data:", {
+                    url: urlInput.value.trim(),
+                    name: nameInput.value.trim(),
+                    description: descriptionInput.value.trim(),
+                    index_immediately: indexImmediately.toString(),
+                    ignore_ssl_errors: ignoreSSLErrors.toString()
+                });
+                
                 const response = await fetch('/rag/api/documents/scrape', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        url: urlInput.value.trim(),
-                        name: nameInput.value.trim(),
-                        description: descriptionInput.value.trim(),
-                        index_immediately: indexImmediately,
-                        ignore_ssl_errors: ignoreSSLErrors
-                    })
+                    body: formData
                 });
                 
                 if (!response.ok) {
