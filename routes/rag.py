@@ -350,15 +350,9 @@ def upload_document():
         file.save(file_path)
         logger.info(f"File saved successfully to {file_path}")
         
-        # Also try to save to the remote path if possible
-        try:
-            os.makedirs(remote_dir, exist_ok=True)
-            with open(file_path, 'rb') as src_file:
-                with open(remote_path, 'wb') as dst_file:
-                    dst_file.write(src_file.read())
-            logger.info(f"File also copied to remote path: {remote_path}")
-        except Exception as remote_e:
-            logger.warning(f"Could not save to remote path {remote_path}: {str(remote_e)}")
+        # We can't write to the remote path because of filesystem restrictions
+        logger.warning(f"Cannot save to remote path {remote_path} due to filesystem restrictions. " +
+                      f"File is saved locally at {file_path} instead.")
         
         # Return success response
         response_data = {
@@ -366,7 +360,8 @@ def upload_document():
             'document_id': f'doc_{random.randint(100, 999)}',
             'name': document_name,
             'path': file_path,
-            'remote_path': remote_path,
+            'intended_remote_path': remote_path,  # This is just for reference, file wasn't actually saved here
+            'note': 'File was saved locally. Remote path is not accessible due to filesystem restrictions.',
             'status': 'processing' if index_immediately else 'uploaded'
         }
         logger.info(f"Returning success response: {response_data}")

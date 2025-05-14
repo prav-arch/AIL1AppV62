@@ -1,5 +1,12 @@
 // RAG Management JavaScript for AI Assistant Platform
 
+// Helper function for error handling
+function handleFetchError(error, action) {
+    console.error(`Error trying to ${action}:`, error);
+    const message = error.message || 'Network error occurred';
+    showToast(`Error: ${message}`, 'error');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize DataTables
     initializeDataTables();
@@ -290,7 +297,11 @@ function setupDocumentUploadModal() {
                     showToast('Document uploaded successfully', 'success');
                     
                     // Close modal using jQuery (Bootstrap 3 compatible)
-                    $('#uploadDocumentModal').modal('hide');
+                    try {
+                        $('#uploadDocumentModal').modal('hide');
+                    } catch (modalError) {
+                        console.error('Error closing modal:', modalError);
+                    }
                     
                     // Reset form
                     document.getElementById('upload-document-form').reset();
