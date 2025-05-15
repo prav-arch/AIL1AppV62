@@ -11,8 +11,8 @@ import logging
 # Set up logger
 logger = logging.getLogger(__name__)
 
-# Database connection string from environment variable
-DATABASE_URL = os.environ.get('DATABASE_URL')
+# Database connection string from environment variable or default with l1_app_user credentials
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://l1_app_user:l1@localhost:5432/l1_app_db')
 
 def get_connection():
     """
