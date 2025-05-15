@@ -1,202 +1,130 @@
 #!/bin/bash
 
-# PostgreSQL installation script using apt.postgresql.org packages
-# This script doesn't require root privileges and uses portable binary archives
+# PostgreSQL 14.2 installation script using official PostgreSQL source
+# This script installs PostgreSQL without requiring root privileges
 
-# Set up environment variables for local installation
-USER_HOME=$HOME
-INSTALL_DIR=$USER_HOME/postgres16
-PGDATA=$INSTALL_DIR/data
-PATH=$INSTALL_DIR/bin:$PATH
-export PGDATA PATH
+# Configuration
+PG_VERSION="14.2"
+INSTALL_DIR="$HOME/postgres"
+DATA_DIR="$HOME/pgdata"
+APP_USER="l1_app_user"
+APP_PASSWORD="test"
+APP_DB="l1_app_db"
+PORT=5432  # Change if standard port is blocked by security
 
-# Database credentials as requested
-DB_USER="l1_app_user"
-DB_PASSWORD="test"
-DB_NAME="l1_app_db"
+echo "=== PostgreSQL $PG_VERSION Installation (Official Source) ==="
+echo "User home: $HOME"
+echo "Install location: $INSTALL_DIR"
+echo "Data directory: $DATA_DIR"
+echo "Database port: $PORT"
 
-echo "Creating installation directory..."
-mkdir -p $INSTALL_DIR
-cd $INSTALL_DIR
+# Create necessary directories
+mkdir -p "$INSTALL_DIR" "$DATA_DIR"
+cd "$HOME"
 
-# Use PostgreSQL's official apt repository packages (portable binaries)
-# These are pre-built packages that can be extracted and used without installation
-echo "Downloading PostgreSQL 16.2 binaries..."
+# Download PostgreSQL source from official repository
+echo "Downloading PostgreSQL $PG_VERSION source..."
+wget -q --no-check-certificate https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz
 
-# Direct link to Debian packages for PostgreSQL 16.2
-if [ "$(uname -m)" = "x86_64" ]; then
-  # For 64-bit systems
-  wget --no-check-certificate http://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-16/postgresql-16_16.2-1.pgdg20.04+1_amd64.deb
-  PACKAGE="postgresql-16_16.2-1.pgdg20.04+1_amd64.deb"
-else
-  # For ARM systems
-  wget --no-check-certificate http://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-16/postgresql-16_16.2-1.pgdg20.04+1_arm64.deb
-  PACKAGE="postgresql-16_16.2-1.pgdg20.04+1_arm64.deb"
-fi
+# Extract PostgreSQL
+echo "Extracting PostgreSQL..."
+tar -xzf postgresql-${PG_VERSION}.tar.gz
+cd postgresql-${PG_VERSION}
 
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to download PostgreSQL package."
-    exit 1
-fi
-
-echo "Extracting data.tar.xz from Debian package..."
-ar x $PACKAGE data.tar.xz
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to extract data archive from package."
-    exit 1
-fi
-
-echo "Extracting PostgreSQL files from data archive..."
-tar -xf data.tar.xz -C $INSTALL_DIR
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to extract PostgreSQL files."
-    exit 1
-fi
-
-# Find postgresql binary directory
-INITDB_PATH=$(find $INSTALL_DIR -name "initdb" -type f | grep bin | head -1)
-if [ -z "$INITDB_PATH" ]; then
-    echo "Error: Could not find initdb binary in the extracted files."
-    echo "Content of installation directory:"
-    find $INSTALL_DIR -type d | head -20
-    exit 1
-fi
-
-# Reorganize files if needed
-BIN_DIR=$(dirname "$INITDB_PATH")
-echo "Found PostgreSQL binaries at: $BIN_DIR"
-
-if [ "$BIN_DIR" != "$INSTALL_DIR/bin" ]; then
-    echo "Reorganizing files to $INSTALL_DIR/bin..."
-    mkdir -p $INSTALL_DIR/bin
-    cp -R $BIN_DIR/* $INSTALL_DIR/bin/
-    
-    # Also copy lib files if they exist
-    USR_LIB_DIR=$(echo $BIN_DIR | sed 's|/bin$|/lib|')
-    if [ -d "$USR_LIB_DIR" ]; then
-        mkdir -p $INSTALL_DIR/lib
-        cp -R $USR_LIB_DIR/* $INSTALL_DIR/lib/
-    fi
-    
-    # And share files (for extensions)
-    USR_SHARE_DIR=$(echo $BIN_DIR | sed 's|/bin$|/share|')
-    if [ -d "$USR_SHARE_DIR" ]; then
-        mkdir -p $INSTALL_DIR/share
-        cp -R $USR_SHARE_DIR/* $INSTALL_DIR/share/
-    fi
-fi
-
-# Verify all required binaries exist
-if [ ! -f "$INSTALL_DIR/bin/initdb" ] || [ ! -f "$INSTALL_DIR/bin/pg_ctl" ] || [ ! -f "$INSTALL_DIR/bin/psql" ]; then
-    echo "Error: Missing critical PostgreSQL binaries."
-    echo "Files in $INSTALL_DIR/bin:"
-    ls -la $INSTALL_DIR/bin
-    exit 1
-fi
-
-chmod -R +x $INSTALL_DIR/bin
-
-echo "Cleaning up download files..."
-rm -f $PACKAGE data.tar.xz
-
-echo "PostgreSQL installation successful!"
-echo "PostgreSQL binaries installed at: $INSTALL_DIR/bin"
-
-# Initialize database
-echo "Initializing PostgreSQL database cluster..."
-mkdir -p $PGDATA
-echo "Created data directory at: $PGDATA"
-
-echo "Running initdb command..."
-$INSTALL_DIR/bin/initdb -D $PGDATA
-if [ $? -ne 0 ]; then
-    echo "Error: initdb failed. Please check the error message above."
-    exit 1
-fi
-echo "Database initialization successful!"
-
-# Set proper permissions - u=rwx (user read, write, execute)
-echo "Setting permissions to u=rwx..."
-chmod -R u=rwx $PGDATA
-chmod -R u=rwx $INSTALL_DIR/bin
-echo "Permissions set."
-
-# Configure PostgreSQL
+# Configure and compile PostgreSQL
 echo "Configuring PostgreSQL..."
-echo "listen_addresses = '*'" >> $PGDATA/postgresql.conf
-echo "port = 5432" >> $PGDATA/postgresql.conf
-echo "log_destination = 'stderr'" >> $PGDATA/postgresql.conf
-echo "logging_collector = on" >> $PGDATA/postgresql.conf
-echo "log_directory = 'pg_log'" >> $PGDATA/postgresql.conf
-echo "log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'" >> $PGDATA/postgresql.conf
-echo "log_statement = 'all'" >> $PGDATA/postgresql.conf
+./configure --prefix="$INSTALL_DIR" --without-readline
 
-# Set up authentication
-mkdir -p $PGDATA/pg_log
-echo "# TYPE  DATABASE        USER            ADDRESS                 METHOD" > $PGDATA/pg_hba.conf
-echo "local   all             all                                     md5" >> $PGDATA/pg_hba.conf
-echo "host    all             all             127.0.0.1/32            md5" >> $PGDATA/pg_hba.conf
-echo "host    all             all             ::1/128                 md5" >> $PGDATA/pg_hba.conf
-echo "host    all             all             0.0.0.0/0               md5" >> $PGDATA/pg_hba.conf
+echo "Compiling PostgreSQL (this may take a while)..."
+make
+make install
 
-echo "Starting PostgreSQL server..."
-$INSTALL_DIR/bin/pg_ctl -D $PGDATA start
+# Set permissions
+chmod -R u+wx "$INSTALL_DIR"
+chmod -R u+wx "$DATA_DIR"
 
-if [ $? -ne 0 ]; then
-    echo "Error starting PostgreSQL server. Please check the error messages above."
-    exit 1
-fi
-
-echo "Creating application user and database..."
-# Create the l1_app_user with password 'test' as requested
-$INSTALL_DIR/bin/psql -d postgres -c "CREATE ROLE $DB_USER WITH LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD '$DB_PASSWORD';"
-
-# Create the l1_app_db owned by l1_app_user
-$INSTALL_DIR/bin/createdb -O $DB_USER $DB_NAME
-
-# Grant all privileges on the database to the user
-$INSTALL_DIR/bin/psql -d $DB_NAME -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
-
-# Create environment file
-echo "Creating environment file..."
-ENV_FILE=$HOME/.pgenv
-
-cat > $ENV_FILE << EOF
+# Set environment variables
+echo "Setting up environment variables..."
+cat > "$HOME/.pgenv" << EOL
 # PostgreSQL Environment Variables
-export PATH=$INSTALL_DIR/bin:\$PATH
-export PGDATA=$PGDATA
-export DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME
-export PGHOST=localhost
-export PGPORT=5432
-export PGUSER=$DB_USER
-export PGPASSWORD=$DB_PASSWORD
-export PGDATABASE=$DB_NAME
-EOF
+export PGINSTALL="$INSTALL_DIR"
+export PGDATA="$DATA_DIR"
+export PGPORT="$PORT"
+export PATH="\$PGINSTALL/bin:\$PATH"
+EOL
 
-echo "=========================================================="
-echo "PostgreSQL installation complete!"
+# Source the environment file
+source "$HOME/.pgenv"
+
+# Initialize the database
+echo "Initializing PostgreSQL database..."
+"$INSTALL_DIR/bin/initdb" -D "$DATA_DIR" --encoding=UTF8 --no-locale
+
+# Configure postgresql.conf for non-standard security environments
+echo "Configuring PostgreSQL..."
+cat >> "$DATA_DIR/postgresql.conf" << EOL
+# Security-restricted environment settings
+listen_addresses = 'localhost'
+port = $PORT
+max_connections = 100
+shared_buffers = 128MB
+dynamic_shared_memory_type = posix
+EOL
+
+# Configure authentication
+cat > "$DATA_DIR/pg_hba.conf" << EOL
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+EOL
+
+# Start PostgreSQL
+echo "Starting PostgreSQL server..."
+"$INSTALL_DIR/bin/pg_ctl" -D "$DATA_DIR" start
+
+# Wait for PostgreSQL to start
+sleep 5
+
+# Create role and database
+echo "Creating application database and user..."
+"$INSTALL_DIR/bin/psql" -p "$PORT" -d postgres -c "CREATE ROLE $APP_USER WITH LOGIN PASSWORD '$APP_PASSWORD' CREATEDB;"
+"$INSTALL_DIR/bin/createdb" -p "$PORT" -O "$APP_USER" "$APP_DB"
+
+# Create environment file for the application
+cat > "$HOME/.env" << EOL
+# PostgreSQL Connection Details
+DATABASE_URL=postgresql://$APP_USER:$APP_PASSWORD@localhost:$PORT/$APP_DB
+PGHOST=localhost
+PGPORT=$PORT
+PGDATABASE=$APP_DB
+PGUSER=$APP_USER
+PGPASSWORD=$APP_PASSWORD
+EOL
+
+echo "=== Installation Complete ==="
 echo ""
-echo "Environment file created at: $ENV_FILE"
-echo "To load PostgreSQL environment variables, run:"
-echo "source $ENV_FILE"
-echo "=========================================================="
+echo "To use PostgreSQL in your environment:"
+echo "1. Add this line to your .bashrc or .profile:"
+echo "   source $HOME/.pgenv"
 echo ""
-echo "Database connection information:"
-echo "Database name: $DB_NAME"
-echo "Username: $DB_USER"
-echo "Password: $DB_PASSWORD"
-echo "Host: localhost"
-echo "Port: 5432"
+echo "2. Start PostgreSQL (if not already running):"
+echo "   $INSTALL_DIR/bin/pg_ctl -D $DATA_DIR start"
 echo ""
-echo "Connection string: postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME"
+echo "3. Stop PostgreSQL when done:"
+echo "   $INSTALL_DIR/bin/pg_ctl -D $DATA_DIR stop"
 echo ""
-echo "USAGE GUIDE:"
-echo "-----------"
-echo "1. Start PostgreSQL:   $INSTALL_DIR/bin/pg_ctl -D $PGDATA start"
-echo "2. Stop PostgreSQL:    $INSTALL_DIR/bin/pg_ctl -D $PGDATA stop"
-echo "3. Connect to DB:      $INSTALL_DIR/bin/psql -d $DB_NAME"
-echo "4. Check PG status:    $INSTALL_DIR/bin/pg_ctl -D $PGDATA status"
+echo "4. Connect to your database:"
+echo "   $INSTALL_DIR/bin/psql -p $PORT -d $APP_DB -U $APP_USER"
 echo ""
-echo "To connect after sourcing ~/.pgenv:"
-echo "source ~/.pgenv"
-echo "psql -d $DB_NAME"
+echo "Database connection string for your application:"
+echo "postgresql://$APP_USER:$APP_PASSWORD@localhost:$PORT/$APP_DB"
+echo ""
+echo "Environment file with all connection details created at:"
+echo "$HOME/.env"
+echo ""
+echo "IMPORTANT: In security-restricted environments, you may need to:"
+echo "- Use a non-standard port if port $PORT is blocked"
+echo "- Set up SSH tunneling if direct database access is restricted"
+echo "- If compilation fails, you may need to check if development tools"
+echo "  (gcc, make) are available in your environment"
