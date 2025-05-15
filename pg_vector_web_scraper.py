@@ -237,13 +237,8 @@ class PgVectorDatabase:
             psycopg2 connection object
         """
         if self.conn is None or self.conn.closed:
-            self.conn = psycopg2.connect(
-                dbname=self.db_params['dbname'],
-                user=self.db_params['user'],
-                password=self.db_params['password'],
-                host=self.db_params['host'],
-                port=self.db_params['port']
-            )
+            conn_string = f"dbname={self.db_params['dbname']} user={self.db_params['user']} password={self.db_params['password']} host={self.db_params['host']} port={self.db_params['port']}"
+            self.conn = psycopg2.connect(conn_string)
         return self.conn
     
     def _initialize_db(self):
@@ -325,9 +320,18 @@ class PgVectorDatabase:
         Returns:
             int: ID of the inserted webpage
         """
+        conn = None
+        cursor = None
         try:
             conn = self._get_connection()
+            if not conn:
+                logger.error("Failed to get database connection")
+                return None
+            
             cursor = conn.cursor()
+            if not cursor:
+                logger.error("Failed to get database cursor")
+                return None
             
             # Insert webpage if not exists
             cursor.execute("""
@@ -345,7 +349,13 @@ class PgVectorDatabase:
                 Json(metadata or {})
             ))
             
-            page_id = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            page_id = result[0] if result else None
+            if page_id is None:
+                logger.error("Failed to get page ID after insert")
+                if conn:
+                    conn.rollback()
+                return None
             conn.commit()
             
             logger.info(f"Added webpage {url} with ID {page_id}")
@@ -489,15 +499,18 @@ class PgVectorDatabase:
             
             # Get webpage count
             cursor.execute("SELECT COUNT(*) FROM web_pages")
-            stats['webpages_count'] = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            stats['webpages_count'] = result[0] if result else 0
             
             # Get chunk count
             cursor.execute("SELECT COUNT(*) FROM page_chunks")
-            stats['chunks_count'] = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            stats['chunks_count'] = result[0] if result else 0
             
             # Get total text size
             cursor.execute("SELECT SUM(LENGTH(chunk_text)) FROM page_chunks")
-            text_size = cursor.fetchone()[0] or 0
+            result = cursor.fetchone()
+            text_size = result[0] if result and result[0] is not None else 0
             stats['total_text_size'] = f"{text_size / 1024:.2f} KB"
             
             # Get size information
