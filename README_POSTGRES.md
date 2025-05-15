@@ -110,6 +110,21 @@ After installation, the pgvector extension is available in your database. You ca
 - Set up a backup routine for your data
 - Consider using `maintenance_work_mem` for vacuum operations
 
+## File Permissions
+
+The installation script sets all PostgreSQL files and directories with `u=rwx` permissions (read, write, execute for the user). This ensures that:
+
+- You can read all configuration files
+- You can write to data files and logs
+- You can execute all PostgreSQL binaries
+
+If you encounter permission issues after installation, you can restore the correct permissions with:
+
+```bash
+chmod -R u=rwx ~/postgres16
+chmod -R u=rwx ~/postgres16/data
+```
+
 ## Troubleshooting
 
 If you encounter issues:

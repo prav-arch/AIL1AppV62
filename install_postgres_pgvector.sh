@@ -38,6 +38,11 @@ echo "Initializing PostgreSQL database cluster..."
 mkdir -p $PGDATA
 $INSTALL_DIR/bin/initdb -D $PGDATA --no-locale --encoding=UTF8
 
+# Set proper permissions - u=rwx (user read, write, execute)
+echo "Setting permissions to u=rwx..."
+chmod -R u=rwx $PGDATA
+chmod -R u=rwx $INSTALL_DIR/bin
+
 echo "Downloading pgvector source..."
 cd $INSTALL_DIR
 wget --no-check-certificate https://github.com/pgvector/pgvector/archive/refs/tags/v0.5.1.tar.gz -O pgvector-0.5.1.tar.gz
@@ -49,6 +54,10 @@ cd pgvector-0.5.1
 echo "Building pgvector..."
 make USE_PGXS=1 PG_CONFIG=$INSTALL_DIR/bin/pg_config
 make USE_PGXS=1 PG_CONFIG=$INSTALL_DIR/bin/pg_config install
+
+# Set proper permissions for pgvector
+chmod -R u=rwx $INSTALL_DIR/share/extension
+chmod -R u=rwx $INSTALL_DIR/lib
 
 # Configure PostgreSQL
 echo "Configuring PostgreSQL..."
@@ -146,3 +155,11 @@ echo "- Tune shared_buffers in postgresql.conf for optimal performance"
 echo "- Consider setting up a backup routine for your data"
 echo ""
 echo "To modify database settings, edit: $PGDATA/postgresql.conf"
+
+# Final permission check - ensure all files have u=rwx
+echo ""
+echo "Setting final permissions to u=rwx for all PostgreSQL files..."
+chmod -R u=rwx $INSTALL_DIR
+chmod -R u=rwx $PGDATA
+
+echo "Permission settings complete."
