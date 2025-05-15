@@ -22,4 +22,8 @@ dependencies = [
     "faiss-cpu>=1.11.0",
     "pgvector>=0.4.1",
     "beautifulsoup4>=4.13.4",
+    "flask-dance>=7.1.0",
+    "flask-login>=0.6.3",
+    "oauthlib>=3.2.2",
+    "pyjwt>=2.10.1",
 ]
