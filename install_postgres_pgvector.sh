@@ -25,14 +25,71 @@ tar -xzf postgresql-16.2.tar.gz
 cd postgresql-16.2
 
 echo "Configuring PostgreSQL for local installation..."
+# Check if we have the basic tools needed
+if ! command -v gcc &> /dev/null; then
+    echo "Error: gcc is not installed or not in PATH"
+    echo "You need a C compiler to build PostgreSQL"
+    exit 1
+fi
+
+if ! command -v make &> /dev/null; then
+    echo "Error: make is not installed or not in PATH"
+    echo "You need make to build PostgreSQL"
+    exit 1
+fi
+
 # Configure with --prefix to install in user's home directory
 ./configure --prefix=$INSTALL_DIR \
             --without-readline \
             --without-zlib
 
+if [ $? -ne 0 ]; then
+    echo "Error: Configuration failed."
+    echo "Check the error messages above for missing dependencies."
+    echo "Common issues:"
+    echo "  - Missing C compiler (gcc)"
+    echo "  - Missing development files"
+    echo "  - Permission issues in the installation directory"
+    exit 1
+fi
+
+echo "Configuration completed successfully!"
+
 echo "Building PostgreSQL (this may take a while)..."
 make -j $(nproc)
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to build PostgreSQL. Check for build requirements."
+    echo "You might need to install development tools like gcc, make, etc."
+    echo "On Debian/Ubuntu: apt-get install build-essential"
+    echo "On RedHat/CentOS: yum groupinstall 'Development Tools'"
+    exit 1
+fi
+
+echo "Installing PostgreSQL..."
 make install
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to install PostgreSQL."
+    exit 1
+fi
+
+# Verify binary was created
+if [ ! -f "$INSTALL_DIR/bin/initdb" ]; then
+    echo "Error: initdb binary was not created at $INSTALL_DIR/bin/initdb"
+    echo "Installation appears to have failed."
+    
+    # Check if there's any bin directory
+    echo "Looking for bin directory..."
+    find $INSTALL_DIR -name "bin" -type d
+    
+    # Check if initdb is somewhere else
+    echo "Looking for initdb binary..."
+    find $INSTALL_DIR -name "initdb" -type f
+    
+    exit 1
+fi
+
+echo "PostgreSQL installation successful!"
+echo "initdb is located at: $INSTALL_DIR/bin/initdb"
 
 echo "Initializing PostgreSQL database cluster..."
 mkdir -p $PGDATA
