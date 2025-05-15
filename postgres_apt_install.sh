@@ -1,12 +1,11 @@
 #!/bin/bash
 
-# Simple PostgreSQL installation using pre-compiled binaries
-# This doesn't require compilation tools and is much faster
+# PostgreSQL installation script using apt.postgresql.org packages
+# This script doesn't require root privileges and uses portable binary archives
 
 # Set up environment variables for local installation
 USER_HOME=$HOME
 INSTALL_DIR=$USER_HOME/postgres16
-PG_VERSION=16.2
 PGDATA=$INSTALL_DIR/data
 PATH=$INSTALL_DIR/bin:$PATH
 export PGDATA PATH
@@ -20,101 +19,88 @@ echo "Creating installation directory..."
 mkdir -p $INSTALL_DIR
 cd $INSTALL_DIR
 
-# Determine system architecture
-ARCH=$(uname -m)
-if [ "$ARCH" = "x86_64" ]; then
-  POSTGRES_ARCH="linux-x64"
-elif [ "$ARCH" = "aarch64" ]; then
-  POSTGRES_ARCH="linux-arm64"
+# Use PostgreSQL's official apt repository packages (portable binaries)
+# These are pre-built packages that can be extracted and used without installation
+echo "Downloading PostgreSQL 16.2 binaries..."
+
+# Direct link to Debian packages for PostgreSQL 16.2
+if [ "$(uname -m)" = "x86_64" ]; then
+  # For 64-bit systems
+  wget --no-check-certificate http://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-16/postgresql-16_16.2-1.pgdg20.04+1_amd64.deb
+  PACKAGE="postgresql-16_16.2-1.pgdg20.04+1_amd64.deb"
 else
-  echo "Unsupported architecture: $ARCH"
-  echo "This script supports x86_64 and aarch64 architectures."
-  exit 1
-fi
-
-# Use PostgreSQL official download mirror
-echo "Downloading PostgreSQL $PG_VERSION for $ARCH..."
-if [ "$ARCH" = "x86_64" ]; then
-  # For x86_64
-  wget --no-check-certificate https://ftp.postgresql.org/pub/binary/v$PG_VERSION/linux-x64/postgresql-$PG_VERSION-linux-x64.tar.gz
-elif [ "$ARCH" = "aarch64" ]; then
-  # For ARM64
-  wget --no-check-certificate https://ftp.postgresql.org/pub/binary/v$PG_VERSION/linux-arm64/postgresql-$PG_VERSION-linux-arm64.tar.gz
+  # For ARM systems
+  wget --no-check-certificate http://apt.postgresql.org/pub/repos/apt/pool/main/p/postgresql-16/postgresql-16_16.2-1.pgdg20.04+1_arm64.deb
+  PACKAGE="postgresql-16_16.2-1.pgdg20.04+1_arm64.deb"
 fi
 
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to download PostgreSQL binaries."
-    echo "Please check your internet connection or try again later."
+    echo "Error: Failed to download PostgreSQL package."
     exit 1
 fi
 
-echo "Extracting PostgreSQL..."
-# Create a temporary directory for extraction
-TEMP_DIR=$(mktemp -d)
-
-if [ "$ARCH" = "x86_64" ]; then
-  tar -xzf postgresql-$PG_VERSION-linux-x64.tar.gz -C $TEMP_DIR
-elif [ "$ARCH" = "aarch64" ]; then
-  tar -xzf postgresql-$PG_VERSION-linux-arm64.tar.gz -C $TEMP_DIR
-fi
-
+echo "Extracting data.tar.xz from Debian package..."
+ar x $PACKAGE data.tar.xz
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to extract PostgreSQL binaries."
-    rm -rf $TEMP_DIR
+    echo "Error: Failed to extract data archive from package."
     exit 1
 fi
 
-# Find the actual location of initdb
-echo "Looking for PostgreSQL binaries in the extracted files..."
-INITDB_PATH=$(find $TEMP_DIR -name "initdb" -type f | head -1)
+echo "Extracting PostgreSQL files from data archive..."
+tar -xf data.tar.xz -C $INSTALL_DIR
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to extract PostgreSQL files."
+    exit 1
+fi
 
+# Find postgresql binary directory
+INITDB_PATH=$(find $INSTALL_DIR -name "initdb" -type f | grep bin | head -1)
 if [ -z "$INITDB_PATH" ]; then
     echo "Error: Could not find initdb binary in the extracted files."
-    echo "Content of extracted directory:"
-    ls -la $TEMP_DIR
-    find $TEMP_DIR -type d | head -10
-    rm -rf $TEMP_DIR
+    echo "Content of installation directory:"
+    find $INSTALL_DIR -type d | head -20
     exit 1
 fi
 
-echo "Found initdb at: $INITDB_PATH"
-
-# Get the bin directory path
+# Reorganize files if needed
 BIN_DIR=$(dirname "$INITDB_PATH")
-echo "Binary directory found at: $BIN_DIR"
+echo "Found PostgreSQL binaries at: $BIN_DIR"
 
-# Copy all files to our installation directory
-echo "Copying files to $INSTALL_DIR..."
-mkdir -p $INSTALL_DIR/bin
-cp -R $BIN_DIR/* $INSTALL_DIR/bin/
-chmod +x $INSTALL_DIR/bin/*
-
-# Copy lib and share directories if they exist
-LIB_DIR=$(dirname "$BIN_DIR")/lib
-if [ -d "$LIB_DIR" ]; then
-    mkdir -p $INSTALL_DIR/lib
-    cp -R $LIB_DIR/* $INSTALL_DIR/lib/
+if [ "$BIN_DIR" != "$INSTALL_DIR/bin" ]; then
+    echo "Reorganizing files to $INSTALL_DIR/bin..."
+    mkdir -p $INSTALL_DIR/bin
+    cp -R $BIN_DIR/* $INSTALL_DIR/bin/
+    
+    # Also copy lib files if they exist
+    USR_LIB_DIR=$(echo $BIN_DIR | sed 's|/bin$|/lib|')
+    if [ -d "$USR_LIB_DIR" ]; then
+        mkdir -p $INSTALL_DIR/lib
+        cp -R $USR_LIB_DIR/* $INSTALL_DIR/lib/
+    fi
+    
+    # And share files (for extensions)
+    USR_SHARE_DIR=$(echo $BIN_DIR | sed 's|/bin$|/share|')
+    if [ -d "$USR_SHARE_DIR" ]; then
+        mkdir -p $INSTALL_DIR/share
+        cp -R $USR_SHARE_DIR/* $INSTALL_DIR/share/
+    fi
 fi
 
-SHARE_DIR=$(dirname "$BIN_DIR")/share
-if [ -d "$SHARE_DIR" ]; then
-    mkdir -p $INSTALL_DIR/share
-    cp -R $SHARE_DIR/* $INSTALL_DIR/share/
-fi
-
-# Clean up
-rm -rf $TEMP_DIR
-
-# Verify binary exists
-if [ ! -f "$INSTALL_DIR/bin/initdb" ]; then
-    echo "Error: initdb binary was not found at $INSTALL_DIR/bin/initdb after copying"
+# Verify all required binaries exist
+if [ ! -f "$INSTALL_DIR/bin/initdb" ] || [ ! -f "$INSTALL_DIR/bin/pg_ctl" ] || [ ! -f "$INSTALL_DIR/bin/psql" ]; then
+    echo "Error: Missing critical PostgreSQL binaries."
     echo "Files in $INSTALL_DIR/bin:"
     ls -la $INSTALL_DIR/bin
     exit 1
 fi
 
-echo "PostgreSQL binaries extracted successfully!"
-echo "initdb is located at: $INSTALL_DIR/bin/initdb"
+chmod -R +x $INSTALL_DIR/bin
+
+echo "Cleaning up download files..."
+rm -f $PACKAGE data.tar.xz
+
+echo "PostgreSQL installation successful!"
+echo "PostgreSQL binaries installed at: $INSTALL_DIR/bin"
 
 # Initialize database
 echo "Initializing PostgreSQL database cluster..."
@@ -122,7 +108,7 @@ mkdir -p $PGDATA
 echo "Created data directory at: $PGDATA"
 
 echo "Running initdb command..."
-$INSTALL_DIR/bin/initdb -D $PGDATA --no-locale --encoding=UTF8
+$INSTALL_DIR/bin/initdb -D $PGDATA
 if [ $? -ne 0 ]; then
     echo "Error: initdb failed. Please check the error message above."
     exit 1
@@ -135,20 +121,8 @@ chmod -R u=rwx $PGDATA
 chmod -R u=rwx $INSTALL_DIR/bin
 echo "Permissions set."
 
-# Verify the data directory has the required files
-echo "Verifying data directory structure..."
-if [ -f "$PGDATA/PG_VERSION" ]; then
-    echo "PG_VERSION found. Data directory appears valid."
-else
-    echo "ERROR: $PGDATA/PG_VERSION not found. Data directory may not be properly initialized."
-    echo "Contents of $PGDATA:"
-    ls -la $PGDATA
-    exit 1
-fi
-
 # Configure PostgreSQL
 echo "Configuring PostgreSQL..."
-echo "shared_preload_libraries = 'vector'" >> $PGDATA/postgresql.conf
 echo "listen_addresses = '*'" >> $PGDATA/postgresql.conf
 echo "port = 5432" >> $PGDATA/postgresql.conf
 echo "log_destination = 'stderr'" >> $PGDATA/postgresql.conf
@@ -199,15 +173,22 @@ export PGPASSWORD=$DB_PASSWORD
 export PGDATABASE=$DB_NAME
 EOF
 
-echo "Environment file created at $ENV_FILE"
-echo "To load these environment variables, run:"
-echo "source $ENV_FILE"
-
+echo "=========================================================="
 echo "PostgreSQL installation complete!"
 echo ""
-echo "IMPORTANT: The pgvector extension needs to be installed separately."
-echo "This installation includes only PostgreSQL without the pgvector extension."
-echo "You can still use the database for non-vector operations."
+echo "Environment file created at: $ENV_FILE"
+echo "To load PostgreSQL environment variables, run:"
+echo "source $ENV_FILE"
+echo "=========================================================="
+echo ""
+echo "Database connection information:"
+echo "Database name: $DB_NAME"
+echo "Username: $DB_USER"
+echo "Password: $DB_PASSWORD"
+echo "Host: localhost"
+echo "Port: 5432"
+echo ""
+echo "Connection string: postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME"
 echo ""
 echo "USAGE GUIDE:"
 echo "-----------"
