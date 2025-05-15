@@ -35,6 +35,11 @@ with app.app_context():
         # Initialize the database with all required tables
         init_db()
         logger.info("Database initialized successfully")
+        
+        # Initialize vector database (using FAISS instead of PostgreSQL pgvector)
+        from services.faiss_vector_db import init_vector_db
+        init_vector_db()
+        logger.info("Vector database initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
 

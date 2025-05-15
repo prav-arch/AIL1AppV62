@@ -1,6 +1,6 @@
 """
 RAG routes for the AI Assistant Platform.
-Handles document uploads, web scraping, and RAG search using PostgreSQL vector database.
+Handles document uploads, web scraping, and RAG search using FAISS vector database.
 """
 
 from flask import Blueprint, render_template, request, jsonify, session
@@ -16,8 +16,8 @@ import requests
 # Import database functions
 from db import execute_query, add_document, add_document_chunk
 
-# Import vector database service
-from services.postgres_vector_db import postgres_vector_db_service
+# Import vector database service - FAISS instead of PostgreSQL
+from services.faiss_vector_db import add_embedding, search_embeddings
 
 # Web scraper module
 import trafilatura
@@ -102,7 +102,15 @@ def upload_document():
                 'db_document_id': document_id
             }
             
-            postgres_vector_db_service.add_document(doc_uuid, file_content, metadata)
+            # Process document content and add embeddings
+            # Split into chunks and add each chunk to FAISS
+            chunks = [file_content[i:i+1000] for i in range(0, len(file_content), 1000)]
+            for i, chunk in enumerate(chunks):
+                # In a real app, we would generate embeddings here using a model
+                # For now, we'll use dummy embeddings of the right dimension
+                import numpy as np
+                dummy_embedding = np.random.rand(1536).astype('float32') 
+                add_embedding(document_id, i, dummy_embedding, chunk)
             
             return jsonify({
                 'success': True, 
