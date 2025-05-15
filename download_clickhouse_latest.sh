@@ -1,62 +1,66 @@
 #!/bin/bash
 
-# Direct ClickHouse version 25.4.4.25 binary download script
-# No parameters - everything is hardcoded for maximum compatibility
+# ClickHouse Direct Binary Download Script
+# This script downloads the latest stable ClickHouse binaries directly
+# This approach works better for security-restricted environments
 
 # Create download directory
 mkdir -p ~/clickhouse_download
 cd ~/clickhouse_download
 
-echo "=== Downloading ClickHouse 25.4.4.25 Binaries ==="
+echo "=== Downloading ClickHouse Latest Stable Binaries ==="
 
-# Direct download links to ClickHouse 25.4.4.25 binaries
-wget https://github.com/ClickHouse/ClickHouse/releases/download/v25.4.4.25-stable/clickhouse-common-static-25.4.4.25-amd64.tgz
-wget https://github.com/ClickHouse/ClickHouse/releases/download/v25.4.4.25-stable/clickhouse-server-25.4.4.25-amd64.tgz
-wget https://github.com/ClickHouse/ClickHouse/releases/download/v25.4.4.25-stable/clickhouse-client-25.4.4.25-amd64.tgz
+# Alternative download URLs using ClickHouse's official repositories
+# These are more reliable and work in most environments
+wget https://packages.clickhouse.com/deb/pool/stable/clickhouse-common-static_latest_amd64.deb
+wget https://packages.clickhouse.com/deb/pool/stable/clickhouse-server_latest_amd64.deb
+wget https://packages.clickhouse.com/deb/pool/stable/clickhouse-client_latest_amd64.deb
+
+# Create directories for ClickHouse installation
+mkdir -p ~/clickhouse
+mkdir -p ~/clickhouse/bin
+mkdir -p ~/clickhouse_data
+mkdir -p ~/clickhouse_config
+mkdir -p ~/clickhouse_config/config.d
+mkdir -p ~/clickhouse_config/users.d
+mkdir -p ~/clickhouse_config/logs
+mkdir -p ~/clickhouse_tmp
 
 echo "=== Extracting ClickHouse Binaries ==="
 
-# Create directories
-mkdir -p ~/clickhouse25/bin
-mkdir -p ~/clickhouse25_data
-mkdir -p ~/clickhouse25_config
-mkdir -p ~/clickhouse25_config/config.d
-mkdir -p ~/clickhouse25_config/users.d
-mkdir -p ~/clickhouse25_config/logs
-mkdir -p ~/clickhouse25_tmp
+# Extract the .deb packages
+for pkg in *.deb; do
+  echo "Extracting $pkg..."
+  dpkg-deb -x "$pkg" ~/clickhouse_tmp
+done
 
-# Extract binaries
-tar -xzf clickhouse-common-static-25.4.4.25-amd64.tgz -C ~/clickhouse25_tmp
-tar -xzf clickhouse-server-25.4.4.25-amd64.tgz -C ~/clickhouse25_tmp
-tar -xzf clickhouse-client-25.4.4.25-amd64.tgz -C ~/clickhouse25_tmp
-
-# Copy binaries to bin directory
-cp ~/clickhouse25_tmp/usr/bin/clickhouse ~/clickhouse25/bin/
+# Copy the binaries to the bin directory
+cp ~/clickhouse_tmp/usr/bin/clickhouse ~/clickhouse/bin/
 
 # Set permissions
-chmod -R u+wx ~/clickhouse25
-chmod -R u+wx ~/clickhouse25_data
-chmod -R u+wx ~/clickhouse25_config
+chmod -R u+wx ~/clickhouse
+chmod -R u+wx ~/clickhouse_data
+chmod -R u+wx ~/clickhouse_config
 
 # Create basic configuration
 echo "=== Creating ClickHouse Configuration ==="
 
 # Generate main config file
-cat > ~/clickhouse25_config/config.xml << EOL
+cat > ~/clickhouse_config/config.xml << EOL
 <?xml version="1.0"?>
 <clickhouse>
     <logger>
         <level>trace</level>
-        <log>$HOME/clickhouse25_config/logs/clickhouse-server.log</log>
-        <errorlog>$HOME/clickhouse25_config/logs/clickhouse-server.err.log</errorlog>
+        <log>$HOME/clickhouse_config/logs/clickhouse-server.log</log>
+        <errorlog>$HOME/clickhouse_config/logs/clickhouse-server.err.log</errorlog>
         <size>1000M</size>
         <count>10</count>
     </logger>
 
-    <path>$HOME/clickhouse25_data/</path>
-    <tmp_path>$HOME/clickhouse25_data/tmp/</tmp_path>
-    <user_files_path>$HOME/clickhouse25_config/user_files/</user_files_path>
-    <format_schema_path>$HOME/clickhouse25_config/format_schemas/</format_schema_path>
+    <path>$HOME/clickhouse_data/</path>
+    <tmp_path>$HOME/clickhouse_data/tmp/</tmp_path>
+    <user_files_path>$HOME/clickhouse_config/user_files/</user_files_path>
+    <format_schema_path>$HOME/clickhouse_config/format_schemas/</format_schema_path>
     
     <listen_host>127.0.0.1</listen_host>
     <http_port>8123</http_port>
@@ -71,10 +75,10 @@ cat > ~/clickhouse25_config/config.xml << EOL
     
     <user_directories>
         <users_xml>
-            <path>$HOME/clickhouse25_config/users.xml</path>
+            <path>$HOME/clickhouse_config/users.xml</path>
         </users_xml>
         <local_directory>
-            <path>$HOME/clickhouse25_config/users.d/</path>
+            <path>$HOME/clickhouse_config/users.d/</path>
         </local_directory>
     </user_directories>
     
@@ -87,7 +91,7 @@ cat > ~/clickhouse25_config/config.xml << EOL
 EOL
 
 # Generate users config file
-cat > ~/clickhouse25_config/users.xml << EOL
+cat > ~/clickhouse_config/users.xml << EOL
 <?xml version="1.0"?>
 <clickhouse>
     <users>
@@ -136,7 +140,7 @@ cat > ~/clickhouse25_config/users.xml << EOL
 EOL
 
 # Create database initialization script
-cat > ~/init_clickhouse25_db.sql << EOL
+cat > ~/init_clickhouse_db.sql << EOL
 -- Create database
 CREATE DATABASE IF NOT EXISTS l1_app_db;
 
@@ -168,7 +172,7 @@ CREATE TABLE IF NOT EXISTS document_chunks
 ) ENGINE = MergeTree()
 ORDER BY (document_id, chunk_index);
 
--- Create vector index (using HNSW which is better in version 25)
+-- Create vector index (using HNSW which is better in newer versions)
 ALTER TABLE document_chunks ADD VECTOR INDEX embedding_idx embedding TYPE HNSW;
 
 -- Create a table for vector database stats
@@ -187,14 +191,14 @@ INSERT INTO vector_db_stats (id, vector_dim) VALUES (1, 384);
 EOL
 
 # Create start script
-cat > ~/start_clickhouse25.sh << EOL
+cat > ~/start_clickhouse.sh << EOL
 #!/bin/bash
 
 # Start ClickHouse Server
 
 # Set environment
-export CLICKHOUSE_HOME="$HOME/clickhouse25"
-export CLICKHOUSE_CONFIG="$HOME/clickhouse25_config/config.xml"
+export CLICKHOUSE_HOME="$HOME/clickhouse"
+export CLICKHOUSE_CONFIG="$HOME/clickhouse_config/config.xml"
 
 # Check if ClickHouse is already running
 if pgrep -f "clickhouse-server" > /dev/null; then
@@ -209,7 +213,7 @@ else
     # Initialize database if needed
     if ! "$CLICKHOUSE_HOME/bin/clickhouse" client --query="SHOW DATABASES LIKE 'l1_app_db'" | grep -q "l1_app_db"; then
         echo "Initializing database..."
-        "$CLICKHOUSE_HOME/bin/clickhouse" client < "$HOME/init_clickhouse25_db.sql"
+        "$CLICKHOUSE_HOME/bin/clickhouse" client < "$HOME/init_clickhouse_db.sql"
         echo "Database initialized."
     fi
 fi
@@ -219,7 +223,7 @@ echo "$CLICKHOUSE_HOME/bin/clickhouse client --user=l1_app_user --password=test 
 EOL
 
 # Create stop script
-cat > ~/stop_clickhouse25.sh << EOL
+cat > ~/stop_clickhouse.sh << EOL
 #!/bin/bash
 
 # Stop ClickHouse Server
@@ -233,51 +237,51 @@ fi
 EOL
 
 # Create environment file
-cat > ~/.clickhouse25_env << EOL
-# ClickHouse Environment Variables
-export CLICKHOUSE_HOME="$HOME/clickhouse25"
-export CLICKHOUSE_CONFIG="$HOME/clickhouse25_config/config.xml"
-export PATH="$CLICKHOUSE_HOME/bin:\$PATH"
-EOL
-
-# Create .env file for application
 cat > ~/.clickhouse_env << EOL
-# ClickHouse Connection Details
-CLICKHOUSE_HOST=localhost
-CLICKHOUSE_PORT=9000
-CLICKHOUSE_USER=l1_app_user
-CLICKHOUSE_PASSWORD=test
-CLICKHOUSE_DATABASE=l1_app_db
+# ClickHouse Environment Variables
+export CLICKHOUSE_HOME="$HOME/clickhouse"
+export CLICKHOUSE_CONFIG="$HOME/clickhouse_config/config.xml"
+export PATH="$CLICKHOUSE_HOME/bin:\$PATH"
 
-# Using ClickHouse instead of PostgreSQL
-DATABASE_TYPE=clickhouse
-DATABASE_URL=clickhouse://l1_app_user:test@localhost:9000/l1_app_db
-VECTOR_STORAGE=clickhouse
+# Database connection details
+export CLICKHOUSE_HOST=localhost
+export CLICKHOUSE_PORT=9000
+export CLICKHOUSE_USER=l1_app_user
+export CLICKHOUSE_PASSWORD=test
+export CLICKHOUSE_DATABASE=l1_app_db
+
+# Using ClickHouse for vectors
+export DATABASE_TYPE=clickhouse
+export DATABASE_URL=clickhouse://l1_app_user:test@localhost:9000/l1_app_db
+export VECTOR_STORAGE=clickhouse
 EOL
 
 # Make scripts executable
-chmod +x ~/start_clickhouse25.sh
-chmod +x ~/stop_clickhouse25.sh
+chmod +x ~/start_clickhouse.sh
+chmod +x ~/stop_clickhouse.sh
 
 # Clean up
-rm -rf ~/clickhouse25_tmp
+rm -rf ~/clickhouse_tmp
 echo "Downloaded files are in ~/clickhouse_download"
 
-echo "=== ClickHouse 25.4.4.25 Download Complete ==="
+echo "=== ClickHouse Latest Stable Download Complete ==="
 echo ""
-echo "ClickHouse has been downloaded to ~/clickhouse25"
+echo "ClickHouse has been downloaded to ~/clickhouse"
 echo ""
 echo "To start ClickHouse server:"
-echo "~/start_clickhouse25.sh"
+echo "~/start_clickhouse.sh"
 echo ""
 echo "To stop ClickHouse server:"
-echo "~/stop_clickhouse25.sh"
+echo "~/stop_clickhouse.sh"
 echo ""
 echo "To connect to ClickHouse:"
-echo "~/clickhouse25/bin/clickhouse client --user=l1_app_user --password=test --database=l1_app_db"
+echo "~/clickhouse/bin/clickhouse client --user=l1_app_user --password=test --database=l1_app_db"
 echo ""
 echo "Connection string for your application:"
 echo "clickhouse://l1_app_user:test@localhost:9000/l1_app_db"
 echo ""
-echo "Environment file location:"
-echo "~/.clickhouse25_env"
+echo "Environment file with connection details created at:"
+echo "~/.clickhouse_env"
+echo ""
+echo "To load environment variables into your shell:"
+echo "source ~/.clickhouse_env"
