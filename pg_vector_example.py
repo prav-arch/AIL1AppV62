@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Example script demonstrating how to connect to the PostgreSQL with pgvector
-using the l1_app_user, l1_app_db, and password 'l1'
+using the l1_app_user, l1_app_db, and password 'test'
 """
 
 import os
@@ -14,13 +14,13 @@ from psycopg2.extras import Json, execute_values
 DB_PARAMS = {
     'dbname': 'l1_app_db',
     'user': 'l1_app_user',
-    'password': 'l1',
+    'password': 'test',
     'host': 'localhost',
     'port': '5432'
 }
 
 # Alternatively, use the DATABASE_URL (preferred method)
-# DATABASE_URL = "postgresql://l1_app_user:l1@localhost:5432/l1_app_db"
+# DATABASE_URL = "postgresql://l1_app_user:test@localhost:5432/l1_app_db"
 # Or use the environment variables:
 # - PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE
 

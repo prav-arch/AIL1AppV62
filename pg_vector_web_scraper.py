@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 DB_PARAMS = {
     'dbname': 'l1_app_db',
     'user': 'l1_app_user',
-    'password': 'l1',
+    'password': 'test',
     'host': 'localhost',
     'port': '5432'
 }
@@ -237,7 +237,13 @@ class PgVectorDatabase:
             psycopg2 connection object
         """
         if self.conn is None or self.conn.closed:
-            self.conn = psycopg2.connect(**self.db_params)
+            self.conn = psycopg2.connect(
+                dbname=self.db_params['dbname'],
+                user=self.db_params['user'],
+                password=self.db_params['password'],
+                host=self.db_params['host'],
+                port=self.db_params['port']
+            )
         return self.conn
     
     def _initialize_db(self):
