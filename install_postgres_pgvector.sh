@@ -46,24 +46,25 @@ echo "shared_preload_libraries = 'vector'" >> $PGDATA/postgresql.conf
 echo "listen_addresses = '*'" >> $PGDATA/postgresql.conf
 echo "port = 5432" >> $PGDATA/postgresql.conf
 
-# Set up authentication
+# Set up authentication with trust method for easier testing
 echo "# TYPE  DATABASE        USER            ADDRESS                 METHOD" > $PGDATA/pg_hba.conf
 echo "local   all             all                                     trust" >> $PGDATA/pg_hba.conf
-echo "host    all             all             127.0.0.1/32            md5" >> $PGDATA/pg_hba.conf
-echo "host    all             all             ::1/128                 md5" >> $PGDATA/pg_hba.conf
-echo "host    all             all             0.0.0.0/0               md5" >> $PGDATA/pg_hba.conf
-echo "# Special rule for l1_app_user to use password 'l1'" >> $PGDATA/pg_hba.conf
-echo "host    l1_app_db       l1_app_user     127.0.0.1/32            md5" >> $PGDATA/pg_hba.conf
+echo "host    all             all             127.0.0.1/32            trust" >> $PGDATA/pg_hba.conf
+echo "host    all             all             ::1/128                 trust" >> $PGDATA/pg_hba.conf
+echo "host    all             all             0.0.0.0/0               trust" >> $PGDATA/pg_hba.conf
 
 echo "Starting PostgreSQL server..."
 $INSTALL_DIR/bin/pg_ctl -D $PGDATA start
 
 echo "Creating application user and database..."
-# Create the l1_app_user with password 'l1'
-$INSTALL_DIR/bin/psql -d postgres -c "CREATE ROLE l1_app_user WITH LOGIN PASSWORD 'l1' CREATEDB;"
+# Create the l1_app_user with password 'l1' and all privileges needed
+$INSTALL_DIR/bin/psql -d postgres -c "CREATE ROLE l1_app_user WITH LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD 'l1';"
 
 # Create the l1_app_db owned by l1_app_user
 $INSTALL_DIR/bin/createdb -O l1_app_user l1_app_db
+
+# Grant all privileges on the database to the user
+$INSTALL_DIR/bin/psql -d l1_app_db -c "GRANT ALL PRIVILEGES ON DATABASE l1_app_db TO l1_app_user;"
 
 echo "Enabling pgvector extension in the application database..."
 $INSTALL_DIR/bin/psql -d l1_app_db -c "CREATE EXTENSION vector;"
