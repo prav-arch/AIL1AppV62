@@ -36,12 +36,32 @@ make install
 
 echo "Initializing PostgreSQL database cluster..."
 mkdir -p $PGDATA
+echo "Created data directory at: $PGDATA"
+
+echo "Running initdb command..."
 $INSTALL_DIR/bin/initdb -D $PGDATA --no-locale --encoding=UTF8
+if [ $? -ne 0 ]; then
+    echo "Error: initdb failed. Please check the error message above."
+    exit 1
+fi
+echo "Database initialization successful!"
 
 # Set proper permissions - u=rwx (user read, write, execute)
 echo "Setting permissions to u=rwx..."
 chmod -R u=rwx $PGDATA
 chmod -R u=rwx $INSTALL_DIR/bin
+echo "Permissions set."
+
+# Verify the data directory has the required files
+echo "Verifying data directory structure..."
+if [ -f "$PGDATA/PG_VERSION" ]; then
+    echo "PG_VERSION found. Data directory appears valid."
+else
+    echo "ERROR: $PGDATA/PG_VERSION not found. Data directory may not be properly initialized."
+    echo "Contents of $PGDATA:"
+    ls -la $PGDATA
+    exit 1
+fi
 
 echo "Downloading pgvector source..."
 cd $INSTALL_DIR
