@@ -1,34 +1,57 @@
 #!/bin/bash
-# Setup script for local PostgreSQL environment variables
+# Setup local environment variables for PostgreSQL with pgvector
 
 # Set up color output
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Setting up local PostgreSQL environment variables${NC}"
+echo -e "${GREEN}Setting up PostgreSQL environment variables...${NC}"
 
-# Create or update .env file
-cat > .env << EOF
-# PostgreSQL Connection Information
-DATABASE_URL=postgresql://l1_app_user:l1@localhost:5433/l1_app_db
-PGUSER=l1_app_user
-PGPASSWORD=l1
-PGDATABASE=l1_app_db
-PGHOST=localhost
-PGPORT=5433
+# Check if PostgreSQL is installed in ~/.postgres
+if [ -d "$HOME/.postgres" ]; then
+    # Setup for binary installation
+    export PATH=$HOME/.postgres/bin:$PATH
+    export LD_LIBRARY_PATH=$HOME/.postgres/lib:$LD_LIBRARY_PATH
+    export PGDATA=$HOME/.postgres/data
+    export PGHOST=localhost
+    export PGPORT=5433
+    export PGUSER=l1_app_user
+    export PGPASSWORD=l1
+    export PGDATABASE=l1_app_db
+    export DATABASE_URL="postgresql://l1_app_user:l1@localhost:5433/l1_app_db"
+    
+    echo -e "${YELLOW}Using local PostgreSQL installation in ~/.postgres${NC}"
+# Check if PostgreSQL is installed in ~/postgresql
+elif [ -d "$HOME/postgresql" ]; then
+    # Setup for source installation
+    export PGROOT=$HOME/postgresql/install
+    export PGDATA=$HOME/postgresql/data
+    export PATH=$PGROOT/bin:$PATH
+    export LD_LIBRARY_PATH=$PGROOT/lib:$LD_LIBRARY_PATH
+    export PGHOST=localhost
+    export PGPORT=5433
+    export PGUSER=l1_app_user
+    export PGPASSWORD=l1
+    export PGDATABASE=l1_app_db
+    export DATABASE_URL="postgresql://l1_app_user:l1@localhost:5433/l1_app_db"
+    
+    echo -e "${YELLOW}Using local PostgreSQL installation in ~/postgresql${NC}"
+else
+    # Use cloud PostgreSQL if local installation not found
+    echo -e "${YELLOW}Local PostgreSQL installation not found.${NC}"
+    echo -e "${YELLOW}Using cloud PostgreSQL instance from .env file.${NC}"
+fi
 
-# Application Settings
-FLASK_APP=main.py
-FLASK_ENV=development
-FLASK_DEBUG=1
-EOF
-
-echo -e "${GREEN}.env file created successfully!${NC}"
-echo -e "${YELLOW}Environment variables:${NC}"
-cat .env
-
-echo -e "\n${GREEN}Next steps:${NC}"
-echo "1. Make sure PostgreSQL is running using ~/start_postgres.sh"
-echo "2. Test the database connection using: python test_local_db_connection.py"
-echo "3. Restart your application to apply the new settings"
+echo -e "${GREEN}Environment variables set:${NC}"
+echo "PGHOST=$PGHOST"
+echo "PGPORT=$PGPORT"
+echo "PGUSER=$PGUSER"
+echo "PGDATABASE=$PGDATABASE"
+echo "DATABASE_URL=$DATABASE_URL"
+echo ""
+echo -e "${YELLOW}You can now connect to PostgreSQL using:${NC}"
+echo "psql -d l1_app_db"
+echo ""
+echo -e "${YELLOW}To use these variables in your application, source this script:${NC}"
+echo "source ./setup_local_env.sh"

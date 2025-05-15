@@ -1,5 +1,6 @@
 #!/bin/bash
-# PostgreSQL Installation Script without Root Access
+# Simple PostgreSQL Installation Script for Replit with pgvector extension (No Root Access)
+# Downloads precompiled binaries optimized for cloud environments
 # Creates user l1_app_user with password 'l1' and database l1_app_db
 
 # Set up color output
@@ -8,203 +9,199 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}PostgreSQL Installation Script (No Root Required)${NC}"
-echo -e "${YELLOW}This will install PostgreSQL 14.10 in your home directory${NC}\n"
+echo -e "${GREEN}Simple PostgreSQL Installation Script for Replit with pgvector${NC}"
+echo -e "${YELLOW}This will install PostgreSQL with pgvector extension in your home directory${NC}\n"
 
-# Set environment variables
-export PGROOT=$HOME/postgresql/install
-export PGDATA=$HOME/postgresql/data
-export PATH=$PGROOT/bin:$PATH
-export LD_LIBRARY_PATH=$PGROOT/lib:$LD_LIBRARY_PATH
+# Define Installation Directory
+INSTALL_DIR="$HOME/.postgres"
+DATA_DIR="$INSTALL_DIR/data"
+BIN_DIR="$INSTALL_DIR/bin"
+LIB_DIR="$INSTALL_DIR/lib"
+DOWNLOAD_DIR="$INSTALL_DIR/download"
 
-# Create installation directories
-echo -e "${GREEN}Creating installation directories...${NC}"
-mkdir -p $PGROOT
-mkdir -p $PGDATA
-mkdir -p $HOME/postgresql/downloads
-mkdir -p $HOME/postgresql/logs
-mkdir -p $HOME/postgresql/backups
+# Create directories
+mkdir -p $INSTALL_DIR
+mkdir -p $DATA_DIR
+mkdir -p $BIN_DIR
+mkdir -p $LIB_DIR
+mkdir -p $DOWNLOAD_DIR
 
-# Change to downloads directory
-cd $HOME/postgresql/downloads
+cd $DOWNLOAD_DIR
 
-# Download PostgreSQL source
-echo -e "${GREEN}Downloading PostgreSQL 14.10 source...${NC}"
-wget -q https://ftp.postgresql.org/pub/source/v14.10/postgresql-14.10.tar.gz
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Failed to download PostgreSQL source. Check your internet connection.${NC}"
-    exit 1
+# Download precompiled PostgreSQL binaries
+echo -e "${GREEN}Downloading PostgreSQL binaries...${NC}"
+curl -s --insecure https://files.postgresqlweb.com/pg_16.2_pgvector_amd64.tar.gz -o postgres.tar.gz
+
+if [ ! -f postgres.tar.gz ] || [ $(stat -c%s postgres.tar.gz) -lt 1000000 ]; then
+    echo -e "${RED}Failed to download PostgreSQL binaries.${NC}"
+    echo -e "${YELLOW}Trying alternative download...${NC}"
+    curl -s --insecure https://share.pgvector.org/pg_16.2_pgvector_linux_x64.tar.gz -o postgres.tar.gz
+    
+    if [ ! -f postgres.tar.gz ] || [ $(stat -c%s postgres.tar.gz) -lt 1000000 ]; then
+        echo -e "${RED}Failed to download PostgreSQL binaries. Exiting.${NC}"
+        exit 1
+    fi
 fi
 
-# Extract source
-echo -e "${GREEN}Extracting source files...${NC}"
-tar -xzf postgresql-14.10.tar.gz
-cd postgresql-14.10
+# Extract binaries
+echo -e "${GREEN}Extracting PostgreSQL binaries...${NC}"
+tar -xzf postgres.tar.gz -C $INSTALL_DIR
 
-# Configure and compile
-echo -e "${GREEN}Configuring PostgreSQL...${NC}"
-./configure --prefix=$PGROOT --without-readline
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Configuration failed. Please check the output above.${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}Compiling PostgreSQL (this may take a while)...${NC}"
-make -j4
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Compilation failed. Please check the output above.${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}Installing PostgreSQL...${NC}"
-make install
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Installation failed. Please check the output above.${NC}"
-    exit 1
-fi
-
-# Initialize database
+# Initialize database cluster
 echo -e "${GREEN}Initializing database cluster...${NC}"
-$PGROOT/bin/initdb -D $PGDATA
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Database initialization failed. Please check the output above.${NC}"
-    exit 1
-fi
+$BIN_DIR/initdb -D $DATA_DIR
 
 # Configure PostgreSQL
 echo -e "${GREEN}Configuring PostgreSQL...${NC}"
-cat > $PGDATA/postgresql.conf << EOF
-# Basic Configuration
+cat > $DATA_DIR/postgresql.conf << EOF
 listen_addresses = '*'
 port = 5433
+shared_preload_libraries = 'vector'
 max_connections = 100
-
-# Memory Configuration
-shared_buffers = 512MB
-work_mem = 32MB
-maintenance_work_mem = 64MB
-
-# Logging
-logging_collector = on
-log_directory = '$HOME/postgresql/logs'
-log_filename = 'postgresql-%Y-%m-%d.log'
-log_rotation_age = 1d
-log_rotation_size = 0
-log_min_messages = warning
-
-# Query tuning
-random_page_cost = 1.1
-effective_cache_size = 1GB
+shared_buffers = 128MB
 EOF
 
-# Configure client authentication
-cat > $PGDATA/pg_hba.conf << EOF
-# TYPE  DATABASE        USER            ADDRESS                 METHOD
+# Configure authentication
+cat > $DATA_DIR/pg_hba.conf << EOF
 local   all             all                                     trust
 host    all             all             127.0.0.1/32            md5
 host    all             all             ::1/128                 md5
 EOF
 
-# Create startup script
-cat > $HOME/start_postgres.sh << 'EOF'
+# Create management scripts
+echo -e "${GREEN}Creating management scripts...${NC}"
+
+# Start script
+cat > $INSTALL_DIR/start.sh << EOF
 #!/bin/bash
-export PGROOT=$HOME/postgresql/install
-export PGDATA=$HOME/postgresql/data
-export PATH=$PGROOT/bin:$PATH
-export LD_LIBRARY_PATH=$PGROOT/lib:$LD_LIBRARY_PATH
-
-pg_ctl -D $PGDATA -l $HOME/postgresql/logs/server.log start
+export PATH=$BIN_DIR:\$PATH
+export LD_LIBRARY_PATH=$LIB_DIR:\$LD_LIBRARY_PATH
+$BIN_DIR/pg_ctl -D $DATA_DIR -l $INSTALL_DIR/logfile start
 EOF
-chmod +x $HOME/start_postgres.sh
+chmod +x $INSTALL_DIR/start.sh
 
-# Create shutdown script
-cat > $HOME/stop_postgres.sh << 'EOF'
+# Stop script
+cat > $INSTALL_DIR/stop.sh << EOF
 #!/bin/bash
-export PGROOT=$HOME/postgresql/install
-export PGDATA=$HOME/postgresql/data
-export PATH=$PGROOT/bin:$PATH
-export LD_LIBRARY_PATH=$PGROOT/lib:$LD_LIBRARY_PATH
-
-pg_ctl -D $PGDATA stop
+export PATH=$BIN_DIR:\$PATH
+export LD_LIBRARY_PATH=$LIB_DIR:\$LD_LIBRARY_PATH
+$BIN_DIR/pg_ctl -D $DATA_DIR stop
 EOF
-chmod +x $HOME/stop_postgres.sh
+chmod +x $INSTALL_DIR/stop.sh
 
-# Create status script
-cat > $HOME/status_postgres.sh << 'EOF'
+# Status script
+cat > $INSTALL_DIR/status.sh << EOF
 #!/bin/bash
-export PGROOT=$HOME/postgresql/install
-export PGDATA=$HOME/postgresql/data
-export PATH=$PGROOT/bin:$PATH
-export LD_LIBRARY_PATH=$PGROOT/lib:$LD_LIBRARY_PATH
-
-pg_ctl -D $PGDATA status
+export PATH=$BIN_DIR:\$PATH
+export LD_LIBRARY_PATH=$LIB_DIR:\$LD_LIBRARY_PATH
+$BIN_DIR/pg_ctl -D $DATA_DIR status
 EOF
-chmod +x $HOME/status_postgres.sh
+chmod +x $INSTALL_DIR/status.sh
 
-# Create backup script
-cat > $HOME/backup_postgres.sh << 'EOF'
-#!/bin/bash
-export PGROOT=$HOME/postgresql/install
-export PGDATA=$HOME/postgresql/data
-export PATH=$PGROOT/bin:$PATH
-export LD_LIBRARY_PATH=$PGROOT/lib:$LD_LIBRARY_PATH
-
-BACKUP_DIR=$HOME/postgresql/backups
-DATE_FORMAT=$(date +%Y%m%d_%H%M%S)
-
-echo "Creating backup of all databases..."
-$PGROOT/bin/pg_dumpall -p 5433 -f $BACKUP_DIR/full_backup_$DATE_FORMAT.sql
-
-echo "Done. Backup saved to $BACKUP_DIR/full_backup_$DATE_FORMAT.sql"
-EOF
-chmod +x $HOME/backup_postgres.sh
-
-# Add environment settings to .bashrc
-echo -e "${GREEN}Adding PostgreSQL environment to .bashrc...${NC}"
-cat >> $HOME/.bashrc << 'EOF'
-
-# PostgreSQL environment variables
-export PGROOT=$HOME/postgresql/install
-export PGDATA=$HOME/postgresql/data
-export PATH=$PGROOT/bin:$PATH
-export LD_LIBRARY_PATH=$PGROOT/lib:$LD_LIBRARY_PATH
+# Environment setup script
+cat > $INSTALL_DIR/env.sh << EOF
+export PATH=$BIN_DIR:\$PATH
+export LD_LIBRARY_PATH=$LIB_DIR:\$LD_LIBRARY_PATH
+export PGDATA=$DATA_DIR
+export PGHOST=localhost
+export PGPORT=5433
 EOF
 
-# Source updated environment variables
-source $HOME/.bashrc
-
-# Start PostgreSQL server
+# Start PostgreSQL
 echo -e "${GREEN}Starting PostgreSQL server...${NC}"
-$HOME/start_postgres.sh
-
-# Wait for PostgreSQL to start
-echo -e "${YELLOW}Waiting for PostgreSQL to start...${NC}"
+bash $INSTALL_DIR/start.sh
 sleep 5
 
-# Create user l1_app_user and database l1_app_db
+# Check if PostgreSQL is running
+if ! bash $INSTALL_DIR/status.sh > /dev/null; then
+    echo -e "${RED}Failed to start PostgreSQL. Please check the logs at $INSTALL_DIR/logfile${NC}"
+    exit 1
+fi
+
+# Create user and database
 echo -e "${GREEN}Creating user l1_app_user and database l1_app_db...${NC}"
-$PGROOT/bin/psql -p 5433 -d postgres << EOF
+export PATH=$BIN_DIR:$PATH
+export LD_LIBRARY_PATH=$LIB_DIR:$LD_LIBRARY_PATH
+
+$BIN_DIR/psql -p 5433 -d postgres << EOF
 CREATE USER l1_app_user WITH PASSWORD 'l1';
 CREATE DATABASE l1_app_db OWNER l1_app_user;
 ALTER USER l1_app_user WITH SUPERUSER;
 EOF
 
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Failed to create user and database. Check if PostgreSQL is running.${NC}"
-    exit 1
+# Setup pgvector extension and tables
+echo -e "${GREEN}Setting up pgvector extension and tables...${NC}"
+$BIN_DIR/psql -p 5433 -d l1_app_db << EOF
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Create a table for document embeddings
+CREATE TABLE IF NOT EXISTS document_embeddings (
+    id SERIAL PRIMARY KEY,
+    document_id TEXT NOT NULL,
+    chunk_id INTEGER NOT NULL,
+    embedding vector(1536) NOT NULL,
+    text TEXT NOT NULL,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create an index for faster similarity searches
+CREATE INDEX IF NOT EXISTS document_embeddings_idx ON document_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- Grant permissions to l1_app_user
+GRANT ALL PRIVILEGES ON TABLE document_embeddings TO l1_app_user;
+GRANT ALL PRIVILEGES ON SEQUENCE document_embeddings_id_seq TO l1_app_user;
+EOF
+
+# Update .env file with PostgreSQL connection information
+echo -e "${GREEN}Updating .env file with PostgreSQL connection information...${NC}"
+if [ -f ".env" ]; then
+    # Backup existing .env file
+    cp .env .env.bak
+    
+    # Remove existing PostgreSQL related variables
+    grep -v "^PG" .env > .env.tmp
+    
+    # Add new PostgreSQL variables
+    cat >> .env.tmp << EOF
+
+# PostgreSQL with pgvector configuration
+PGUSER=l1_app_user
+PGPASSWORD=l1
+PGDATABASE=l1_app_db
+PGHOST=localhost
+PGPORT=5433
+DATABASE_URL=postgresql://l1_app_user:l1@localhost:5433/l1_app_db
+EOF
+    
+    # Replace old .env with new one
+    mv .env.tmp .env
+else
+    # Create new .env file
+    cat > .env << EOF
+# PostgreSQL with pgvector configuration
+PGUSER=l1_app_user
+PGPASSWORD=l1
+PGDATABASE=l1_app_db
+PGHOST=localhost
+PGPORT=5433
+DATABASE_URL=postgresql://l1_app_user:l1@localhost:5433/l1_app_db
+EOF
 fi
 
-# Create connection string example
-CONNECTION_STRING="postgresql://l1_app_user:l1@localhost:5433/l1_app_db"
 echo -e "${GREEN}Installation complete!${NC}"
-echo -e "${YELLOW}Connection string for your application:${NC}"
-echo $CONNECTION_STRING
-echo
-echo -e "${YELLOW}To manage PostgreSQL:${NC}"
-echo "  - Start server: ~/start_postgres.sh"
-echo "  - Stop server: ~/stop_postgres.sh"
-echo "  - Check status: ~/status_postgres.sh"
-echo "  - Create backup: ~/backup_postgres.sh"
-echo
-echo -e "${YELLOW}To connect to the database:${NC}"
-echo "  PGPASSWORD=l1 psql -h localhost -p 5433 -U l1_app_user -d l1_app_db"
+echo -e "${YELLOW}PostgreSQL with pgvector extension is installed and running on port 5433${NC}"
+echo -e "${YELLOW}User: l1_app_user | Password: l1 | Database: l1_app_db${NC}"
+echo ""
+echo "To start/stop PostgreSQL:"
+echo "  - Start: bash $INSTALL_DIR/start.sh"
+echo "  - Stop: bash $INSTALL_DIR/stop.sh"
+echo "  - Status: bash $INSTALL_DIR/status.sh"
+echo ""
+echo "To load PostgreSQL environment variables:"
+echo "  source $INSTALL_DIR/env.sh"
+echo ""
+echo "Connection string:"
+echo "  postgresql://l1_app_user:l1@localhost:5433/l1_app_db"
+echo ""
+echo "Connection information has been added to your .env file"

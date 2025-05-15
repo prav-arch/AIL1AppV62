@@ -1,5 +1,6 @@
 #!/bin/bash
 # PostgreSQL 16.2 Installation Script with pgvector extension (No Root Access)
+# Using binary distribution for simpler setup
 # Creates user l1_app_user with password 'l1' and database l1_app_db
 
 # Set up color output
@@ -10,6 +11,7 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}PostgreSQL 16.2 Installation Script with pgvector (No Root Required)${NC}"
 echo -e "${YELLOW}This will install PostgreSQL 16.2 with pgvector extension in your home directory${NC}\n"
+echo -e "${YELLOW}Using binary distribution for a simpler setup${NC}\n"
 
 # Set environment variables
 export PGROOT=$HOME/postgresql/install
@@ -24,22 +26,36 @@ mkdir -p $PGDATA
 mkdir -p $HOME/postgresql/downloads
 mkdir -p $HOME/postgresql/logs
 mkdir -p $HOME/postgresql/backups
-mkdir -p $HOME/postgresql/extensions
 
 # Change to downloads directory
 cd $HOME/postgresql/downloads
 
-# Download PostgreSQL source
-echo -e "${GREEN}Downloading PostgreSQL 16.2 source...${NC}"
-wget -q --no-check-certificate https://ftp.postgresql.org/pub/source/v16.2/postgresql-16.2.tar.gz
+# Download PostgreSQL binary package for Linux
+echo -e "${GREEN}Downloading PostgreSQL 16.2 binary package...${NC}"
+PLATFORM="$(uname -s)-$(uname -m)"
+case $PLATFORM in
+    "Linux-x86_64")
+        BINARIES_URL="https://get.enterprisedb.com/postgresql/postgresql-16.2-1-linux-x64-binaries.tar.gz"
+        ;;
+    *)
+        echo -e "${RED}Unsupported platform: $PLATFORM. Please use the source installation script instead.${NC}"
+        exit 1
+        ;;
+esac
+
+wget -q --no-check-certificate $BINARIES_URL -O postgresql-16.2-binaries.tar.gz
 if [ $? -ne 0 ]; then
-    echo -e "${RED}Failed to download PostgreSQL source. Check your internet connection.${NC}"
+    echo -e "${RED}Failed to download PostgreSQL binaries. Check your internet connection.${NC}"
     exit 1
 fi
 
-# Extract source
-echo -e "${GREEN}Extracting PostgreSQL source files...${NC}"
-tar -xzf postgresql-16.2.tar.gz
+# Extract binary package
+echo -e "${GREEN}Extracting PostgreSQL binaries...${NC}"
+tar -xzf postgresql-16.2-binaries.tar.gz -C $PGROOT --strip-components=1
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Failed to extract PostgreSQL binaries.${NC}"
+    exit 1
+fi
 
 # Download pgvector source
 echo -e "${GREEN}Downloading pgvector extension...${NC}"
@@ -49,38 +65,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Configure and compile PostgreSQL with minimal dependencies
-echo -e "${GREEN}Configuring PostgreSQL with minimal dependencies...${NC}"
-cd postgresql-16.2
-./configure --prefix=$PGROOT \
-  --without-readline \
-  --without-icu \
-  --without-zlib \
-  --without-ssl \
-  --without-ldap \
-  --without-libxml
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Configuration failed. Please check the output above.${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}Compiling PostgreSQL (this may take a while)...${NC}"
-make -j4
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Compilation failed. Please check the output above.${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}Installing PostgreSQL...${NC}"
-make install
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Installation failed. Please check the output above.${NC}"
-    exit 1
-fi
-
 # Build and install pgvector extension
 echo -e "${GREEN}Building pgvector extension...${NC}"
-cd ../pgvector
+cd pgvector
 export PG_CONFIG=$PGROOT/bin/pg_config
 make
 if [ $? -ne 0 ]; then
@@ -269,6 +256,3 @@ echo "  - Create backup: ~/backup_postgres.sh"
 echo
 echo -e "${YELLOW}To connect to the database:${NC}"
 echo "  PGPASSWORD=l1 psql -h localhost -p 5433 -U l1_app_user -d l1_app_db"
-echo
-echo -e "${YELLOW}Quick pgvector test:${NC}"
-echo "  PGPASSWORD=l1 psql -h localhost -p 5433 -U l1_app_user -d l1_app_db -c \"INSERT INTO document_embeddings (document_id, chunk_id, embedding, text) VALUES ('test-doc', 1, '[0.1, 0.2, 0.3]'::vector, 'Test document'); SELECT * FROM document_embeddings;\""
