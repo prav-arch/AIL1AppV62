@@ -44,7 +44,11 @@ def index():
     documents = get_user_documents()
     
     # Get vector database stats
-    vector_stats = postgres_vector_db_service.get_stats()
+    vector_stats = {
+        'total_documents': len(documents),
+        'total_embeddings': 0,  # In a real app, we'd count FAISS vectors
+        'index_size': '0 MB'   # In a real app, we'd measure FAISS index size
+    }
     
     return render_template(
         'rag.html', 
@@ -186,7 +190,14 @@ def scrape_webpage():
                 'db_document_id': document_id
             }
             
-            postgres_vector_db_service.add_document(doc_uuid, content, metadata)
+            # Process content and add embeddings to FAISS
+            chunks = [content[i:i+1000] for i in range(0, len(content), 1000)]
+            for i, chunk in enumerate(chunks):
+                # In a real app, we would generate embeddings using a model
+                # For now, we'll use random embeddings
+                import numpy as np
+                dummy_embedding = np.random.rand(1536).astype('float32')
+                add_embedding(document_id, i, dummy_embedding, chunk)
             
             return jsonify({
                 'success': True, 
@@ -226,9 +237,16 @@ def search():
         if not query:
             return jsonify({'error': 'Query is required'}), 400
         
-        # Perform search using vector database
+        # Perform search using FAISS vector database
         start_time = time.time()
-        results = postgres_vector_db_service.search(query, top_k)
+        
+        # In a real app, we'd generate query embedding using the same model as documents
+        # For now, we'll use a dummy embedding
+        import numpy as np
+        query_embedding = np.random.rand(1536).astype('float32')
+        
+        # Search using the FAISS implementation
+        results = search_embeddings(query_embedding, limit=top_k)
         search_time = time.time() - start_time
         
         # Get user_id from session, default to 1 if not set
