@@ -535,7 +535,7 @@ class PgVectorDBService:
         """
         try:
             conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=DictCursor)
+            cursor = conn.cursor()
             
             # Initialize stats dictionary
             stats = {
@@ -548,20 +548,35 @@ class PgVectorDBService:
             }
             
             # Get stats from the database
-            cursor.execute("SELECT * FROM vector_db_stats WHERE id = 1")
-            row = cursor.fetchone()
-            if row:
-                stats['documents_count'] = row['documents_count']
-                stats['chunks_count'] = row['chunks_count']
-                stats['vector_dim'] = row['vector_dim']
-                stats['last_modified'] = row['last_modified'].isoformat() if row['last_modified'] else datetime.now().isoformat()
+            try:
+                cursor.execute("SELECT * FROM vector_db_stats WHERE id = 1")
+                row = cursor.fetchone()
+                if row:
+                    # Access by index instead of by name for compatibility
+                    stats['documents_count'] = row[1]  # documents_count is the 2nd column
+                    stats['chunks_count'] = row[2]     # chunks_count is the 3rd column
+                    stats['vector_dim'] = row[3]       # vector_dim is the 4th column
+                    if row[4]:  # last_modified is the 5th column
+                        stats['last_modified'] = row[4].isoformat()
+            except Exception as e:
+                logger.warning(f"Error getting stats from vector_db_stats: {str(e)}")
             
             # Add additional stats
-            cursor.execute("SELECT COUNT(*) FROM documents")
-            stats['documents_count'] = cursor.fetchone()[0]
+            try:
+                cursor.execute("SELECT COUNT(*) FROM documents")
+                count = cursor.fetchone()
+                if count and count[0]:
+                    stats['documents_count'] = count[0]
+            except Exception as e:
+                logger.warning(f"Error counting documents: {str(e)}")
             
-            cursor.execute("SELECT COUNT(*) FROM document_chunks")
-            stats['chunks_count'] = cursor.fetchone()[0]
+            try:
+                cursor.execute("SELECT COUNT(*) FROM document_chunks")
+                count = cursor.fetchone()
+                if count and count[0]:
+                    stats['chunks_count'] = count[0]
+            except Exception as e:
+                logger.warning(f"Error counting document chunks: {str(e)}")
             
             # Get size information
             try:
@@ -572,8 +587,8 @@ class PgVectorDBService:
                 """)
                 size_info = cursor.fetchone()
                 if size_info:
-                    stats['documents_size'] = size_info['documents_size']
-                    stats['chunks_size'] = size_info['chunks_size']
+                    stats['documents_size'] = size_info[0]  # documents_size
+                    stats['chunks_size'] = size_info[1]     # chunks_size
             except Exception as e:
                 logger.warning(f"Could not get size information: {str(e)}")
                 stats['documents_size'] = 'Unknown'
