@@ -1,70 +1,137 @@
 #!/bin/bash
 
-# Offline PostgreSQL setup script for GPU servers without internet access
-# This script includes a minimal set of PostgreSQL binaries encoded in base64
-# No internet connection or downloading is required
+# Non-root PostgreSQL installation script for environments with security restrictions
+# This script downloads and installs PostgreSQL without requiring any system privileges
 
-# Set up environment variables for local installation
-USER_HOME=$HOME
-INSTALL_DIR=$USER_HOME/postgres16
-PGDATA=$INSTALL_DIR/data
-PATH=$INSTALL_DIR/bin:$PATH
-export PGDATA PATH
+# Configuration
+PG_VERSION="16.2"
+PG_ARCH="x64"  # Change to arm64 if needed
+INSTALL_DIR="$HOME/postgres"
+DATA_DIR="$HOME/pgdata"
+APP_USER="l1_app_user"
+APP_PASSWORD="test"
+APP_DB="l1_app_db"
+PORT=5432  # Change if standard port is blocked by security
 
-# Database credentials as requested
-DB_USER="l1_app_user"
-DB_PASSWORD="test"
-DB_NAME="l1_app_db"
+echo "=== PostgreSQL $PG_VERSION Installation (No Root Required) ==="
+echo "User home: $HOME"
+echo "Install location: $INSTALL_DIR"
+echo "Data directory: $DATA_DIR"
+echo "Database port: $PORT"
 
-echo "Creating installation directory..."
-mkdir -p $INSTALL_DIR/bin
-mkdir -p $INSTALL_DIR/lib
-mkdir -p $INSTALL_DIR/share
+# Create necessary directories
+mkdir -p "$INSTALL_DIR" "$DATA_DIR"
+cd "$HOME"
 
-# Extract minimal PostgreSQL binaries included in this script
-echo "Setting up minimal PostgreSQL environment..."
+# Download PostgreSQL binaries (if internet is available)
+echo "Downloading PostgreSQL $PG_VERSION binaries..."
+wget -q --no-check-certificate https://get.enterprisedb.com/postgresql/postgresql-$PG_VERSION-1-linux-$PG_ARCH-binaries.tar.gz
 
-# =========================================================
-# Note: Here we would normally include base64-encoded binaries
-# for PostgreSQL. However, this would make the script very large.
-#
-# For a real implementation, we would include:
-# - initdb (binary)
-# - postgres (binary)
-# - pg_ctl (binary)
-# - psql (binary)
-# - createdb (binary)
-# and other essential binaries
-# =========================================================
+# Extract PostgreSQL
+echo "Extracting PostgreSQL..."
+tar -xzf postgresql-$PG_VERSION-1-linux-$PG_ARCH-binaries.tar.gz -C "$INSTALL_DIR" --strip-components=1
 
-echo "ERROR: This is a placeholder script that would contain embedded PostgreSQL binaries."
-echo "In a real implementation, this script would include base64-encoded binaries that"
-echo "would be decoded and extracted to $INSTALL_DIR/bin directory."
+# Set permissions
+chmod -R u+wx "$INSTALL_DIR"
+chmod -R u+wx "$DATA_DIR"
+
+# Set environment variables
+echo "Setting up environment variables..."
+cat > "$HOME/.pgenv" << EOL
+# PostgreSQL Environment Variables
+export PGINSTALL="$INSTALL_DIR"
+export PGDATA="$DATA_DIR"
+export PGPORT="$PORT"
+export PATH="\$PGINSTALL/bin:\$PATH"
+EOL
+
+# Source the environment file
+source "$HOME/.pgenv"
+
+# Initialize the database
+echo "Initializing PostgreSQL database..."
+"$INSTALL_DIR/bin/initdb" -D "$DATA_DIR" --encoding=UTF8 --no-locale
+
+# Configure postgresql.conf for non-standard security environments
+echo "Configuring PostgreSQL..."
+cat >> "$DATA_DIR/postgresql.conf" << EOL
+# Security-restricted environment settings
+listen_addresses = 'localhost'
+port = $PORT
+max_connections = 100
+shared_buffers = 128MB
+dynamic_shared_memory_type = posix
+EOL
+
+# Configure authentication
+cat > "$DATA_DIR/pg_hba.conf" << EOL
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+EOL
+
+# Start PostgreSQL
+echo "Starting PostgreSQL server..."
+"$INSTALL_DIR/bin/pg_ctl" -D "$DATA_DIR" start
+
+# Wait for PostgreSQL to start
+sleep 5
+
+# Create role and database
+echo "Creating application database and user..."
+"$INSTALL_DIR/bin/psql" -p "$PORT" -d postgres -c "CREATE ROLE $APP_USER WITH LOGIN PASSWORD '$APP_PASSWORD' CREATEDB;"
+"$INSTALL_DIR/bin/createdb" -p "$PORT" -O "$APP_USER" "$APP_DB"
+
+# Install pgvector extension
+echo "Setting up pgvector extension..."
+# Clone and build pgvector
+cd "$HOME"
+git clone --depth 1 https://github.com/pgvector/pgvector.git
+cd pgvector
+
+# Need to set PG_CONFIG to point to our installation
+export PG_CONFIG="$INSTALL_DIR/bin/pg_config"
+make USE_PGXS=1
+make USE_PGXS=1 install
+
+# Create pgvector extension in the database
+"$INSTALL_DIR/bin/psql" -p "$PORT" -d "$APP_DB" -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+# Create environment file for the application
+cat > "$HOME/.env" << EOL
+# PostgreSQL Connection Details
+DATABASE_URL=postgresql://$APP_USER:$APP_PASSWORD@localhost:$PORT/$APP_DB
+PGHOST=localhost
+PGPORT=$PORT
+PGDATABASE=$APP_DB
+PGUSER=$APP_USER
+PGPASSWORD=$APP_PASSWORD
+VECTOR_STORAGE=postgres
+EOL
+
+echo "=== Installation Complete ==="
 echo ""
-echo "Due to size limitations and the custom nature of such binary packages,"
-echo "we need to create a custom binary package specifically for your environment."
+echo "To use PostgreSQL in your environment:"
+echo "1. Add this line to your .bashrc or .profile:"
+echo "   source $HOME/.pgenv"
 echo ""
-echo "ALTERNATIVE APPROACH:"
-echo "----------------------"
-echo "1. Try to use 'curl' instead of 'wget' which might work better on your network:"
-echo "   curl -L -o postgres.tar.gz https://ftp.postgresql.org/pub/binary/v16.2/linux-x64/postgresql-16.2-linux-x64.tar.gz"
+echo "2. Start PostgreSQL (if not already running):"
+echo "   $INSTALL_DIR/bin/pg_ctl -D $DATA_DIR start"
 echo ""
-echo "2. If you have access to any other machine with internet access, download the"
-echo "   PostgreSQL binaries there and transfer them to your GPU server using scp:"
-echo "   scp postgresql-16.2-linux-x64.tar.gz username@gpu-server:~/"
+echo "3. Stop PostgreSQL when done:"
+echo "   $INSTALL_DIR/bin/pg_ctl -D $DATA_DIR stop"
 echo ""
-echo "3. If you have Python installed, you can try using Python's urllib to download:"
-echo "   python3 -c 'import urllib.request; urllib.request.urlretrieve(\"https://ftp.postgresql.org/pub/binary/v16.2/linux-x64/postgresql-16.2-linux-x64.tar.gz\", \"postgres.tar.gz\")'"
+echo "4. Connect to your database:"
+echo "   $INSTALL_DIR/bin/psql -p $PORT -d $APP_DB -U $APP_USER"
 echo ""
-echo "4. Create a minimal PostgreSQL environment on another machine and compress the"
-echo "   essential binaries into a tar.gz file, then transfer that to your GPU server."
-
-exit 1
-
-# The script would continue with setting up the database after extracting binaries
-# Similar to the other scripts we've created:
-# - Initialize database with initdb
-# - Configure PostgreSQL
-# - Start the server
-# - Create user and database
-# - Set up environment variables
+echo "Database connection string for your application:"
+echo "postgresql://$APP_USER:$APP_PASSWORD@localhost:$PORT/$APP_DB"
+echo ""
+echo "Environment file with all connection details created at:"
+echo "$HOME/.env"
+echo ""
+echo "IMPORTANT: In security-restricted environments, you may need to:"
+echo "- Use a non-standard port if port $PORT is blocked"
+echo "- Set up SSH tunneling if direct database access is restricted"
+echo "- Adjust firewall rules to allow connections to your PostgreSQL port"

@@ -1,153 +1,118 @@
-# PostgreSQL 16.2 with pgvector Installation Guide
+# PostgreSQL Installation Guide for Security-Restricted Environments
 
-This guide explains how to install PostgreSQL 16.2 with the pgvector extension on a GPU server without root privileges.
+This guide provides instructions for installing PostgreSQL with pgvector support in environments with security restrictions.
 
-## Prerequisites
+## Option 1: Full Installation (Internet Access Required)
 
-- Linux-based server with GPU(s)
-- GCC compiler and build tools
-- Adequate storage space (~500MB for installation, plus space for data)
-- An account without root privileges
+The `offline_postgres_setup.sh` script provides a complete PostgreSQL installation including:
 
-## Installation Steps
+- PostgreSQL 16.2 binary installation (no system privileges required)
+- pgvector extension setup (for vector similarity search)
+- Database creation with proper user setup
+- Environment variable configuration
 
-1. **Download the installation script:**
-   Make sure the script has executable permissions:
-   ```
-   chmod +x install_postgres_pgvector.sh
-   ```
-
-2. **Run the installation script:**
-   ```
-   ./install_postgres_pgvector.sh
-   ```
-   This will:
-   - Download and compile PostgreSQL 16.2 in your home directory
-   - Install pgvector extension
-   - Create a database `l1_app_db` with user `l1_app_user` and password `test`
-   - Set up necessary configuration files
-   - Create `.pgenv` file with environment variables
-
-3. **Load environment variables:**
-   After installation, load the PostgreSQL environment variables:
-   ```
-   source ~/.pgenv
-   ```
-   To make this permanent, add to your `.bashrc` or `.profile`:
-   ```
-   echo 'source ~/.pgenv' >> ~/.bashrc
-   ```
-
-## Usage
-
-The installation script creates a `.pgenv` file with all necessary environment variables:
-
-- `PATH` - Updated to include PostgreSQL binaries
-- `PGDATA` - Location of your PostgreSQL data directory
-- `DATABASE_URL` - Connection string for applications
-- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` - Individual connection parameters
-
-### Common PostgreSQL Commands
-
-1. **Start PostgreSQL server:**
-   ```
-   pg_ctl -D $PGDATA start
-   ```
-
-2. **Stop PostgreSQL server:**
-   ```
-   pg_ctl -D $PGDATA stop
-   ```
-
-3. **Check PostgreSQL status:**
-   ```
-   pg_ctl -D $PGDATA status
-   ```
-
-4. **Connect to database:**
-   ```
-   psql -d l1_app_db
-   ```
-
-5. **Restart PostgreSQL:**
-   ```
-   pg_ctl -D $PGDATA restart
-   ```
-
-### Application Configuration
-
-In your application's .env file, use the following database connection string:
-```
-DATABASE_URL=postgresql://l1_app_user:test@localhost:5432/l1_app_db
-```
-
-## pgvector Usage
-
-After installation, the pgvector extension is available in your database. You can use it for storing and querying vector embeddings:
-
-1. **Create a table with vector column:**
-   ```sql
-   CREATE TABLE items (
-     id bigserial PRIMARY KEY,
-     embedding vector(384)
-   );
-   ```
-
-2. **Insert vector data:**
-   ```sql
-   INSERT INTO items (embedding) VALUES ('[1,2,3,...]');
-   ```
-
-3. **Perform similarity search:**
-   ```sql
-   SELECT * FROM items ORDER BY embedding <-> '[3,2,1,...]' LIMIT 5;
-   ```
-
-## Performance Tips for GPU Servers
-
-- Store `PGDATA` on local SSD or fast storage if available
-- Tune `shared_buffers` in postgresql.conf to optimize memory usage
-- Set up a backup routine for your data
-- Consider using `maintenance_work_mem` for vacuum operations
-
-## File Permissions
-
-The installation script sets all PostgreSQL files and directories with `u=rwx` permissions (read, write, execute for the user). This ensures that:
-
-- You can read all configuration files
-- You can write to data files and logs
-- You can execute all PostgreSQL binaries
-
-If you encounter permission issues after installation, you can restore the correct permissions with:
+### Usage
 
 ```bash
-chmod -R u=rwx ~/postgres16
-chmod -R u=rwx ~/postgres16/data
+# Make the script executable
+chmod +x offline_postgres_setup.sh
+
+# Run the installation script
+./offline_postgres_setup.sh
+```
+
+The script will:
+1. Download PostgreSQL binaries directly to your home directory
+2. Set up PostgreSQL to run without root privileges
+3. Create the database, user, and password according to requirements
+4. Install pgvector extension
+5. Configure the necessary environment variables
+
+## Option 2: If You Face Security Issues
+
+If the standard installation doesn't work due to security restrictions, you may need to:
+
+1. **Change the port**: If port 5432 is blocked, modify the `PORT` variable in the script.
+
+2. **Use pre-downloaded files**: If you can't download files directly, download PostgreSQL and pgvector on another machine and transfer them.
+
+3. **Adjust connection method**: If direct connections are blocked, consider using SSH tunneling.
+
+## Configuration Details
+
+The installation configures:
+
+- Database name: `l1_app_db`
+- Database user: `l1_app_user`
+- Database password: `test`
+- Default port: `5432` (configurable)
+
+## Environment Variables
+
+After installation, you'll have two environment files:
+
+1. `.pgenv`: PostgreSQL binary environment variables
+2. `.env`: Application database connection details
+
+Source the PostgreSQL environment in your shell:
+
+```bash
+source ~/.pgenv
+```
+
+## Managing PostgreSQL
+
+Start PostgreSQL:
+```bash
+$PGINSTALL/bin/pg_ctl -D $PGDATA start
+```
+
+Stop PostgreSQL:
+```bash
+$PGINSTALL/bin/pg_ctl -D $PGDATA stop
+```
+
+Connect to database:
+```bash
+$PGINSTALL/bin/psql -d l1_app_db -U l1_app_user
 ```
 
 ## Troubleshooting
 
 If you encounter issues:
 
-1. **Check logs:**
-   ```
-   tail -100 $PGDATA/pg_log/postgresql-*.log
+1. **Port conflicts**: Change the port in the `.pgenv` file
+
+2. **Permission errors**: Ensure all PostgreSQL directories have proper permissions
+   ```bash
+   chmod -R u+wx ~/postgres
+   chmod -R u+wx ~/pgdata
    ```
 
-2. **Verify pgvector installation:**
-   ```sql
-   SELECT * FROM pg_extension WHERE extname = 'vector';
+3. **Connectivity issues**: Verify PostgreSQL is running
+   ```bash
+   $PGINSTALL/bin/pg_ctl -D $PGDATA status
    ```
 
-3. **Test vector operations:**
-   ```sql
-   CREATE TABLE vector_test (id serial, v vector(3));
-   INSERT INTO vector_test (v) VALUES ('[1,2,3]'), ('[4,5,6]');
-   SELECT * FROM vector_test ORDER BY v <-> '[3,1,2]' LIMIT 5;
+4. **pgvector issues**: Check if the extension was created properly
+   ```bash
+   $PGINSTALL/bin/psql -d l1_app_db -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
    ```
 
-4. **Check for port conflicts:**
-   If PostgreSQL won't start, check if another process is using port 5432:
-   ```
-   netstat -tuln | grep 5432
-   ```
+## Application Connection
+
+Your application should use this connection string:
+```
+postgresql://l1_app_user:test@localhost:5432/l1_app_db
+```
+
+All connection details are stored in the `.env` file in your home directory.
+
+## Security Considerations
+
+This installation is designed for non-root users in security-restricted environments:
+
+- All files remain in user space (no system directories required)
+- No root privileges needed
+- Authentication configured for local connections only
+- Default permissions set for user access only

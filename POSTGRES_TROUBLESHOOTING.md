@@ -1,109 +1,140 @@
 # PostgreSQL Troubleshooting Guide
 
-This guide helps resolve common issues with the PostgreSQL installation on GPU servers without root privileges.
+This guide addresses common problems when setting up PostgreSQL in security-restricted environments.
 
-## Common Error 1: "pg_ctl: command not found"
+## Installation Problems
 
-**Problem**: The PostgreSQL binaries aren't in your system PATH.
+### Problem: Cannot download PostgreSQL binaries
+**Solution:**
+1. Download PostgreSQL binaries on another machine
+2. Transfer the file via SCP or other secure file transfer
+3. Continue the installation script from the extraction step
 
-**Solutions**:
-
-1. Source the environment file:
+### Problem: Cannot compile pgvector
+**Solution:**
+1. Check if development tools are available:
    ```bash
-   source ~/.pgenv
+   which gcc make
+   ```
+2. If not available, either:
+   - Request them from your system administrator
+   - Use a fallback method with FAISS for vector operations
+
+### Problem: Directory permission issues
+**Solution:**
+1. Make sure all directories have proper permissions:
+   ```bash
+   chmod -R u+wx ~/postgres
+   chmod -R u+wx ~/pgdata
+   ```
+2. Check if any parent directories have restrictive permissions
+
+## Connection Problems
+
+### Problem: Cannot connect to PostgreSQL
+**Solution:**
+1. Verify PostgreSQL is running:
+   ```bash
+   ~/postgres/bin/pg_ctl -D ~/pgdata status
    ```
 
-2. Use the full path to pg_ctl:
+2. Check connection settings:
    ```bash
-   /path/to/postgres16/bin/pg_ctl -D /path/to/postgres16/data start
+   cat ~/.env
+   ~/postgres/bin/psql -p 5432 -h localhost -U l1_app_user -d l1_app_db
    ```
 
-3. Find where pg_ctl is installed:
+3. If PostgreSQL is running but you cannot connect:
+   - Check pg_hba.conf for connection restrictions
+   - Verify port restrictions
+
+### Problem: Application cannot connect to PostgreSQL
+**Solution:**
+1. Check environment variables:
    ```bash
-   find ~/ -name "pg_ctl" -type f
+   cat ~/.env
+   echo $DATABASE_URL
    ```
 
-## Common Error 2: "directory is not a database cluster directory"
-
-**Problem**: The data directory hasn't been properly initialized with initdb.
-
-**Solutions**:
-
-1. Run the manual initialization script:
+2. Test connection with psql using the same credentials:
    ```bash
-   ./initialize_db.sh
-   ```
-   This will guide you through initializing a new data directory.
-
-2. Or manually initialize the directory:
-   ```bash
-   # Replace these paths with your actual paths
-   /path/to/postgres16/bin/initdb -D /path/to/postgres16/data
+   ~/postgres/bin/psql "postgresql://l1_app_user:test@localhost:5432/l1_app_db"
    ```
 
-3. Verify the data directory has the required files:
+3. Check for network restrictions between application and database
+
+## pgvector Problems
+
+### Problem: pgvector extension not available
+**Solution:**
+1. Verify the extension was created:
    ```bash
-   ls -la /path/to/postgres16/data
-   ```
-   The directory should contain files like `PG_VERSION`, `postgresql.conf`, etc.
-
-## Common Error 3: "could not connect to server"
-
-**Problem**: The PostgreSQL server isn't running.
-
-**Solutions**:
-
-1. Start the server:
-   ```bash
-   /path/to/postgres16/bin/pg_ctl -D /path/to/postgres16/data start
+   ~/postgres/bin/psql -d l1_app_db -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
    ```
 
-2. Check if the server is already running:
+2. Manually create the extension:
    ```bash
-   /path/to/postgres16/bin/pg_ctl -D /path/to/postgres16/data status
+   ~/postgres/bin/psql -d l1_app_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
    ```
 
-3. Check for port conflicts:
+3. If extension creation fails, check installation:
    ```bash
-   netstat -tuln | grep 5432
+   cd ~/pgvector
+   export PG_CONFIG=~/postgres/bin/pg_config
+   make USE_PGXS=1
+   make USE_PGXS=1 install
    ```
 
-## Common Error 4: "role l1_app_user does not exist"
+### Problem: Vector operations not working
+**Solution:**
+1. Test vector operations directly:
+   ```bash
+   ~/postgres/bin/psql -d l1_app_db -c "CREATE TABLE IF NOT EXISTS vector_test (id serial PRIMARY KEY, embedding vector(3));"
+   ~/postgres/bin/psql -d l1_app_db -c "INSERT INTO vector_test (embedding) VALUES ('[1,2,3]');"
+   ~/postgres/bin/psql -d l1_app_db -c "SELECT * FROM vector_test;"
+   ```
 
-**Problem**: The database user hasn't been created.
+2. If the test fails, try reinstalling pgvector with debug logs:
+   ```bash
+   cd ~/pgvector
+   export PG_CONFIG=~/postgres/bin/pg_config
+   make USE_PGXS=1 clean
+   make USE_PGXS=1 CFLAGS="-g -O0" > pgvector_build.log 2>&1
+   make USE_PGXS=1 install > pgvector_install.log 2>&1
+   ```
 
-**Solution**:
-```bash
-/path/to/postgres16/bin/psql -d postgres -c "CREATE ROLE l1_app_user WITH LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD 'test';"
-```
+## Security Problems
 
-## Common Error 5: "database l1_app_db does not exist"
+### Problem: Port access restricted
+**Solution:**
+1. Try using a non-standard port:
+   - Edit `~/pgdata/postgresql.conf` to use a different port (e.g., 15432)
+   - Update `.pgenv` and `.env` files with the new port
+   - Restart PostgreSQL
 
-**Problem**: The database hasn't been created.
+2. If all ports are restricted, consider:
+   - Setting up SSH tunnel for database access
+   - Using Unix socket connections instead of TCP/IP
 
-**Solution**:
-```bash
-/path/to/postgres16/bin/createdb -O l1_app_user l1_app_db
-```
+### Problem: Firewall blocking connections
+**Solution:**
+1. Verify local-only connections work:
+   ```bash
+   ~/postgres/bin/psql -h localhost -p 5432 -U l1_app_user -d l1_app_db
+   ```
 
-## Common Error 6: Permission issues
+2. If local connections work but network connections don't:
+   - Check firewall rules
+   - Use local connections only for the application
 
-**Problem**: Files or directories have incorrect permissions.
+## Fallback Options
 
-**Solution**:
-```bash
-chmod -R u=rwx /path/to/postgres16
-chmod -R u=rwx /path/to/postgres16/data
-```
+If PostgreSQL cannot be installed or used due to security restrictions:
 
-## Getting Help
+1. **FAISS Option**: Use FAISS for vector operations with SQLite for regular database operations
+   - Modify application to use `VECTOR_STORAGE=faiss` in `.env`
+   - Set `DATABASE_URL=sqlite:///~/database.sqlite` in `.env`
 
-If you're still having issues, check the PostgreSQL log files:
-```bash
-tail -100 /path/to/postgres16/data/pg_log/postgresql-*.log
-```
-
-Or try running the server in foreground mode for more detailed output:
-```bash
-/path/to/postgres16/bin/postgres -D /path/to/postgres16/data
-```
+2. **Embedded Option**: Use SQLite with custom vector functions
+   - Implement L2/cosine distance functions in SQLite
+   - Store vectors as TEXT/BLOB in SQLite
