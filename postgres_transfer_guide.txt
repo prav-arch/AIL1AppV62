@@ -1,0 +1,101 @@
+# PostgreSQL Transfer Guide for GPU Servers
+
+Since your GPU server has restricted internet access, the recommended approach is to:
+1. Download PostgreSQL binaries on a machine with internet access
+2. Transfer those binaries to your GPU server
+3. Set up PostgreSQL on your GPU server
+
+## Step 1: On a machine with internet access
+
+Download the PostgreSQL binaries for your architecture:
+
+```bash
+# For x86_64 (64-bit Intel/AMD)
+wget https://get.enterprisedb.com/postgresql/postgresql-16.2-1-linux-x64-binaries.tar.gz
+
+# For ARM64
+wget https://get.enterprisedb.com/postgresql/postgresql-16.2-1-linux-arm64-binaries.tar.gz
+```
+
+## Step 2: Transfer to your GPU server
+
+Use scp, rsync, or any other file transfer method:
+
+```bash
+# Example using scp
+scp postgresql-16.2-1-linux-x64-binaries.tar.gz username@gpu-server:~/
+```
+
+## Step 3: On your GPU server
+
+1. Extract the binaries:
+```bash
+mkdir -p ~/postgres16
+tar -xzf postgresql-16.2-1-linux-x64-binaries.tar.gz -C ~/postgres16 --strip-components=1
+```
+
+2. Set up environment variables:
+```bash
+echo 'export PATH=$HOME/postgres16/bin:$PATH' >> ~/.bashrc
+echo 'export PGDATA=$HOME/postgres16/data' >> ~/.bashrc
+source ~/.bashrc
+```
+
+3. Initialize the database:
+```bash
+mkdir -p $PGDATA
+initdb -D $PGDATA
+```
+
+4. Configure PostgreSQL:
+```bash
+echo "listen_addresses = '*'" >> $PGDATA/postgresql.conf
+echo "port = 5432" >> $PGDATA/postgresql.conf
+
+# Set authentication
+echo "# TYPE  DATABASE        USER            ADDRESS                 METHOD" > $PGDATA/pg_hba.conf
+echo "local   all             all                                     md5" >> $PGDATA/pg_hba.conf
+echo "host    all             all             127.0.0.1/32            md5" >> $PGDATA/pg_hba.conf
+echo "host    all             all             ::1/128                 md5" >> $PGDATA/pg_hba.conf
+```
+
+5. Start PostgreSQL:
+```bash
+pg_ctl -D $PGDATA start
+```
+
+6. Create user and database:
+```bash
+psql -d postgres -c "CREATE ROLE l1_app_user WITH LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD 'test';"
+createdb -O l1_app_user l1_app_db
+```
+
+7. Update your application's .env file:
+```
+DATABASE_URL=postgresql://l1_app_user:test@localhost:5432/l1_app_db
+VECTOR_STORAGE=postgres
+```
+
+## Important Notes for GPU Servers
+
+1. Make sure all files have u=rwx permissions:
+```bash
+chmod -R u=rwx ~/postgres16
+chmod -R u=rwx $PGDATA
+```
+
+2. You may need to manually install pgvector if you need vector operations:
+```bash
+# On a machine with internet access
+git clone https://github.com/pgvector/pgvector.git
+cd pgvector
+make
+```
+
+3. Then transfer the compiled pgvector files to your GPU server.
+
+4. Common commands:
+- Start PostgreSQL: `pg_ctl -D $PGDATA start`
+- Stop PostgreSQL:  `pg_ctl -D $PGDATA stop`
+- Check status:     `pg_ctl -D $PGDATA status`
+- Connect to DB:    `psql -d l1_app_db`
