@@ -30,26 +30,110 @@ cd $DOWNLOAD_DIR
 
 # Download precompiled PostgreSQL binaries
 echo -e "${GREEN}Downloading PostgreSQL binaries...${NC}"
-curl -s --insecure https://files.postgresqlweb.com/pg_16.2_pgvector_amd64.tar.gz -o postgres.tar.gz
+
+# First try: Standard PostgreSQL binaries
+echo -e "${YELLOW}Trying official PostgreSQL download...${NC}"
+PGURL="https://get.enterprisedb.com/postgresql/postgresql-16.2-1-linux-x64-binaries.tar.gz"
+curl -L --insecure -s $PGURL -o postgres.tar.gz
 
 if [ ! -f postgres.tar.gz ] || [ $(stat -c%s postgres.tar.gz) -lt 1000000 ]; then
-    echo -e "${RED}Failed to download PostgreSQL binaries.${NC}"
-    echo -e "${YELLOW}Trying alternative download...${NC}"
-    curl -s --insecure https://share.pgvector.org/pg_16.2_pgvector_linux_x64.tar.gz -o postgres.tar.gz
+    echo -e "${RED}Failed to download official PostgreSQL binaries.${NC}"
+    echo -e "${YELLOW}Trying alternative download from PostgreSQL archive...${NC}"
+    
+    PGURL2="https://ftp.postgresql.org/pub/postgres-archive/tarballs/postgresql-16.2.tar.gz"
+    curl -L --insecure -s $PGURL2 -o postgres.tar.gz
     
     if [ ! -f postgres.tar.gz ] || [ $(stat -c%s postgres.tar.gz) -lt 1000000 ]; then
-        echo -e "${RED}Failed to download PostgreSQL binaries. Exiting.${NC}"
-        exit 1
+        echo -e "${RED}Failed to download PostgreSQL binaries from archive.${NC}"
+        echo -e "${YELLOW}Trying from mirror...${NC}"
+        
+        PGURL3="https://ftp.postgresql.org/pub/source/v16.2/postgresql-16.2.tar.gz"
+        curl -L --insecure -s $PGURL3 -o postgres.tar.gz
+        
+        if [ ! -f postgres.tar.gz ] || [ $(stat -c%s postgres.tar.gz) -lt 1000000 ]; then
+            echo -e "${RED}All download attempts failed. Exiting.${NC}"
+            exit 1
+        fi
     fi
 fi
 
-# Extract binaries
-echo -e "${GREEN}Extracting PostgreSQL binaries...${NC}"
-tar -xzf postgres.tar.gz -C $INSTALL_DIR
+echo -e "${GREEN}Successfully downloaded PostgreSQL ($(du -h postgres.tar.gz | cut -f1))${NC}"
 
-# Initialize database cluster
-echo -e "${GREEN}Initializing database cluster...${NC}"
-$BIN_DIR/initdb -D $DATA_DIR
+# Check what type of package we have
+if tar -tzf postgres.tar.gz | grep -q "/bin/initdb"; then
+    # Binary installation
+    echo -e "${GREEN}Extracting PostgreSQL binaries...${NC}"
+    tar -xzf postgres.tar.gz -C $INSTALL_DIR --strip-components=1
+    
+    # Initialize database cluster
+    echo -e "${GREEN}Initializing database cluster...${NC}"
+    $BIN_DIR/initdb -D $DATA_DIR
+else
+    # Source installation
+    echo -e "${GREEN}Installing from source package...${NC}"
+    mkdir -p $INSTALL_DIR/src
+    tar -xzf postgres.tar.gz -C $INSTALL_DIR/src --strip-components=1
+    
+    cd $INSTALL_DIR/src
+    
+    # Configure and compile
+    echo -e "${GREEN}Configuring PostgreSQL...${NC}"
+    ./configure --prefix=$INSTALL_DIR \
+      --without-readline \
+      --without-icu \
+      --without-zlib \
+      --disable-openssl \
+      --without-ldap
+      
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Configuration failed. Please check the output above.${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}Compiling PostgreSQL (this may take a while)...${NC}"
+    make -j4
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Compilation failed. Please check the output above.${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}Installing PostgreSQL...${NC}"
+    make install
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Installation failed. Please check the output above.${NC}"
+        exit 1
+    fi
+    
+    # Initialize database cluster
+    echo -e "${GREEN}Initializing database cluster...${NC}"
+    $BIN_DIR/initdb -D $DATA_DIR
+    
+    # Download pgvector source
+    echo -e "${GREEN}Downloading pgvector extension...${NC}"
+    cd $DOWNLOAD_DIR
+    git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Failed to download pgvector source. Check if git is installed.${NC}"
+        exit 1
+    fi
+    
+    # Build and install pgvector extension
+    echo -e "${GREEN}Building pgvector extension...${NC}"
+    cd pgvector
+    export PG_CONFIG=$BIN_DIR/pg_config
+    make
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}pgvector build failed. Please check the output above.${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}Installing pgvector extension...${NC}"
+    make install
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}pgvector installation failed. Please check the output above.${NC}"
+        exit 1
+    fi
+fi
 
 # Configure PostgreSQL
 echo -e "${GREEN}Configuring PostgreSQL...${NC}"
