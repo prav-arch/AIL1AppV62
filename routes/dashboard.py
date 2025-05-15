@@ -40,8 +40,8 @@ def index():
         return render_template('dashboard.html', error=str(e))
 
 @dashboard_bp.route('/stats')
-def get_stats():
-    """API endpoint to get current system stats."""
+def dashboard_stats():
+    """Return dashboard statistics for API requests."""
     try:
         # Get counts from database
         conversation_count = get_conversation_count()
@@ -49,7 +49,7 @@ def get_stats():
         anomaly_count = get_anomaly_count()
         active_jobs_count = get_active_jobs_count()
         
-        # Return JSON response
+        # Return as JSON
         return jsonify({
             'conversation_count': conversation_count,
             'document_count': document_count,
@@ -57,43 +57,43 @@ def get_stats():
             'active_jobs_count': active_jobs_count
         })
     except Exception as e:
-        logger.error(f"Error getting stats: {str(e)}")
+        logger.error(f"Error getting dashboard stats: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Helper functions to get stats from database
+# Helper functions
 def get_conversation_count():
-    """Get count of conversations."""
+    """Get count of conversations from database."""
     try:
-        result = execute_query("SELECT COUNT(*) FROM conversations")
+        result = execute_query("SELECT COUNT(*) as count FROM conversations")
         return result[0]['count'] if result else 0
     except Exception as e:
         logger.error(f"Error getting conversation count: {str(e)}")
         return 0
 
 def get_document_count():
-    """Get count of documents."""
+    """Get count of documents from database."""
     try:
-        result = execute_query("SELECT COUNT(*) FROM documents")
+        result = execute_query("SELECT COUNT(*) as count FROM documents")
         return result[0]['count'] if result else 0
     except Exception as e:
         logger.error(f"Error getting document count: {str(e)}")
         return 0
 
 def get_anomaly_count():
-    """Get count of anomalies."""
+    """Get count of open anomalies from database."""
     try:
-        result = execute_query("SELECT COUNT(*) FROM anomalies WHERE status = 'open'")
+        result = execute_query("SELECT COUNT(*) as count FROM anomalies WHERE status = 'open'")
         return result[0]['count'] if result else 0
     except Exception as e:
         logger.error(f"Error getting anomaly count: {str(e)}")
         return 0
 
 def get_active_jobs_count():
-    """Get count of active jobs."""
+    """Get count of active pipeline jobs from database."""
     try:
-        # Get count of active pipeline jobs
         result = execute_query("""
-            SELECT COUNT(*) FROM job_runs 
+            SELECT COUNT(*) as count 
+            FROM job_runs 
             WHERE status = 'running'
         """)
         return result[0]['count'] if result else 0
@@ -102,14 +102,14 @@ def get_active_jobs_count():
         return 0
 
 def get_recent_activity(limit=5):
-    """Get recent activity across the system."""
+    """Get recent user activity from database."""
     try:
-        result = execute_query("""
-            SELECT action, entity_type, timestamp 
-            FROM activity_logs 
-            ORDER BY timestamp DESC 
-            LIMIT %s
-        """, (limit,))
+        result = execute_query(f"""
+            SELECT action, entity_type, entity_id, user_id, timestamp
+            FROM user_activity
+            ORDER BY timestamp DESC
+            LIMIT {limit}
+        """)
         return result if result else []
     except Exception as e:
         logger.error(f"Error getting recent activity: {str(e)}")

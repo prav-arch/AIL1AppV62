@@ -4,60 +4,137 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI Assistant Platform{% endblock %}</title>
-    <!-- Bootstrap dark theme -->
+    
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <!-- Custom styles -->
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{{ url_for('index') }}">AI Assistant Platform</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/dashboard') %}active{% endif %}" href="{{ url_for('dashboard.index') }}">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/llm_assistant') %}active{% endif %}" href="{{ url_for('llm_assistant.index') }}">LLM Assistant</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/rag') %}active{% endif %}" href="{{ url_for('rag.index') }}">RAG</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/anomalies') %}active{% endif %}" href="{{ url_for('anomalies.index') }}">Anomalies</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/data_pipeline') %}active{% endif %}" href="{{ url_for('data_pipeline.index') }}">Data Pipeline</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path.startswith('/kafka_browser') %}active{% endif %}" href="{{ url_for('kafka_browser.index') }}">Kafka Browser</a>
-                        </li>
-                    </ul>
-                </div>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-robot me-2"></i>
+                AI Assistant Platform
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'llm_assistant.index' %}active{% endif %}" href="{{ url_for('llm_assistant.index') }}">
+                            <i class="bi bi-chat-dots me-1"></i> LLM Assistant
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'rag.index' %}active{% endif %}" href="{{ url_for('rag.index') }}">
+                            <i class="bi bi-search me-1"></i> RAG
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'anomalies.index' %}active{% endif %}" href="{{ url_for('anomalies.index') }}">
+                            <i class="bi bi-graph-up me-1"></i> Anomalies
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'data_pipeline.index' %}active{% endif %}" href="{{ url_for('data_pipeline.index') }}">
+                            <i class="bi bi-bezier2 me-1"></i> Data Pipeline
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'kafka_browser.index' %}active{% endif %}" href="{{ url_for('kafka_browser.index') }}">
+                            <i class="bi bi-journal-text me-1"></i> Kafka Browser
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                            <i class="bi bi-gear me-1"></i> Settings
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </nav>
-    </header>
+        </div>
+    </nav>
 
-    <main class="container-fluid mt-4">
+    <!-- Main Content -->
+    <main class="mb-5">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="mt-5 py-3 bg-dark text-light">
-        <div class="container text-center">
-            <p>AI Assistant Platform &copy; 2025</p>
+    <!-- Footer -->
+    <footer class="footer py-3 bg-dark mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <span class="text-muted">AI Assistant Platform &copy; 2025</span>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="text-muted">Powered by PostgreSQL and Python</span>
+                </div>
+            </div>
         </div>
     </footer>
 
-    <!-- Bootstrap JavaScript -->
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="settingsForm">
+                        <div class="mb-3">
+                            <label for="modelSelection" class="form-label">LLM Model</label>
+                            <select class="form-select" id="modelSelection">
+                                <option value="local" selected>Mistral 7B (Local)</option>
+                                <option value="local_alt">Llama 2 (Local)</option>
+                            </select>
+                            <div class="form-text">The LLM model to use for AI assistant features.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="vectorDbSelection" class="form-label">Vector Database</label>
+                            <select class="form-select" id="vectorDbSelection" disabled>
+                                <option value="postgres" selected>PostgreSQL (pgvector)</option>
+                            </select>
+                            <div class="form-text">Vector database for RAG features.</div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="streamingEnable" checked>
+                            <label class="form-check-label" for="streamingEnable">Enable response streaming</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JavaScript -->
+    
+    <!-- App JS -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>
