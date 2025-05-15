@@ -6,7 +6,8 @@ import logging
 import os
 
 # Import vector database service
-from services.vector_db import vector_db_service
+# Using PostgreSQL with pgvector instead of FAISS
+from services.pg_vector_db import pg_vector_db_service as vector_db_service
 
 # Set up logger
 logger = logging.getLogger(__name__)
