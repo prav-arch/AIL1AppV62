@@ -11,8 +11,8 @@ import logging
 # Set up logger
 logger = logging.getLogger(__name__)
 
-# Database connection string from environment variable or default with l1_app_user credentials
-DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://l1_app_user:l1@localhost:5432/l1_app_db')
+# Database connection string from environment variable
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 def get_connection():
     """
@@ -223,7 +223,7 @@ def init_db():
         id SERIAL PRIMARY KEY,
         topic_id INTEGER REFERENCES kafka_topics(id) ON DELETE CASCADE,
         partition INTEGER NOT NULL,
-        "offset" BIGINT NOT NULL,
+        offset BIGINT NOT NULL,
         key TEXT,
         value TEXT,
         headers JSONB,
