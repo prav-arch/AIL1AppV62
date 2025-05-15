@@ -32,8 +32,15 @@ else
   exit 1
 fi
 
+# Use PostgreSQL official download mirror
 echo "Downloading PostgreSQL $PG_VERSION for $ARCH..."
-wget --no-check-certificate https://get.enterprisedb.com/postgresql/postgresql-$PG_VERSION-1-$POSTGRES_ARCH-binaries.tar.gz
+if [ "$ARCH" = "x86_64" ]; then
+  # For x86_64
+  wget --no-check-certificate https://ftp.postgresql.org/pub/binary/v$PG_VERSION/linux-x64/postgresql-$PG_VERSION-linux-x64.tar.gz
+elif [ "$ARCH" = "aarch64" ]; then
+  # For ARM64
+  wget --no-check-certificate https://ftp.postgresql.org/pub/binary/v$PG_VERSION/linux-arm64/postgresql-$PG_VERSION-linux-arm64.tar.gz
+fi
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to download PostgreSQL binaries."
@@ -42,7 +49,11 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Extracting PostgreSQL..."
-tar -xzf postgresql-$PG_VERSION-1-$POSTGRES_ARCH-binaries.tar.gz -C $INSTALL_DIR --strip-components=1
+if [ "$ARCH" = "x86_64" ]; then
+  tar -xzf postgresql-$PG_VERSION-linux-x64.tar.gz -C $INSTALL_DIR --strip-components=1
+elif [ "$ARCH" = "aarch64" ]; then
+  tar -xzf postgresql-$PG_VERSION-linux-arm64.tar.gz -C $INSTALL_DIR --strip-components=1
+fi
 
 if [ $? -ne 0 ]; then
     echo "Error: Failed to extract PostgreSQL binaries."
