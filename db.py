@@ -223,7 +223,7 @@ def init_db():
         id SERIAL PRIMARY KEY,
         topic_id INTEGER REFERENCES kafka_topics(id) ON DELETE CASCADE,
         partition INTEGER NOT NULL,
-        offset BIGINT NOT NULL,
+        "offset" BIGINT NOT NULL,
         key TEXT,
         value TEXT,
         headers JSONB,

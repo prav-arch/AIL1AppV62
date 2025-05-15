@@ -1,246 +1,141 @@
-{% extends "base.html" %}
-{% set active_tab = 'dashboard' %}
+{% extends 'base.html' %}
 
 {% block title %}Dashboard - AI Assistant Platform{% endblock %}
 
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Dashboard -->
-<div class="row">
-    <div class="col-md-3">
-        <div class="panel panel-info">
-            <div class="panel-heading">
-                <h3 class="panel-title text-center">LLM Requests</h3>
-            </div>
-            <div class="panel-body text-center">
-                <h2 id="llm-request-count">0</h2>
-                <div class="text-success">
-                    <i class="fas fa-arrow-up"></i> 5% from yesterday
-                </div>
-            </div>
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Dashboard</h1>
+            <p class="lead">Overview of your AI Assistant Platform</p>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="panel panel-info">
-            <div class="panel-heading">
-                <h3 class="panel-title text-center">Documents Indexed</h3>
-            </div>
-            <div class="panel-body text-center">
-                <h2 id="docs-indexed-count">0</h2>
-                <div class="text-success">
-                    <i class="fas fa-arrow-up"></i> 12% from yesterday
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="panel panel-danger">
-            <div class="panel-heading">
-                <h3 class="panel-title text-center">Anomalies Detected</h3>
-            </div>
-            <div class="panel-body text-center">
-                <h2 id="anomalies-count">0</h2>
-                <div class="text-danger">
-                    <i class="fas fa-arrow-up"></i> 8% from yesterday
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title text-center">Active Pipelines</h3>
-            </div>
-            <div class="panel-body text-center">
-                <h2 id="pipelines-count">0</h2>
-                <div class="text-muted">
-                    <i class="fas fa-equals"></i> No change
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">LLM Usage Trends</h3>
-            </div>
-            <div class="panel-body">
-                <div class="chart-container" style="position: relative; height:300px;">
-                    <canvas id="llmUsageChart"></canvas>
-                </div>
-            </div>
-        </div>
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        Error: {{ error }}
     </div>
-    <div class="col-md-4">
-        <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">Resource Distribution</h3>
-            </div>
-            <div class="panel-body">
-                <div class="chart-container" style="position: relative; height:300px;">
-                    <canvas id="resourceDistributionChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    {% endif %}
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">GPU Utilization</h3>
+    <!-- Stats Cards -->
+    <div class="row mb-5">
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card text-center h-100 bg-primary bg-opacity-10">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="bi bi-chat-dots"></i>
+                    </div>
+                    <h3 class="card-title">{{ conversation_count }}</h3>
+                    <p class="card-text">Conversations</p>
+                </div>
             </div>
-            <div class="panel-body">
-                <div class="chart-container" style="position: relative; height:250px;">
-                    <canvas id="gpuUtilizationChart"></canvas>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card text-center h-100 bg-info bg-opacity-10">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="bi bi-file-text"></i>
+                    </div>
+                    <h3 class="card-title">{{ document_count }}</h3>
+                    <p class="card-text">Documents</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card text-center h-100 bg-warning bg-opacity-10">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h3 class="card-title">{{ anomaly_count }}</h3>
+                    <p class="card-text">Open Anomalies</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card stat-card text-center h-100 bg-success bg-opacity-10">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="bi bi-gear"></i>
+                    </div>
+                    <h3 class="card-title">{{ active_jobs_count }}</h3>
+                    <p class="card-text">Active Jobs</p>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">System Health</h3>
-            </div>
-            <div class="panel-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Memory Usage</h6>
-                        <div class="progress">
-                            <div id="memory-usage" class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="width: 75%;">
-                                75%
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>CPU Load</h6>
-                        <div class="progress">
-                            <div id="cpu-load" class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100" style="width: 42%;">
-                                42%
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row" style="margin-top: 15px;">
-                    <div class="col-md-6">
-                        <h6>Disk Usage</h6>
-                        <div class="progress">
-                            <div id="disk-usage" class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100" style="width: 68%;">
-                                68%
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Network Throughput</h6>
-                        <div class="progress">
-                            <div id="network-throughput" class="progress-bar progress-bar-primary" role="progressbar" aria-valuenow="35" aria-valuemin="0" aria-valuemax="100" style="width: 35%;">
-                                35%
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">Recent Kafka Messages</h3>
-            </div>
-            <div class="panel-body" style="max-height: 300px; overflow-y: auto;">
-                <ul class="list-group" id="recent-messages">
-                    <li class="list-group-item">
-                        <div>
-                            <strong>logs-queue</strong>
-                            <div class="text-muted small">System startup completed</div>
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_activity %}
+                    <div class="list-group list-group-flush">
+                        {% for activity in recent_activity %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ activity.action }}</h6>
+                                <small>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') if activity.timestamp else 'N/A' }}</small>
+                            </div>
+                            <p class="mb-1">{{ activity.entity_type or 'System' }}</p>
                         </div>
-                        <span class="label label-primary">2m ago</span>
-                    </li>
-                    <li class="list-group-item">
-                        <div>
-                            <strong>metrics-queue</strong>
-                            <div class="text-muted small">CPU spike detected</div>
-                        </div>
-                        <span class="label label-primary">5m ago</span>
-                    </li>
-                    <li class="list-group-item">
-                        <div>
-                            <strong>alerts-queue</strong>
-                            <div class="text-muted small">New anomaly detected</div>
-                        </div>
-                        <span class="label label-danger">10m ago</span>
-                    </li>
-                </ul>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center my-4">No recent activity</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">Pipeline Status</h3>
-            </div>
-            <div class="panel-body" style="max-height: 300px; overflow-y: auto;">
-                <ul class="list-group" id="pipeline-status">
-                    <li class="list-group-item">
-                        <div>
-                            <strong>Data Ingestion</strong>
-                            <div class="text-muted small">Processing files</div>
-                        </div>
-                        <span class="label label-success">Running</span>
-                    </li>
-                    <li class="list-group-item">
-                        <div>
-                            <strong>ETL Process</strong>
-                            <div class="text-muted small">Transforming data</div>
-                        </div>
-                        <span class="label label-success">Running</span>
-                    </li>
-                    <li class="list-group-item">
-                        <div>
-                            <strong>Model Training</strong>
-                            <div class="text-muted small">Scheduled for 22:00</div>
-                        </div>
-                        <span class="label label-default">Scheduled</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="panel panel-primary">
-            <div class="panel-heading">
-                <h3 class="panel-title">Latest Anomalies</h3>
-            </div>
-            <div class="panel-body" style="max-height: 300px; overflow-y: auto;">
-                <ul class="list-group" id="latest-anomalies">
-                    <li class="list-group-item">
-                        <div>
-                            <strong>Network Traffic Spike</strong>
-                            <div class="text-muted small">Unusual outbound traffic</div>
-                        </div>
-                        <a href="/anomalies" class="btn btn-xs btn-primary">Details</a>
-                    </li>
-                    <li class="list-group-item">
-                        <div>
-                            <strong>Memory Leak</strong>
-                            <div class="text-muted small">In application server</div>
-                        </div>
-                        <a href="/anomalies" class="btn btn-xs btn-primary">Details</a>
-                    </li>
-                    <li class="list-group-item">
-                        <div>
-                            <strong>API Response Time</strong>
-                            <div class="text-muted small">Increased latency detected</div>
-                        </div>
-                        <a href="/anomalies" class="btn btn-xs btn-primary">Details</a>
-                    </li>
-                </ul>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">System Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Database</th>
+                                    <td><span class="badge bg-success">Connected</span></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Local LLM Service</th>
+                                    <td><span class="badge bg-warning">Limited</span></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Vector Database</th>
+                                    <td><span class="badge bg-success">Running</span></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Anomaly Detection</th>
+                                    <td><span class="badge bg-success">Active</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -248,5 +143,20 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Refresh stats every 60 seconds
+    setInterval(function() {
+        fetch('/dashboard/stats')
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('.stat-card:nth-child(1) h3').textContent = data.conversation_count;
+                document.querySelector('.stat-card:nth-child(2) h3').textContent = data.document_count;
+                document.querySelector('.stat-card:nth-child(3) h3').textContent = data.anomaly_count;
+                document.querySelector('.stat-card:nth-child(4) h3').textContent = data.active_jobs_count;
+            })
+            .catch(error => console.error('Error fetching stats:', error));
+    }, 60000);
+});
+</script>
 {% endblock %}
