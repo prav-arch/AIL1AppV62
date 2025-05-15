@@ -361,11 +361,13 @@ def add_document_chunk(document_id, chunk_text, chunk_index, embedding_data=None
     """
     params = (document_id, chunk_text, chunk_index, embedding_data)
     
+    conn = None
     try:
         conn = get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
-            chunk_id = cur.fetchone()[0]
+            result = cur.fetchone()
+            chunk_id = result[0] if result else None
             conn.commit()
             return chunk_id
     except Exception as e:
@@ -445,11 +447,13 @@ def add_conversation(user_id, title=None):
     """
     params = (user_id, title)
     
+    conn = None
     try:
         conn = get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
-            conversation_id = cur.fetchone()[0]
+            result = cur.fetchone()
+            conversation_id = result[0] if result else None
             conn.commit()
             return conversation_id
     except Exception as e:
@@ -480,11 +484,13 @@ def add_message(conversation_id, role, content):
     """
     params = (conversation_id, role, content)
     
+    conn = None
     try:
         conn = get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
-            message_id = cur.fetchone()[0]
+            result = cur.fetchone()
+            message_id = result[0] if result else None
             # Also update the conversation's updated_at timestamp
             update_query = """
             UPDATE conversations
@@ -566,11 +572,13 @@ def add_time_series_data(source, metric_name, timestamp, value, tags=None):
     """
     params = (source, metric_name, timestamp, value, tags)
     
+    conn = None
     try:
         conn = get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
-            time_series_id = cur.fetchone()[0]
+            result = cur.fetchone()
+            time_series_id = result[0] if result else None
             conn.commit()
             return time_series_id
     except Exception as e:
@@ -607,11 +615,13 @@ def add_anomaly(time_series_id, algorithm, start_time, severity, score,
     """
     params = (time_series_id, algorithm, start_time, end_time, severity, score, status)
     
+    conn = None
     try:
         conn = get_connection()
         with conn.cursor() as cur:
             cur.execute(query, params)
-            anomaly_id = cur.fetchone()[0]
+            result = cur.fetchone()
+            anomaly_id = result[0] if result else None
             conn.commit()
             return anomaly_id
     except Exception as e:

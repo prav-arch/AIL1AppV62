@@ -46,6 +46,7 @@ class PostgresVectorDBService:
         """
         Initialize database tables for vector storage
         """
+        conn = None
         try:
             conn = get_connection()
             with conn.cursor() as cur:
@@ -175,6 +176,7 @@ class PostgresVectorDBService:
         Returns:
             True if successful, False otherwise
         """
+        conn = None
         try:
             # Chunk the document
             chunks = self._chunk_text(text)
@@ -212,32 +214,40 @@ class PostgresVectorDBService:
                 """, (title, description, text, file_path, file_type, file_size, 
                      source, source_url, json.dumps(metadata)))
                 
-                db_doc_id = cur.fetchone()[0]
+                result = cur.fetchone()
+                db_doc_id = result[0] if result else None
                 
-                # Process each chunk
-                for i, chunk in enumerate(chunks):
-                    # Generate embedding
-                    vector = self._generate_embeddings(chunk)
+                if db_doc_id:
+                    # Process each chunk
+                    for i, chunk in enumerate(chunks):
+                        # Generate embedding
+                        vector = self._generate_embeddings(chunk)
+                        
+                        # Serialize the embedding
+                        embedding_data = pickle.dumps(vector)
+                        
+                        # Insert chunk
+                        cur.execute("""
+                        INSERT INTO document_chunks (document_id, chunk_text, chunk_index, embedding_data)
+                        VALUES (%s, %s, %s, %s);
+                        """, (db_doc_id, chunk, i, psycopg2.Binary(embedding_data)))
                     
-                    # Serialize the embedding
-                    embedding_data = pickle.dumps(vector)
+                    conn.commit()
                     
-                    # Insert chunk
-                    cur.execute("""
-                    INSERT INTO document_chunks (document_id, chunk_text, chunk_index, embedding_data)
-                    VALUES (%s, %s, %s, %s);
-                    """, (db_doc_id, chunk, i, psycopg2.Binary(embedding_data)))
-                
-                conn.commit()
-                
-            logger.info(f"Added document {doc_id} with {len(chunks)} chunks to the database")
-            return True
+                    logger.info(f"Added document {doc_id} with {len(chunks)} chunks to the database")
+                    return True
+                else:
+                    logger.error(f"Failed to get document ID after insertion for {doc_id}")
+                    return False
             
         except Exception as e:
             logger.error(f"Error adding document to database: {str(e)}")
-            if 'conn' in locals() and conn:
+            if conn:
                 conn.rollback()
             return False
+        finally:
+            if conn:
+                conn.close()
     
     def search(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
         """
@@ -250,6 +260,7 @@ class PostgresVectorDBService:
         Returns:
             List of search results with document IDs and scores
         """
+        conn = None
         try:
             # Generate query embedding
             query_vector = self._generate_embeddings(query)
@@ -273,38 +284,45 @@ class PostgresVectorDBService:
             # Calculate similarity for each chunk
             results = []
             for chunk in chunks:
+                if chunk is None or 'embedding_data' not in chunk or chunk['embedding_data'] is None:
+                    continue
+                    
                 # Deserialize the embedding
-                chunk_vector = pickle.loads(chunk['embedding_data'])
-                
-                # Calculate cosine similarity
-                similarity = np.dot(query_vector, chunk_vector) / (
-                    np.linalg.norm(query_vector) * np.linalg.norm(chunk_vector))
-                
-                # Convert to a distance (lower is better)
-                distance = 1.0 - similarity
-                
-                chunk_id = chunk['id']
-                document_id = chunk['document_id']
-                
-                # Parse metadata
-                metadata = chunk.get('metadata', {})
-                if isinstance(metadata, str):
-                    try:
-                        metadata = json.loads(metadata)
-                    except:
-                        metadata = {}
-                
-                # Use the document's title or metadata name
-                doc_id = metadata.get('id', f"doc_{document_id}")
-                
-                results.append({
-                    'chunk_id': chunk_id,
-                    'document_id': doc_id,
-                    'score': float(distance),
-                    'chunk_text': chunk['chunk_text'],
-                    'document_title': chunk['title'],
-                    'document_path': chunk['file_path']
-                })
+                try:
+                    chunk_vector = pickle.loads(chunk['embedding_data'])
+                    
+                    # Calculate cosine similarity
+                    similarity = np.dot(query_vector, chunk_vector) / (
+                        np.linalg.norm(query_vector) * np.linalg.norm(chunk_vector))
+                    
+                    # Convert to a distance (lower is better)
+                    distance = 1.0 - similarity
+                    
+                    chunk_id = chunk['id']
+                    document_id = chunk['document_id']
+                    
+                    # Parse metadata
+                    metadata = chunk.get('metadata', {})
+                    if isinstance(metadata, str):
+                        try:
+                            metadata = json.loads(metadata)
+                        except:
+                            metadata = {}
+                    
+                    # Use the document's title or metadata name
+                    doc_id = metadata.get('id', f"doc_{document_id}")
+                    
+                    results.append({
+                        'chunk_id': chunk_id,
+                        'document_id': doc_id,
+                        'score': float(distance),
+                        'chunk_text': chunk['chunk_text'],
+                        'document_title': chunk['title'],
+                        'document_path': chunk.get('file_path', '')
+                    })
+                except Exception as e:
+                    logger.warning(f"Error processing chunk {chunk.get('id')}: {str(e)}")
+                    continue
             
             # Sort by score (lower is better) and get top_k
             results.sort(key=lambda x: x['score'])
@@ -319,6 +337,9 @@ class PostgresVectorDBService:
         except Exception as e:
             logger.error(f"Error searching vector database: {str(e)}")
             return []
+        finally:
+            if conn:
+                conn.close()
     
     def get_stats(self) -> Dict[str, Any]:
         """
@@ -327,6 +348,7 @@ class PostgresVectorDBService:
         Returns:
             Dictionary of statistics
         """
+        conn = None
         try:
             conn = get_connection()
             stats = {}
@@ -334,15 +356,18 @@ class PostgresVectorDBService:
             with conn.cursor() as cur:
                 # Get document count
                 cur.execute("SELECT COUNT(*) FROM documents")
-                stats['documents_count'] = cur.fetchone()[0]
+                result = cur.fetchone()
+                stats['documents_count'] = result[0] if result else 0
                 
                 # Get chunks count
                 cur.execute("SELECT COUNT(*) FROM document_chunks")
-                stats['chunks_count'] = cur.fetchone()[0]
+                result = cur.fetchone()
+                stats['chunks_count'] = result[0] if result else 0
                 
                 # Get total document size
                 cur.execute("SELECT SUM(file_size) FROM documents WHERE file_size IS NOT NULL")
-                total_size = cur.fetchone()[0]
+                result = cur.fetchone()
+                total_size = result[0] if result else None
                 stats['total_size'] = total_size if total_size else 0
                 
                 # Get vector dimension
@@ -374,6 +399,9 @@ class PostgresVectorDBService:
         except Exception as e:
             logger.error(f"Error getting vector database stats: {str(e)}")
             return {'error': str(e), 'documents_count': 0, 'chunks_count': 0, 'vector_dim': self.vector_dim}
+        finally:
+            if conn:
+                conn.close()
     
     def get_documents(self) -> Dict[str, Any]:
         """
@@ -382,6 +410,7 @@ class PostgresVectorDBService:
         Returns:
             Dictionary of document metadata
         """
+        conn = None
         try:
             conn = get_connection()
             documents = {}
@@ -396,8 +425,11 @@ class PostgresVectorDBService:
                 rows = cur.fetchall()
                 
                 for row in rows:
+                    if row is None:
+                        continue
+                        
                     # Extract metadata
-                    metadata = row['metadata']
+                    metadata = row.get('metadata', {})
                     if isinstance(metadata, str):
                         try:
                             metadata = json.loads(metadata)
@@ -410,14 +442,14 @@ class PostgresVectorDBService:
                     # Create document entry
                     documents[doc_id] = {
                         'id': doc_id,
-                        'name': row['title'],
-                        'description': row['description'],
-                        'file_path': row['file_path'],
-                        'file_type': row['file_type'],
-                        'file_size': row['file_size'],
-                        'source': row['source'],
-                        'source_url': row['source_url'],
-                        'created_at': row['created_at'].isoformat() if row['created_at'] else None
+                        'name': row.get('title', ''),
+                        'description': row.get('description', ''),
+                        'file_path': row.get('file_path', ''),
+                        'file_type': row.get('file_type', ''),
+                        'file_size': row.get('file_size', 0),
+                        'source': row.get('source', ''),
+                        'source_url': row.get('source_url', ''),
+                        'created_at': row['created_at'].isoformat() if row.get('created_at') else None
                     }
                     
                     # Add other metadata fields
@@ -431,6 +463,9 @@ class PostgresVectorDBService:
         except Exception as e:
             logger.error(f"Error getting documents from vector database: {str(e)}")
             return {}
+        finally:
+            if conn:
+                conn.close()
     
     def reset(self) -> bool:
         """
@@ -439,6 +474,7 @@ class PostgresVectorDBService:
         Returns:
             True if successful, False otherwise
         """
+        conn = None
         try:
             conn = get_connection()
             with conn.cursor() as cur:
@@ -455,9 +491,12 @@ class PostgresVectorDBService:
             
         except Exception as e:
             logger.error(f"Error resetting vector database: {str(e)}")
-            if 'conn' in locals() and conn:
+            if conn:
                 conn.rollback()
             return False
+        finally:
+            if conn:
+                conn.close()
 
 # Create a singleton instance
 postgres_vector_db_service = PostgresVectorDBService()
