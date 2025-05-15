@@ -286,25 +286,33 @@ def search_rag():
                     'search_time': search_time,
                     'note': 'No documents have been added to the vector database yet. These are sample results.',
                     'metadata': {
-                        'embedding_model': 'mock',
-                        'similarity_metric': 'cosine',
-                        'retrieval_method': 'faiss'
+                        'embedding_model': 'pgvector',
+                        'similarity_metric': 'L2',
+                        'retrieval_method': 'postgresql'
                     }
                 })
         
         # Format the real search results
         results = []
-        documents = vector_db_service.get_documents()
+        
+        # Safely get documents, with fallback for None
+        documents = vector_db_service.get_documents() or {}
         
         for result in search_results:
+            if not result:
+                continue
+                
             doc_id = result.get('document_id', '')
+            if not doc_id:
+                continue
+                
             if doc_id in documents:
-                doc_metadata = documents[doc_id]
+                doc_metadata = documents[doc_id] or {}
                 doc_name = doc_metadata.get('name', doc_id)
                 
                 # Try to read a snippet of text from the document
                 text_snippet = "Content not available"
-                file_path = doc_metadata.get('file_path')
+                file_path = doc_metadata.get('file_path', '')
                 if file_path and os.path.exists(file_path):
                     try:
                         with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
@@ -313,12 +321,22 @@ def search_rag():
                     except Exception as e:
                         logger.error(f"Error reading file for search result: {str(e)}")
                 
+                # Get the score with a fallback
+                score = 0
+                try:
+                    score = float(result.get('score', 0))
+                except (ValueError, TypeError):
+                    pass
+                
+                # Normalize score to a 0-1 range for display
+                relevance_score = max(0.0, min(1.0, 1.0 - (score / 10)))
+                
                 results.append({
-                    'chunk_id': f"{doc_id}_chunk_0",  # We don't have real chunk IDs yet
+                    'chunk_id': f"{doc_id}_chunk_{result.get('chunk_id', 0)}",
                     'document_id': doc_id,
                     'document_name': doc_name,
-                    'text': text_snippet,
-                    'relevance_score': 1.0 - (result.get('score', 0) / 10),  # Convert distance to similarity
+                    'text': text_snippet if text_snippet else "Content not available",
+                    'relevance_score': relevance_score,
                     'metadata': doc_metadata
                 })
         
@@ -328,9 +346,9 @@ def search_rag():
             'total_matches': len(results),
             'search_time': search_time,
             'metadata': {
-                'embedding_model': 'faiss-cpu',
+                'embedding_model': 'pgvector',
                 'similarity_metric': 'L2',
-                'retrieval_method': 'faiss'
+                'retrieval_method': 'postgresql'
             }
         })
     except Exception as e:
@@ -507,16 +525,31 @@ def scrape_webpage():
             data = request.form
             logger.info(f"Processing form data: {data}")
         
+        # Initialize default values
+        url = ''
+        name = ''
+        description = ''
+        index_immediately = True
+        ignore_ssl_errors = False
+        
         # Get request parameters from either form or json
-        url = data.get('url', '')
-        name = data.get('name', '')
-        description = data.get('description', '')
-        index_immediately = data.get('index_immediately', True)
-        if isinstance(index_immediately, str):
-            index_immediately = index_immediately.lower() == 'true'
-        ignore_ssl_errors = data.get('ignore_ssl_errors', False)
-        if isinstance(ignore_ssl_errors, str):
-            ignore_ssl_errors = ignore_ssl_errors.lower() == 'true'
+        if data:
+            url = data.get('url', '')
+            name = data.get('name', '')
+            description = data.get('description', '')
+            index_immediately_val = data.get('index_immediately')
+            if index_immediately_val is not None:
+                if isinstance(index_immediately_val, str):
+                    index_immediately = index_immediately_val.lower() == 'true'
+                else:
+                    index_immediately = bool(index_immediately_val)
+                    
+            ignore_ssl_val = data.get('ignore_ssl_errors')
+            if ignore_ssl_val is not None:
+                if isinstance(ignore_ssl_val, str):
+                    ignore_ssl_errors = ignore_ssl_val.lower() == 'true'
+                else:
+                    ignore_ssl_errors = bool(ignore_ssl_val)
         
         logger.info(f"Scraping webpage: {url}, ignore_ssl: {ignore_ssl_errors}")
         
