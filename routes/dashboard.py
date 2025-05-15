@@ -106,7 +106,7 @@ def get_recent_activity(limit=5):
     try:
         result = execute_query(f"""
             SELECT action, entity_type, entity_id, user_id, timestamp
-            FROM user_activity
+            FROM activity_logs
             ORDER BY timestamp DESC
             LIMIT {limit}
         """)

@@ -56,7 +56,7 @@ def send_message():
     """Send a message to the LLM and get a response."""
     try:
         # Get request data
-        data = request.json
+        data = request.json or {}
         conversation_id = data.get('conversation_id')
         message = data.get('message')
         user_id = session.get('user_id', 1)  # Default to user 1 for now
