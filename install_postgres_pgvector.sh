@@ -43,27 +43,60 @@ make USE_PGXS=1 PG_CONFIG=$INSTALL_DIR/bin/pg_config install
 
 echo "Configuring PostgreSQL to enable pgvector..."
 echo "shared_preload_libraries = 'vector'" >> $PGDATA/postgresql.conf
-echo "local   all             all                                     trust" > $PGDATA/pg_hba.conf
-echo "host    all             all             127.0.0.1/32            trust" >> $PGDATA/pg_hba.conf
-echo "host    all             all             ::1/128                 trust" >> $PGDATA/pg_hba.conf
+echo "listen_addresses = '*'" >> $PGDATA/postgresql.conf
+echo "port = 5432" >> $PGDATA/postgresql.conf
+
+# Set up authentication
+echo "# TYPE  DATABASE        USER            ADDRESS                 METHOD" > $PGDATA/pg_hba.conf
+echo "local   all             all                                     trust" >> $PGDATA/pg_hba.conf
+echo "host    all             all             127.0.0.1/32            md5" >> $PGDATA/pg_hba.conf
+echo "host    all             all             ::1/128                 md5" >> $PGDATA/pg_hba.conf
+echo "host    all             all             0.0.0.0/0               md5" >> $PGDATA/pg_hba.conf
+echo "# Special rule for l1_app_user to use password 'l1'" >> $PGDATA/pg_hba.conf
+echo "host    l1_app_db       l1_app_user     127.0.0.1/32            md5" >> $PGDATA/pg_hba.conf
 
 echo "Starting PostgreSQL server..."
 $INSTALL_DIR/bin/pg_ctl -D $PGDATA start
 
-echo "Creating test database and enabling pgvector extension..."
-$INSTALL_DIR/bin/createdb test
-$INSTALL_DIR/bin/psql -d test -c "CREATE EXTENSION vector;"
+echo "Creating application user and database..."
+# Create the l1_app_user with password 'l1'
+$INSTALL_DIR/bin/psql -d postgres -c "CREATE ROLE l1_app_user WITH LOGIN PASSWORD 'l1' CREATEDB;"
+
+# Create the l1_app_db owned by l1_app_user
+$INSTALL_DIR/bin/createdb -O l1_app_user l1_app_db
+
+echo "Enabling pgvector extension in the application database..."
+$INSTALL_DIR/bin/psql -d l1_app_db -c "CREATE EXTENSION vector;"
 
 echo "Verifying pgvector installation..."
-$INSTALL_DIR/bin/psql -d test -c "CREATE TABLE items (id bigserial PRIMARY KEY, embedding vector(3));"
-$INSTALL_DIR/bin/psql -d test -c "INSERT INTO items (embedding) VALUES ('[1,2,3]'), ('[4,5,6]');"
-$INSTALL_DIR/bin/psql -d test -c "SELECT * FROM items ORDER BY embedding <-> '[3,1,2]' LIMIT 5;"
+$INSTALL_DIR/bin/psql -d l1_app_db -U l1_app_user -c "CREATE TABLE items (id bigserial PRIMARY KEY, embedding vector(3));"
+$INSTALL_DIR/bin/psql -d l1_app_db -U l1_app_user -c "INSERT INTO items (embedding) VALUES ('[1,2,3]'), ('[4,5,6]');"
+$INSTALL_DIR/bin/psql -d l1_app_db -U l1_app_user -c "SELECT * FROM items ORDER BY embedding <-> '[3,1,2]' LIMIT 5;"
 
 echo "Installation complete!"
 echo "Use the following environment variables to connect to your PostgreSQL server:"
 echo "export PATH=$INSTALL_DIR/bin:\$PATH"
 echo "export PGDATA=$PGDATA"
 echo ""
+echo "Database connection information:"
+echo "Database name: l1_app_db"
+echo "Username: l1_app_user"
+echo "Password: l1"
+echo "Host: localhost"
+echo "Port: 5432"
+echo ""
+echo "Connection string: postgresql://l1_app_user:l1@localhost:5432/l1_app_db"
+echo ""
 echo "To start PostgreSQL server: pg_ctl -D $PGDATA start"
 echo "To stop PostgreSQL server: pg_ctl -D $PGDATA stop"
 echo "PostgreSQL binaries are installed in: $INSTALL_DIR/bin"
+
+# Also set environment variables for the application
+echo ""
+echo "Setting up environment variables for the application..."
+echo "export DATABASE_URL=postgresql://l1_app_user:l1@localhost:5432/l1_app_db"
+echo "export PGHOST=localhost"
+echo "export PGPORT=5432"
+echo "export PGUSER=l1_app_user"
+echo "export PGPASSWORD=l1"
+echo "export PGDATABASE=l1_app_db"

@@ -21,4 +21,5 @@ dependencies = [
     "openai>=1.78.1",
     "faiss-cpu>=1.11.0",
     "pgvector>=0.4.1",
+    "beautifulsoup4>=4.13.4",
 ]
