@@ -56,7 +56,7 @@ cd postgresql-16.2
   --without-readline \
   --without-icu \
   --without-zlib \
-  --without-ssl \
+  --disable-openssl \
   --without-ldap \
   --without-libxml
 if [ $? -ne 0 ]; then
