@@ -111,9 +111,38 @@ echo "PostgreSQL binaries are installed in: $INSTALL_DIR/bin"
 # Also set environment variables for the application
 echo ""
 echo "Setting up environment variables for the application..."
-echo "export DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME"
-echo "export PGHOST=localhost"
-echo "export PGPORT=5432"
-echo "export PGUSER=$DB_USER"
-echo "export PGPASSWORD=$DB_PASSWORD"
-echo "export PGDATABASE=$DB_NAME"
+cat > $USER_HOME/.pgenv << EOF
+# PostgreSQL 16.2 Environment Variables
+export PATH=$INSTALL_DIR/bin:\$PATH
+export PGDATA=$PGDATA
+export DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME
+export PGHOST=localhost
+export PGPORT=5432
+export PGUSER=$DB_USER
+export PGPASSWORD=$DB_PASSWORD
+export PGDATABASE=$DB_NAME
+EOF
+
+echo "=========================================================="
+echo "A configuration file has been created at: $USER_HOME/.pgenv"
+echo "To load the PostgreSQL environment variables, run:"
+echo "source $USER_HOME/.pgenv"
+echo ""
+echo "Add this line to your .bashrc or .profile to make it permanent:"
+echo "echo 'source $USER_HOME/.pgenv' >> $USER_HOME/.bashrc"
+echo "=========================================================="
+echo ""
+echo "USAGE GUIDE:"
+echo "-----------"
+echo "1. Start PostgreSQL:   pg_ctl -D $PGDATA start"
+echo "2. Stop PostgreSQL:    pg_ctl -D $PGDATA stop"
+echo "3. Connect to DB:      psql -d $DB_NAME"
+echo "4. Check PG status:    pg_ctl -D $PGDATA status"
+echo "5. Restart PostgreSQL: pg_ctl -D $PGDATA restart"
+echo ""
+echo "For GPU servers without root privileges, you may want to:"
+echo "- Set PGDATA to use a local SSD or fast storage area if available"
+echo "- Tune shared_buffers in postgresql.conf for optimal performance"
+echo "- Consider setting up a backup routine for your data"
+echo ""
+echo "To modify database settings, edit: $PGDATA/postgresql.conf"
