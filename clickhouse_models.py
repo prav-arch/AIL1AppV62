@@ -117,7 +117,7 @@ class Document(BaseModel):
         params = (
             document_id, name, description, metadata_str, file_path or '',
             minio_url or '', bucket or '', storage_type or '', status or '', 1 if indexed else 0,
-            filename or '', file_size or 0
+            filename or '', int(file_size) if file_size is not None else 0
         )
         
         cls.execute(query, params)

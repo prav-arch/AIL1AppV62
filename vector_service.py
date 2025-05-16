@@ -102,8 +102,23 @@ class VectorService:
                 logger.error(f"Invalid inputs: ids={len(ids) if ids else 0}, vectors={len(vectors) if vectors else 0}")
                 return False
             
+            # Fix vector dimensions if needed
+            fixed_vectors = []
+            for i, vector in enumerate(vectors):
+                if len(vector) != self.dimension:
+                    logger.warning(f"Vector dimension mismatch: got {len(vector)}, expected {self.dimension}. Adjusting...")
+                    if len(vector) > self.dimension:
+                        # Truncate vector
+                        fixed_vectors.append(vector[:self.dimension])
+                    else:
+                        # Pad vector with zeros
+                        padding = [0.0] * (self.dimension - len(vector))
+                        fixed_vectors.append(vector + padding)
+                else:
+                    fixed_vectors.append(vector)
+            
             # Convert vectors to numpy array
-            vectors_np = np.array(vectors).astype('float32')
+            vectors_np = np.array(fixed_vectors).astype('float32')
             
             # Get current maximum internal ID
             next_id = max(self.id_mapping.values()) + 1 if self.id_mapping else 0
@@ -122,7 +137,7 @@ class VectorService:
             self._save_index()
             self._save_id_mapping()
             
-            logger.info(f"Added {len(vectors)} vectors to index")
+            logger.info(f"Added {len(vectors)} vectors to index with dimension {self.dimension}")
             return True
         except Exception as e:
             logger.error(f"Error adding vectors: {e}")
