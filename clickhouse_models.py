@@ -529,6 +529,72 @@ class VectorDBStats(BaseModel):
         cls.execute(query)
         return True
 
+class LLMPrompt(BaseModel):
+    """LLM Prompt model for ClickHouse"""
+    
+    table_name = 'llm_prompts'
+    fields = [
+        'id String',
+        'prompt String',
+        'response String',
+        'metadata String',
+        'user_id String',
+        'created_at DateTime DEFAULT now()',
+        'response_time Float64'
+    ]
+    
+    @classmethod
+    def create(cls, prompt: str, response: str, metadata: Dict = None, user_id: str = None) -> str:
+        """Create a new LLM prompt record"""
+        prompt_id = str(uuid.uuid4())
+        metadata_str = json.dumps(metadata) if metadata else '{}'
+        
+        query = f"""
+        INSERT INTO {cls.table_name} (id, prompt, response, metadata, user_id, response_time)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        
+        # Calculate response time if metadata exists and has start/end time
+        response_time = 0.0
+        if metadata and 'start_time' in metadata and 'end_time' in metadata:
+            response_time = metadata['end_time'] - metadata['start_time']
+        
+        params = (prompt_id, prompt, response, metadata_str, user_id or '', response_time)
+        
+        try:
+            cls.execute(query, params)
+            logger.info(f"LLM prompt saved with ID: {prompt_id}")
+            return prompt_id
+        except Exception as e:
+            logger.error(f"Error saving LLM prompt: {e}")
+            return None
+    
+    @classmethod
+    def get_recent(cls, limit: int = 10) -> List[Dict]:
+        """Get recent LLM prompts"""
+        query = f"""
+        SELECT id, prompt, response, metadata, user_id, created_at, response_time
+        FROM {cls.table_name}
+        ORDER BY created_at DESC
+        LIMIT {limit}
+        """
+        
+        result = cls.execute(query)
+        
+        prompts = []
+        for row in result:
+            prompts.append({
+                'id': row[0],
+                'prompt': row[1],
+                'response': row[2],
+                'metadata': json.loads(row[3]) if row[3] else {},
+                'user_id': row[4],
+                'created_at': row[5].isoformat() if row[5] else None,
+                'response_time': row[6]
+            })
+        
+        return prompts
+
 # Initialize tables when module is imported
 def initialize_database():
     """Initialize database schema"""
@@ -536,6 +602,7 @@ def initialize_database():
         Document.create_table()
         DocumentChunk.create_table()
         VectorDBStats.create_table()
+        LLMPrompt.create_table()  # Add LLM Prompts table
         VectorDBStats.initialize()
         logger.info("Database schema initialized successfully")
         return True
