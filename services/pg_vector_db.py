@@ -1,7 +1,7 @@
 """
-PostgreSQL Vector Database Service using pgvector
+Vector Database Service for ClickHouse
 
-This module provides functionality for working with PostgreSQL + pgvector as a vector database:
+This module provides functionality for working with ClickHouse as a vector database:
 1. Creating and managing a vector index
 2. Converting documents to embeddings
 3. Adding documents to the vector database
@@ -13,8 +13,8 @@ import json
 import time
 import logging
 import numpy as np
-import psycopg2
-from psycopg2.extras import Json, DictCursor, execute_values
+import random
+import uuid
 from typing import List, Dict, Any, Tuple, Optional, Union
 from datetime import datetime
 
