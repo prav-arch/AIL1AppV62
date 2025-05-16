@@ -322,6 +322,46 @@ def api_latest_anomalies():
         logging.error(f"Error fetching latest anomalies: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/pipeline/storage', methods=['GET'])
+def api_pipeline_storage_info():
+    """Return pipeline storage information"""
+    try:
+        return jsonify({
+            'total_space': f'{random.randint(800, 1000)} GB',
+            'used_space': f'{random.randint(300, 700)} GB',
+            'free_space': f'{random.randint(100, 400)} GB',
+            'storage_locations': [
+                {
+                    'name': 'Primary Storage',
+                    'path': '/data/primary',
+                    'total': f'{random.randint(500, 800)} GB',
+                    'used': f'{random.randint(200, 400)} GB'
+                },
+                {
+                    'name': 'Backup Storage',
+                    'path': '/data/backup',
+                    'total': f'{random.randint(300, 500)} GB',
+                    'used': f'{random.randint(100, 200)} GB'
+                },
+                {
+                    'name': 'Archive',
+                    'path': '/data/archive',
+                    'total': f'{random.randint(200, 400)} GB',
+                    'used': f'{random.randint(50, 150)} GB'
+                }
+            ],
+            'recent_files': [
+                {
+                    'name': f'dataset_{random.randint(1000, 9999)}.csv',
+                    'size': f'{random.randint(10, 500)} MB',
+                    'created': (datetime.now() - timedelta(hours=random.randint(1, 48))).isoformat()
+                } for _ in range(5)
+            ]
+        })
+    except Exception as e:
+        logging.error(f"Error getting storage info: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/anomalies/stats', methods=['GET'])
 def api_anomaly_stats():
     """Return statistics about anomalies"""
@@ -413,8 +453,8 @@ def api_vectordb_stats():
     })
 
 @app.route('/api/rag/storage', methods=['GET'])
-def api_storage_info():
-    """Return file storage information"""
+def api_rag_storage_info():
+    """Return RAG-specific file storage information"""
     return jsonify({
         'total_storage_mb': 1000,
         'used_storage_mb': random.randint(100, 800),
