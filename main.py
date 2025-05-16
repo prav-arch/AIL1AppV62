@@ -148,9 +148,8 @@ def api_latest_anomalies():
     try:
         from services.mock_api_services import get_latest_anomalies
         import random
-        data = get_latest_anomalies()
-        # Format the response to match what the frontend expects
-        anomalies = data.get('recent_anomalies', [])
+        # get_latest_anomalies() returns a list directly
+        anomalies = get_latest_anomalies()
         # Ensure each anomaly has the fields expected by the frontend
         for anomaly in anomalies:
             if 'time_ago' not in anomaly:
