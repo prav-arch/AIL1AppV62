@@ -19,38 +19,26 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
-# Set up database access (either real ClickHouse or mock implementation)
-# In development we'll use the mock, on your GPU server it will use real ClickHouse
-USE_MOCK_DB = os.environ.get('USE_REAL_CLICKHOUSE', '0') != '1'
-
-if USE_MOCK_DB:
-    # Use mock implementation for development environment
-    logging.info("Using mock ClickHouse implementation for development")
+# Set up database access - always use real ClickHouse
+try:
+    logging.info("Using real ClickHouse implementation")
+    from clickhouse_models import Document, DocumentChunk, VectorDBStats, get_clickhouse_client
+    from clickhouse_llm_query import (
+        initialize_database, save_llm_query, update_llm_query_response,
+        get_llm_query_count, get_today_llm_query_count, get_llm_queries
+    )
+    
+    # Initialize the ClickHouse database
+    initialize_database()
+    logging.info("ClickHouse database initialized successfully")
+except Exception as e:
+    logging.error(f"Error initializing ClickHouse: {e}")
+    # Fallback to mock if ClickHouse fails to initialize
+    logging.info("Falling back to mock ClickHouse implementation")
     from mock_clickhouse import (
         get_llm_query_count, get_today_llm_query_count, save_llm_query, 
         update_llm_query_response, get_llm_queries
     )
-else:
-    # Use real ClickHouse implementation for production
-    try:
-        logging.info("Using real ClickHouse implementation")
-        from clickhouse_models import Document, DocumentChunk, VectorDBStats, get_clickhouse_client
-        from clickhouse_llm_query import (
-            initialize_database, save_llm_query, update_llm_query_response,
-            get_llm_query_count, get_today_llm_query_count, get_llm_queries
-        )
-        
-        # Initialize the ClickHouse database
-        initialize_database()
-        logging.info("ClickHouse database initialized successfully")
-    except Exception as e:
-        logging.error(f"Error initializing ClickHouse: {e}")
-        # Fallback to mock if ClickHouse fails to initialize
-        logging.info("Falling back to mock ClickHouse implementation")
-        from mock_clickhouse import (
-            get_llm_query_count, get_today_llm_query_count, save_llm_query, 
-            update_llm_query_response, get_llm_queries
-        )
 
 # Disable template caching during development
 app.config['TEMPLATES_AUTO_RELOAD'] = True
