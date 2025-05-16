@@ -390,7 +390,48 @@ def get_storage_info():
             else:
                 file_types['Other'] += 1
         
-        # Create response with real data
+        # Get ClickHouse document statistics
+        try:
+            # Count total documents
+            doc_count_query = f"SELECT COUNT(*) FROM {Document.table_name}"
+            doc_count_result = Document.execute(doc_count_query)
+            doc_count = doc_count_result[0][0] if doc_count_result and len(doc_count_result) > 0 else 0
+            
+            # Get documents by status
+            status_query = f"""
+            SELECT status, COUNT(*) 
+            FROM {Document.table_name} 
+            GROUP BY status
+            """
+            status_result = Document.execute(status_query)
+            
+            # Create a status distribution object
+            status_counts = {}
+            if status_result and len(status_result) > 0:
+                for row in status_result:
+                    if row[0]:  # status is at index 0
+                        status_counts[row[0]] = row[1]
+            
+            # Get indexed document count
+            indexed_query = f"SELECT COUNT(*) FROM {Document.table_name} WHERE indexed = 1"
+            indexed_result = Document.execute(indexed_query)
+            indexed_count = indexed_result[0][0] if indexed_result and len(indexed_result) > 0 else 0
+            
+            clickhouse_info = {
+                'document_count': doc_count,
+                'indexed_count': indexed_count,
+                'status_distribution': status_counts
+            }
+        except Exception as db_error:
+            logger.error(f"Error getting ClickHouse document stats: {str(db_error)}")
+            clickhouse_info = {
+                'error': str(db_error),
+                'document_count': 0,
+                'indexed_count': 0,
+                'status_distribution': {}
+            }
+        
+        # Create response with real data from both Minio and ClickHouse
         storage_info = {
             'total_space': '1 TB',  # Storage capacity (this would be from a config in production)
             'used_space': bucket_stats.get('size', '0 B'),
@@ -400,7 +441,8 @@ def get_storage_info():
             'file_types': {
                 'labels': list(file_types.keys()),
                 'values': list(file_types.values())
-            }
+            },
+            'clickhouse': clickhouse_info
         }
         
         return jsonify(storage_info)
