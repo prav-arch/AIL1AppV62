@@ -259,7 +259,7 @@ function updateDashboardMetrics(data) {
 // Fetch recent Kafka messages
 async function fetchRecentKafkaMessages() {
     try {
-        const response = await fetchWithTimeout('/api/kafka/recent-messages');
+        const response = await fetchWithTimeout('/api/kafka/messages');
         const data = await response.json();
         
         const messagesContainer = document.getElementById('recent-messages');

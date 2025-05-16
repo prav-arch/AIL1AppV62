@@ -26,7 +26,8 @@ VECTOR_DIMENSION = 384
 
 # Check if we're in development mode or production
 IS_DEVELOPMENT = os.environ.get('REPL_ID') is not None
-USE_MOCK_DB = os.environ.get('USE_MOCK_DB', 'True') == 'True'  # Default to using mock in development
+# Don't use mock DB by default - prefer real implementation even on GPU servers
+USE_MOCK_DB = os.environ.get('USE_MOCK_DB', 'False') == 'True'
 
 def get_connection_params():
     """Get ClickHouse connection parameters"""
