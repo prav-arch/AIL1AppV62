@@ -63,6 +63,7 @@ def kafka_browser_direct():
     return redirect(url_for('kafka_browser.index'))
 
 @app.route('/api/dashboard/metrics', methods=['GET'])
+@app.route('/apt/dashboard/metrics', methods=['GET'])  # Fix for URL path in JavaScript
 def api_dashboard_metrics():
     """Return dashboard metrics for display"""
     metrics = {
@@ -86,6 +87,7 @@ def api_dashboard_metrics():
     return jsonify(metrics)
 
 @app.route('/api/kafka/recent-messages', methods=['GET'])
+@app.route('/apt/kafka/recent-messages', methods=['GET'])  # Fix for apparent URL typo in JavaScript
 def api_recent_kafka_messages():
     """Return recent Kafka messages for the dashboard"""
     queues = ['logs-queue', 'metrics-queue', 'alerts-queue', 'events-queue', 'system-queue']
@@ -112,6 +114,7 @@ def api_recent_kafka_messages():
     return jsonify({'messages': messages})
 
 @app.route('/api/pipeline/status', methods=['GET'])
+@app.route('/apt/pipeline/status', methods=['GET'])  # Fix for URL path in JavaScript
 def api_pipeline_status():
     """Return pipeline status information"""
     pipelines = [
@@ -135,6 +138,7 @@ def api_pipeline_status():
     return jsonify({'pipelines': pipelines})
 
 @app.route('/api/anomalies/latest', methods=['GET'])
+@app.route('/apt/anomalies/latest', methods=['GET'])  # Fix for URL path in JavaScript
 def api_latest_anomalies():
     """Return latest anomalies information"""
     anomalies = [
