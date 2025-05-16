@@ -205,44 +205,68 @@ def get_vectordb_stats():
 
 @rag_bp.route('/api/storage/info', methods=['GET'])
 def get_storage_info():
-    """Return file storage information"""
+    """Return real file storage information from Minio"""
     try:
-        # Sample storage information
+        from services.minio_service import MinioService
+        
+        # Initialize Minio service
+        minio_service = MinioService()
+        
+        # Get stats for the l1appuploads bucket
+        bucket_stats = minio_service.get_bucket_stats('l1appuploads')
+        
+        # Get a list of files to analyze file types
+        files = minio_service.list_objects('l1appuploads')
+        
+        # Count file types
+        file_types = {
+            'PDF': 0,
+            'Word': 0,
+            'Excel': 0,
+            'Images': 0,
+            'Text': 0,
+            'Other': 0
+        }
+        
+        for file in files:
+            filename = file.get('key', '').lower()
+            if filename.endswith('.pdf'):
+                file_types['PDF'] += 1
+            elif filename.endswith(('.doc', '.docx')):
+                file_types['Word'] += 1
+            elif filename.endswith(('.xls', '.xlsx', '.csv')):
+                file_types['Excel'] += 1
+            elif filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                file_types['Images'] += 1
+            elif filename.endswith(('.txt', '.md', '.log')):
+                file_types['Text'] += 1
+            else:
+                file_types['Other'] += 1
+        
+        # Create response with real data
         storage_info = {
-            'total_space': '1 TB',
-            'used_space': '243.5 GB',
+            'total_space': '1 TB',  # Storage capacity (this would be from a config in production)
+            'used_space': bucket_stats.get('size', '0 B'),
             'buckets': [
-                {
-                    'name': 'documents',
-                    'size': '156.2 GB',
-                    'files': 145
-                },
-                {
-                    'name': 'embeddings',
-                    'size': '45.8 GB',
-                    'files': 32
-                },
-                {
-                    'name': 'images',
-                    'size': '28.5 GB',
-                    'files': 214
-                },
-                {
-                    'name': 'backups',
-                    'size': '13.0 GB',
-                    'files': 18
-                }
+                bucket_stats
             ],
             'file_types': {
-                'labels': ['PDF', 'Word', 'Excel', 'Images', 'Text', 'Other'],
-                'values': [35, 22, 15, 12, 10, 6]
+                'labels': list(file_types.keys()),
+                'values': list(file_types.values())
             }
         }
         
         return jsonify(storage_info)
     except Exception as e:
         logger.error(f"Error getting storage info: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        # Return a minimal response with error info
+        return jsonify({
+            'error': str(e),
+            'total_space': 'Unknown',
+            'used_space': 'Unknown',
+            'buckets': [{'name': 'l1appuploads', 'size': 'Unknown', 'files': 0}],
+            'file_types': {'labels': [], 'values': []}
+        }), 500
 
 @rag_bp.route('/api/rag/search', methods=['POST'])
 def search_rag():
@@ -406,6 +430,8 @@ def upload_document():
     
     # Create a local directory for temporary file storage
     upload_dir = os.path.join(os.getcwd(), 'uploads')
+    # Definition of remote path kept for compatibility with existing code
+    remote_dir = None
     
     # Log request details for debugging
     logger.info(f"====== Upload document request received ======")
@@ -540,14 +566,23 @@ def upload_document():
                 logger.error(f"Error indexing document: {str(index_error)}")
                 # Continue even if indexing fails, as we've already saved the file
         
+        # Clean up temporary file after successful Minio upload
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                logger.info(f"Temporary file {file_path} removed after Minio upload")
+        except Exception as e:
+            logger.warning(f"Could not remove temporary file {file_path}: {str(e)}")
+                
         # Return success response
         response_data = {
             'success': True,
             'document_id': doc_id,
             'name': document_name,
-            'path': file_path,
-            'intended_remote_path': remote_path,  # This is just for reference, file wasn't actually saved here
-            'note': 'File was saved locally. Remote path is not accessible due to filesystem restrictions.',
+            'filename': filename,
+            'minio_url': object_url,
+            'bucket': 'l1appuploads',
+            'storage_type': 'minio',
             'status': 'indexed' if indexed else ('processing' if index_immediately else 'uploaded'),
             'indexed': indexed
         }
