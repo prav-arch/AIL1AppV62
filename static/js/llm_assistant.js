@@ -99,7 +99,7 @@ async function sendMessage() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                prompt: prompt,
+                query: prompt,
                 agent_type: agentType,
                 use_rag: useRag,
                 message_id: messageId,
