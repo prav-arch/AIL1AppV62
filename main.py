@@ -286,7 +286,7 @@ def api_nifi_jobs():
             job['last_completed'] = (started + timedelta(minutes=random.randint(5, 120))).strftime('%Y-%m-%d %H:%M:%S')
             
         if status == 'running':
-            job['progress'] = random.randint(0, 99)
+            job['progress'] = str(random.randint(0, 99))
             
         if status == 'failed':
             job['error'] = random.choice([
@@ -710,7 +710,7 @@ def api_rag_storage_info():
 @app.route('/api/rag/search', methods=['POST'])
 def api_rag_search():
     """Perform RAG search with the given query"""
-    data = request.json
+    data = request.json or {}
     query = data.get('query', '')
     
     if not query:
