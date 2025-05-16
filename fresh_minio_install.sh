@@ -35,11 +35,11 @@ rm -rf ~/.minio/*
 echo "Creating new configuration file..."
 cat > ~/.minio/config.json << EOF
 {
-	"version": "10",
-	"credential": {
-		"accessKey": "dpcoe",
-		"secretKey": "dpcoeadmin"
-	}
+        "version": "10",
+        "credential": {
+                "accessKey": "dpcoeadmin",
+                "secretKey": "dpcoeadmin"
+        }
 }
 EOF
 
@@ -49,7 +49,7 @@ chmod 600 ~/.minio/config.json
 # Create environment file
 echo "Setting environment variables..."
 cat > ~/minio/.env << EOF
-export MINIO_ROOT_USER=dpcoe
+export MINIO_ROOT_USER=dpcoeadmin
 export MINIO_ROOT_PASSWORD=dpcoeadmin
 EOF
 
@@ -106,7 +106,7 @@ sleep 5
 echo "Configuring Minio client..."
 export MC_INSECURE=true
 ~/minio/mc config host remove myminio 2>/dev/null || true
-~/minio/mc --insecure config host add myminio http://127.0.0.1:8000 dpcoe dpcoeadmin
+~/minio/mc --insecure config host add myminio http://127.0.0.1:8000 dpcoeadmin dpcoeadmin
 
 # Test if Minio is working
 echo "Testing Minio connection..."
