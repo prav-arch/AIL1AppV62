@@ -294,6 +294,42 @@ def get_stats() -> Dict[str, Any]:
     """Get vector database statistics"""
     return get_vector_service().get_stats()
 
+def generate_embedding(text: str) -> List[float]:
+    """
+    Generate a mock embedding for text content
+    
+    This is a temporary implementation that creates random embeddings of the correct 
+    dimension. In a production environment, you would replace this with a proper 
+    embedding model like SentenceTransformers, OpenAI embeddings, etc.
+    
+    Args:
+        text: The text to generate an embedding for
+        
+    Returns:
+        A list of floats representing the embedding vector
+    """
+    dimension = FAISS_DIMENSION
+    
+    # Create a deterministic embedding based on the text hash
+    # This ensures the same text always gets the same embedding
+    import hashlib
+    import numpy as np
+    
+    # Create a hash of the text
+    text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+    
+    # Use the hash to seed the random number generator
+    hash_value = int(text_hash, 16) % (2**32)
+    np.random.seed(hash_value)
+    
+    # Generate a random vector
+    vector = np.random.randn(dimension).astype(np.float32)
+    
+    # Normalize to unit length (cosine similarity)
+    vector = vector / np.linalg.norm(vector)
+    
+    return vector.tolist()
+
 # For testing
 if __name__ == "__main__":
     # Create vector service

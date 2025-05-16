@@ -324,19 +324,34 @@ def get_vectordb_stats():
                 }
             ]
             
-        # Enhance with additional information
+        # Get real FAISS stats using our new vector service
+        faiss_stats = get_stats()
+        
+        # Enhance with additional information, prioritizing real FAISS data
         stats = {
-            **vector_stats,
+            # Primary vector database statistics from FAISS
+            'index_chunks': faiss_stats['total_vectors'],
+            'vector_dimension': faiss_stats['vector_dimension'],
+            'index_size': faiss_stats['index_size'],
+            'index_type': faiss_stats['index_type'],
+            
+            # Document and chunk counts from ClickHouse
             'document_count': doc_count,
             'chunk_count': chunk_count,
             'total_size': size_str,
+            
+            # Additional metadata
             'embedding_model': 'all-MiniLM-L6-v2',
             'recent_queries': recent_queries,
+            
+            # Performance metrics (some still using placeholders for now)
             'performance': {
                 'average_query_time': random.randint(10, 100),
                 'index_build_time': random.randint(100, 500),
-                'memory_usage': f"{random.randint(50, 250)} MB"
+                'memory_usage': f"{faiss_stats['index_size_bytes'] / (1024 * 1024):.1f} MB"
             },
+            
+            # Sample data for charts
             'monthly_stats': {
                 'labels': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
                 'documents': [25, 37, 52, 68, 85],
