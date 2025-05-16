@@ -172,54 +172,33 @@ async function fetchDashboardMetrics() {
     try {
         const response = await fetchWithTimeout('/api/dashboard/metrics');
         const data = await response.json();
-        if (data) {
-            updateDashboardMetrics(data);
-        } else {
-            // If data is null or undefined, use default values
-            updateDashboardMetrics({
-                llm_requests: 250,
-                today_llm_requests: 25,
-                documents_indexed: 120,
-                today_indexed: 15,
-                anomalies_detected: 45,
-                today_anomalies: 5,
-                pipeline_jobs: 12,
-                active_jobs: 3
-            });
-        }
+        updateDashboardMetrics(data);
     } catch (error) {
-        console.error('Error fetching dashboard metrics:', error);
-        // Use default metrics on error
-        updateDashboardMetrics({
-            llm_requests: 250,
-            today_llm_requests: 25,
-            documents_indexed: 120,
-            today_indexed: 15,
-            anomalies_detected: 45,
-            today_anomalies: 5,
-            pipeline_jobs: 12,
-            active_jobs: 3
-        });
+        handleFetchError(error, 'fetch dashboard metrics');
     }
 }
 
 // Update dashboard metrics with the fetched data
 function updateDashboardMetrics(data) {
-    // Update counter cards - direct values from API
-    if (document.getElementById('llm-request-count') && data.llm_requests !== undefined) {
-        document.getElementById('llm-request-count').textContent = data.llm_requests;
-    }
-    
-    if (document.getElementById('docs-indexed-count') && data.documents_indexed !== undefined) {
-        document.getElementById('docs-indexed-count').textContent = data.documents_indexed;
-    }
-    
-    if (document.getElementById('anomalies-count') && data.anomalies_detected !== undefined) {
-        document.getElementById('anomalies-count').textContent = data.anomalies_detected;
-    }
-    
-    if (document.getElementById('pipeline-jobs-count') && data.pipeline_jobs !== undefined) {
-        document.getElementById('pipeline-jobs-count').textContent = data.pipeline_jobs;
+    // Update counter cards
+    if (data.counters) {
+        const { llm_requests, docs_indexed, anomalies, pipelines } = data.counters;
+        
+        if (document.getElementById('llm-request-count')) {
+            document.getElementById('llm-request-count').textContent = llm_requests;
+        }
+        
+        if (document.getElementById('docs-indexed-count')) {
+            document.getElementById('docs-indexed-count').textContent = docs_indexed;
+        }
+        
+        if (document.getElementById('anomalies-count')) {
+            document.getElementById('anomalies-count').textContent = anomalies;
+        }
+        
+        if (document.getElementById('pipelines-count')) {
+            document.getElementById('pipelines-count').textContent = pipelines;
+        }
     }
     
     // Update system health metrics
@@ -280,7 +259,7 @@ function updateDashboardMetrics(data) {
 // Fetch recent Kafka messages
 async function fetchRecentKafkaMessages() {
     try {
-        const response = await fetchWithTimeout('/api/dashboard/recent-kafka-messages');
+        const response = await fetchWithTimeout('/api/kafka/recent-messages');
         const data = await response.json();
         
         const messagesContainer = document.getElementById('recent-messages');
@@ -290,7 +269,7 @@ async function fetchRecentKafkaMessages() {
         messagesContainer.innerHTML = '';
         
         // Add messages to the container
-        data.forEach(message => {
+        data.messages.forEach(message => {
             addRecentKafkaMessage(message);
         });
     } catch (error) {
@@ -328,7 +307,7 @@ function addRecentKafkaMessage(message) {
 // Fetch pipeline status
 async function fetchPipelineStatus() {
     try {
-        const response = await fetchWithTimeout('/api/dashboard/pipeline-status');
+        const response = await fetchWithTimeout('/api/pipeline/status');
         const data = await response.json();
         
         const pipelineContainer = document.getElementById('pipeline-status');
@@ -338,8 +317,7 @@ async function fetchPipelineStatus() {
         pipelineContainer.innerHTML = '';
         
         // Add pipeline items
-        // Direct use of returned jobs array
-        data.forEach(pipeline => {
+        data.pipelines.forEach(pipeline => {
             updatePipelineStatus(pipeline);
         });
     } catch (error) {
@@ -389,7 +367,7 @@ function updatePipelineStatus(pipeline) {
 // Fetch latest anomalies
 async function fetchLatestAnomalies() {
     try {
-        const response = await fetchWithTimeout('/api/dashboard/latest-anomalies');
+        const response = await fetchWithTimeout('/api/anomalies/latest');
         const data = await response.json();
         
         const anomaliesContainer = document.getElementById('latest-anomalies');
@@ -399,7 +377,7 @@ async function fetchLatestAnomalies() {
         anomaliesContainer.innerHTML = '';
         
         // Add anomalies to the container
-        data.forEach(anomaly => {
+        data.anomalies.forEach(anomaly => {
             addLatestAnomaly(anomaly);
         });
     } catch (error) {
@@ -466,8 +444,6 @@ function getTimeAgo(date) {
 
 // Helper function to get the appropriate badge class based on status
 function getStatusBadgeClass(status) {
-    if (!status) return 'bg-secondary';
-    
     status = status.toLowerCase();
     
     if (status === 'running' || status === 'success' || status === 'completed') {
@@ -480,29 +456,5 @@ function getStatusBadgeClass(status) {
         return 'bg-danger';
     } else {
         return 'bg-info';
-    }
-}
-
-// Helper function to safely handle fetch errors
-function handleFetchError(error, operation) {
-    console.error(`Error ${operation}:`, error);
-    // Could add user-facing error messages here if needed
-}
-
-// Helper function for fetch with timeout
-async function fetchWithTimeout(url, options = {}, timeout = 5000) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    
-    try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal
-        });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        throw error;
     }
 }

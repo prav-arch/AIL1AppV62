@@ -2,7 +2,6 @@ import os
 import logging
 from typing import Iterator, Dict, List, Optional, Any
 from llama_cpp import Llama
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +21,10 @@ class LocalLLMService:
         else:
             try:
                 logger.info(f"Loading model from {model_path}")
-                # Force GPU usage for better performance
                 self.llm = Llama(
                     model_path=model_path,
                     n_ctx=1024,
-                    chat_format="llama-2",  # Adjust if your model uses a different format
-                    n_gpu_layers=-1,  # Use all available GPU layers (-1)
-                    use_gpu=True      # Force GPU usage
+                    chat_format="llama-2"  # Adjust if your model uses a different format
                 )
                 logger.info("Model loaded successfully")
             except Exception as e:
