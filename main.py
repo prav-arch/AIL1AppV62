@@ -114,83 +114,53 @@ def api_dashboard_metrics():
         'last_updated': datetime.now().isoformat()
     })
 
-@app.route('/api/dashboard/kafka-messages', methods=['GET'])
+@app.route('/api/kafka/messages', methods=['GET'])
 def api_recent_kafka_messages():
     """Return recent Kafka messages for the dashboard"""
-    messages = []
-    topics = ['logs', 'metrics', 'alerts', 'transactions', 'events']
-    
-    for _ in range(5):
-        messages.append({
-            'topic': random.choice(topics),
-            'partition': random.randint(0, 3),
-            'offset': random.randint(1000, 9999),
-            'timestamp': (datetime.now() - timedelta(minutes=random.randint(0, 60))).isoformat(),
-            'size': random.randint(200, 1500),
-            'key': f'key-{random.randint(1, 100)}'
-        })
-    
-    return jsonify(messages)
+    try:
+        from services.mock_api_services import get_recent_kafka_messages
+        messages = get_recent_kafka_messages()
+        return jsonify(messages)
+    except Exception as e:
+        logging.error(f"Error getting Kafka messages: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/dashboard/pipeline-status', methods=['GET'])
+@app.route('/api/pipeline/status', methods=['GET'])
 def api_pipeline_status():
     """Return pipeline status information"""
-    pipelines = []
-    statuses = ['running', 'completed', 'failed', 'scheduled', 'paused']
-    
-    for i in range(1, 6):
-        pipelines.append({
-            'id': f'pipeline-{i}',
-            'name': f'Data Pipeline {i}',
-            'status': random.choice(statuses),
-            'last_run': (datetime.now() - timedelta(hours=random.randint(0, 24))).isoformat(),
-            'next_run': (datetime.now() + timedelta(hours=random.randint(1, 12))).isoformat() if random.choice([True, False]) else None,
-            'success_rate': random.randint(70, 100)
-        })
-    
-    return jsonify(pipelines)
+    try:
+        from services.mock_api_services import get_pipeline_status
+        data = get_pipeline_status()
+        return jsonify(data)
+    except Exception as e:
+        logging.error(f"Error getting pipeline status: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/dashboard/latest-anomalies', methods=['GET'])
+@app.route('/api/anomalies/latest', methods=['GET'])
 def api_latest_anomalies():
     """Return latest anomalies information"""
-    anomalies = []
-    types = ['spike', 'dip', 'trend_change', 'outlier', 'pattern_break']
-    services = ['api', 'database', 'auth', 'payment', 'storage', 'compute']
-    
-    for i in range(5):
-        anomalies.append({
-            'id': f'anomaly-{i+1}',
-            'type': random.choice(types),
-            'service': random.choice(services),
-            'severity': random.choice(['low', 'medium', 'high']),
-            'timestamp': (datetime.now() - timedelta(hours=random.randint(0, 48))).isoformat(),
-            'description': f'Detected {random.choice(types)} in {random.choice(services)} service metrics',
-            'is_resolved': random.choice([True, False])
-        })
-    
-    return jsonify(anomalies)
+    try:
+        from services.mock_api_services import get_latest_anomalies
+        data = get_latest_anomalies()
+        return jsonify(data)
+    except Exception as e:
+        logging.error(f"Error fetching latest anomalies: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/anomalies/stats', methods=['GET'])
 def api_anomaly_stats():
     """Return statistics about anomalies"""
-    return jsonify({
-        'total_anomalies': random.randint(50, 200),
-        'open_anomalies': random.randint(5, 30),
-        'closed_last_week': random.randint(10, 50),
-        'severity_distribution': {
-            'low': random.randint(20, 40),
-            'medium': random.randint(30, 60),
-            'high': random.randint(10, 30),
-            'critical': random.randint(0, 15)
-        },
-        'type_distribution': {
-            'spike': random.randint(20, 50),
-            'dip': random.randint(15, 40),
-            'trend_change': random.randint(10, 30),
-            'outlier': random.randint(5, 20),
-            'pattern_break': random.randint(10, 25)
-        }
-    })
+    try:
+        from services.mock_api_services import get_anomaly_stats
+        data = get_anomaly_stats()
+        return jsonify(data)
+    except Exception as e:
+        logging.error(f"Error getting anomaly stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+
+
 
 @app.route('/api/anomalies/list', methods=['GET'])
 def api_anomalies_list():
