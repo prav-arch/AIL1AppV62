@@ -102,23 +102,56 @@ class Document(BaseModel):
         document_id = str(uuid.uuid4())
         metadata_str = json.dumps(metadata) if metadata else '{}'
         
-        query = f"""
-        INSERT INTO {cls.table_name} (
-            id, name, description, metadata, file_path, 
-            minio_url, bucket, storage_type, status, indexed, 
-            filename, file_size
-        )
-        VALUES (
-            %s, %s, %s, %s, %s, 
-            %s, %s, %s, %s, %s, 
-            %s, %s
-        )
-        """
-        params = (
-            document_id, name, description, metadata_str, file_path or '',
-            minio_url or '', bucket or '', storage_type or '', status or '', 1 if indexed else 0,
-            filename or '', int(file_size) if file_size is not None else 0
-        )
+        # First, check how many columns the table actually has
+        try:
+            client = get_clickhouse_client()
+            result = client.execute("DESCRIBE TABLE documents")
+            column_count = len(result)
+            logger.info(f"Documents table has {column_count} columns")
+            
+            # If we have exactly 12 columns, use this simplified insertion
+            if column_count == 12:
+                query = f"""
+                INSERT INTO {cls.table_name} VALUES (
+                    %s, %s, %s, %s, %s, now(), 
+                    %s, %s, %s, %s, %s, 
+                    %s, %s
+                )
+                """
+                params = (
+                    document_id, name, description, metadata_str, file_path or '',
+                    minio_url or '', bucket or '', storage_type or '', status or '', 1 if indexed else 0,
+                    filename or '', int(file_size) if file_size is not None else 0
+                )
+            else:
+                # This is the original query in case the table has our expected columns
+                query = f"""
+                INSERT INTO {cls.table_name} (
+                    id, name, description, metadata, file_path, 
+                    minio_url, bucket, storage_type, status, indexed, 
+                    filename, file_size
+                )
+                VALUES (
+                    %s, %s, %s, %s, %s, 
+                    %s, %s, %s, %s, %s, 
+                    %s, %s
+                )
+                """
+                params = (
+                    document_id, name, description, metadata_str, file_path or '',
+                    minio_url or '', bucket or '', storage_type or '', status or '', 1 if indexed else 0,
+                    filename or '', int(file_size) if file_size is not None else 0
+                )
+            
+        except Exception as e:
+            logger.error(f"Error checking table structure: {e}")
+            # Fall back to the simpler insert without specifying columns
+            query = f"INSERT INTO {cls.table_name} VALUES (%s, %s, %s, %s, %s, now(), %s, %s, %s, %s, %s, %s)"
+            params = (
+                document_id, name, description, metadata_str, file_path or '',
+                minio_url or '', bucket or '', storage_type or '', status or '', 1 if indexed else 0,
+                filename or ''
+            )
         
         cls.execute(query, params)
         
