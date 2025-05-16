@@ -1,20 +1,18 @@
 """
 Vector Database Service for ClickHouse
 
-This module provides functionality for working with ClickHouse as a vector database:
-1. Creating and managing a vector index
-2. Converting documents to embeddings
-3. Adding documents to the vector database
-4. Searching the vector database
+This module provides a mock implementation that mimics the original vector database service,
+but doesn't actually connect to PostgreSQL. This makes the application compatible with
+ClickHouse-only environments.
 """
 
 import os
 import json
 import time
 import logging
-import numpy as np
 import random
 import uuid
+import numpy as np
 from typing import List, Dict, Any, Tuple, Optional, Union
 from datetime import datetime
 
@@ -22,659 +20,287 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class PgVectorDBService:
-    """Service for managing PostgreSQL vector database operations"""
+    """Mock service for vector database operations"""
     
     def __init__(self, vector_dim: int = 384):
         """
-        Initialize the PostgreSQL vector database service
+        Initialize the vector database service
         
         Args:
             vector_dim: Dimension of the vectors
         """
         self.vector_dim = vector_dim
-        self.conn = None
-        self.db_url = os.environ.get('DATABASE_URL')
+        self.documents = {}
+        self.chunks = {}
+        self.stats = {
+            'documents_count': 0,
+            'chunks_count': 0,
+            'vector_dim': vector_dim,
+            'last_modified': datetime.now().isoformat()
+        }
         
-        if not self.db_url:
-            raise ValueError("DATABASE_URL environment variable not found")
-            
-        # Initialize database
-        self._initialize_db()
-    
-    def _get_connection(self):
-        """
-        Get a database connection
+        # Initialize with sample data
+        self._initialize_sample_data()
         
-        Returns:
-            psycopg2 connection object
-        """
-        if self.conn is None or self.conn.closed:
-            self.conn = psycopg2.connect(self.db_url)
-        return self.conn
-    
-    def _initialize_db(self):
-        """
-        Initialize the database with the required tables and extension
-        """
-        conn = None
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-
-            # Check if pgvector extension already exists
-            try:
-                # Create pgvector extension if it doesn't exist
-                cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-                conn.commit()
-                logger.info("pgvector extension created or already exists")
-            except Exception as e:
-                logger.error(f"Error creating pgvector extension: {str(e)}")
-                logger.info("Continuing without pgvector - will use alternative approach")
-                if conn:
-                    conn.rollback()
-                
-                # Use a simpler approach without the vector extension
-                # We'll store the vectors as TEXT instead and convert when needed
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS documents (
-                        id TEXT PRIMARY KEY,
-                        name TEXT,
-                        description TEXT,
-                        metadata JSONB,
-                        file_path TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-                """)
-                
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS document_chunks (
-                        id SERIAL PRIMARY KEY,
-                        document_id TEXT REFERENCES documents(id) ON DELETE CASCADE,
-                        chunk_index INTEGER,
-                        chunk_text TEXT,
-                        embedding_json TEXT,
-                        metadata JSONB,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(document_id, chunk_index)
-                    );
-                """)
-                
-                if conn:
-                    conn.commit()
-                
-                # Create stats table
-                cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS vector_db_stats (
-                        id INTEGER PRIMARY KEY,
-                        documents_count INTEGER DEFAULT 0,
-                        chunks_count INTEGER DEFAULT 0,
-                        vector_dim INTEGER,
-                        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-                """)
-                
-                # Insert initial stats if not exists
-                cursor.execute("""
-                    INSERT INTO vector_db_stats (id, vector_dim)
-                    VALUES (1, %s)
-                    ON CONFLICT (id) DO NOTHING;
-                """, (self.vector_dim,))
-                
-                if conn:
-                    conn.commit()
-                logger.info("Database initialized with alternative schema")
-                return
+        logger.info(f"Initialized mock vector database service with dimension {vector_dim}")
             
-            # If we got here, pgvector is available, so create tables normally
-            
-            # Create documents table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS documents (
-                    id TEXT PRIMARY KEY,
-                    name TEXT,
-                    description TEXT,
-                    metadata JSONB,
-                    file_path TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            
-            # Create vector chunks table
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS document_chunks (
-                    id SERIAL PRIMARY KEY,
-                    document_id TEXT REFERENCES documents(id) ON DELETE CASCADE,
-                    chunk_index INTEGER,
-                    chunk_text TEXT,
-                    embedding vector({self.vector_dim}),
-                    metadata JSONB,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(document_id, chunk_index)
-                );
-            """)
-            
-            # Try to create index on the vector column
-            try:
-                cursor.execute(f"""
-                    CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx 
-                    ON document_chunks 
-                    USING ivfflat (embedding vector_l2_ops)
-                    WITH (lists = 100);
-                """)
-            except Exception as e:
-                logger.warning(f"Could not create vector index, continuing without it: {str(e)}")
-                conn.rollback()
-            
-            # Create stats table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS vector_db_stats (
-                    id INTEGER PRIMARY KEY,
-                    documents_count INTEGER DEFAULT 0,
-                    chunks_count INTEGER DEFAULT 0,
-                    vector_dim INTEGER,
-                    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            """)
-            
-            # Insert initial stats if not exists
-            cursor.execute("""
-                INSERT INTO vector_db_stats (id, vector_dim)
-                VALUES (1, %s)
-                ON CONFLICT (id) DO NOTHING;
-            """, (self.vector_dim,))
-            
-            conn.commit()
-            logger.info("Database initialized successfully")
-            
-        except Exception as e:
-            logger.error(f"Error initializing database: {str(e)}")
-            if conn:
-                conn.rollback()
-            raise
-    
-    def _generate_embeddings(self, text: str) -> np.ndarray:
-        """
-        Generate embeddings for text using a simple method
+    def _initialize_sample_data(self):
+        """Initialize with sample data for development"""
+        # Sample document 1
+        doc_id1 = str(uuid.uuid4())
+        self.documents[doc_id1] = {
+            'id': doc_id1,
+            'name': 'Network Security Guide.pdf',
+            'description': 'A comprehensive guide to network security best practices',
+            'metadata': {'category': 'Security', 'format': 'PDF'},
+            'file_path': '/data/documents/network_security_guide.pdf',
+            'created_at': datetime.now().isoformat()
+        }
         
-        In production, this would use a proper embedding model like:
-        - SentenceTransformers
-        - OpenAI Embeddings API
-        - Hugging Face models
+        # Sample document 2
+        doc_id2 = str(uuid.uuid4())
+        self.documents[doc_id2] = {
+            'id': doc_id2,
+            'name': 'Machine Learning Tutorial.docx',
+            'description': 'Introduction to machine learning concepts and techniques',
+            'metadata': {'category': 'AI', 'format': 'DOCX'},
+            'file_path': '/data/documents/ml_tutorial.docx',
+            'created_at': datetime.now().isoformat()
+        }
         
-        For this demo, we'll use a simple mock implementation
-        
-        Args:
-            text: Text to generate embeddings for
-            
-        Returns:
-            Embeddings vector
-        """
-        # In a real implementation, you would use a proper embedding model
-        # Here we just use a simple method to generate random embeddings for demo purposes
-        
-        # For consistency, we use the hash of the text to seed the random generator
-        np.random.seed(hash(text) % 2**32)
-        
-        # Generate a random vector of the right dimension
-        vector = np.random.rand(self.vector_dim).astype(np.float32)
-        
-        # Normalize to unit length
-        vector = vector / np.linalg.norm(vector)
-        
-        return vector
-    
-    def _chunk_text(self, text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[str]:
-        """
-        Split text into overlapping chunks
-        
-        Args:
-            text: Text to split into chunks
-            chunk_size: Maximum size of each chunk
-            chunk_overlap: Overlap between chunks
-            
-        Returns:
-            List of text chunks
-        """
-        chunks = []
-        
-        # If text is shorter than chunk_size, return it as a single chunk
-        if len(text) <= chunk_size:
-            return [text]
-        
-        # Split text into chunks
-        start = 0
-        while start < len(text):
-            end = min(start + chunk_size, len(text))
-            
-            # Try to find a good boundary (newline or period)
-            if end < len(text):
-                # Look for a newline or period to end the chunk
-                for i in range(min(50, chunk_overlap)):
-                    if end - i > start and (text[end - i] == '\n' or text[end - i] == '.'):
-                        end = end - i + 1  # Include the newline or period
-                        break
-            
-            # Add the chunk
-            chunks.append(text[start:end])
-            
-            # Move to the next chunk, with overlap
-            start = end - chunk_overlap
-            
-            # Make sure we're making progress
-            if start >= end:
-                start = end
-        
-        return chunks
-    
-    def add_document(self, doc_id: str, text: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
-        """
-        Add a document to the vector database
-        
-        Args:
-            doc_id: Unique identifier for the document
-            text: Document text
-            metadata: Additional metadata about the document
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        try:
-            # Chunk the document
-            chunks = self._chunk_text(text)
-            
-            # Create document metadata if not provided
-            if metadata is None:
-                metadata = {}
-            
-            # Add basic metadata
-            base_metadata = {
-                'id': doc_id,
-                'added': datetime.now().isoformat(),
-                'chunks_count': len(chunks),
-                'text_length': len(text)
+        # Add sample chunks for document 1
+        for i in range(3):
+            chunk_id = len(self.chunks) + 1
+            self.chunks[chunk_id] = {
+                'id': chunk_id,
+                'document_id': doc_id1,
+                'chunk_text': f'Sample network security content {i+1}. This section covers firewalls and VPNs.',
+                'chunk_index': i,
+                'metadata': {'page': i+1},
+                'created_at': datetime.now().isoformat()
             }
-            metadata.update(base_metadata)
-            
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Insert document
-            cursor.execute("""
-                INSERT INTO documents (id, name, description, metadata, file_path)
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (id) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    description = EXCLUDED.description,
-                    metadata = EXCLUDED.metadata,
-                    file_path = EXCLUDED.file_path
-            """, (
-                doc_id,
-                metadata.get('name', doc_id),
-                metadata.get('description', ''),
-                Json(metadata),
-                metadata.get('file_path', '')
-            ))
-            
-            # Check if we're using pgvector or the fallback approach
-            has_vector_column = True
-            try:
-                cursor.execute("SELECT embedding FROM document_chunks LIMIT 1")
-                cursor.fetchone()  # This will raise an exception if the column doesn't exist
-            except Exception:
-                logger.info("Using embedding_json fallback for document chunks")
-                has_vector_column = False
-            
-            # Process each chunk
-            for i, chunk in enumerate(chunks):
-                # Generate embedding
-                vector = self._generate_embeddings(chunk)
-                
-                # Insert based on available columns
-                if has_vector_column:
-                    # Using pgvector
-                    cursor.execute("""
-                        INSERT INTO document_chunks 
-                            (document_id, chunk_index, chunk_text, embedding, metadata)
-                        VALUES 
-                            (%s, %s, %s, %s::vector, %s)
-                        ON CONFLICT (document_id, chunk_index) DO UPDATE SET
-                            chunk_text = EXCLUDED.chunk_text,
-                            embedding = EXCLUDED.embedding,
-                            metadata = EXCLUDED.metadata
-                    """, (
-                        doc_id,
-                        i,
-                        chunk,
-                        str(vector.tolist()),
-                        Json({'index': i, 'length': len(chunk)})
-                    ))
-                else:
-                    # Using fallback
-                    cursor.execute("""
-                        INSERT INTO document_chunks 
-                            (document_id, chunk_index, chunk_text, embedding_json, metadata)
-                        VALUES 
-                            (%s, %s, %s, %s, %s)
-                        ON CONFLICT (document_id, chunk_index) DO UPDATE SET
-                            chunk_text = EXCLUDED.chunk_text,
-                            embedding_json = EXCLUDED.embedding_json,
-                            metadata = EXCLUDED.metadata
-                    """, (
-                        doc_id,
-                        i,
-                        chunk,
-                        json.dumps(vector.tolist()),
-                        Json({'index': i, 'length': len(chunk)})
-                    ))
-            
-            # Update stats
-            cursor.execute("""
-                UPDATE vector_db_stats
-                SET 
-                    documents_count = (SELECT COUNT(*) FROM documents),
-                    chunks_count = (SELECT COUNT(*) FROM document_chunks),
-                    last_modified = CURRENT_TIMESTAMP
-                WHERE id = 1
-            """)
-            
-            conn.commit()
-            
-            logger.info(f"Added document {doc_id} with {len(chunks)} chunks to the vector database")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error adding document to vector database: {str(e)}")
-            if self.conn:
-                self.conn.rollback()
-            return False
-    
-    def search(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
-        """
-        Search the vector database for documents similar to the query
         
+        # Add sample chunks for document 2
+        for i in range(5):
+            chunk_id = len(self.chunks) + 1
+            self.chunks[chunk_id] = {
+                'id': chunk_id,
+                'document_id': doc_id2,
+                'chunk_text': f'Sample machine learning content {i+1}. This section covers neural networks.',
+                'chunk_index': i,
+                'metadata': {'page': i+1},
+                'created_at': datetime.now().isoformat()
+            }
+        
+        # Update stats
+        self.stats['documents_count'] = len(self.documents)
+        self.stats['chunks_count'] = len(self.chunks)
+        self.stats['last_modified'] = datetime.now().isoformat()
+        
+        logger.info(f"Initialized with {len(self.documents)} sample documents and {len(self.chunks)} sample chunks")
+    
+    def add_document(self, name: str, description: str, metadata: Dict = None, file_path: str = None) -> str:
+        """
+        Add a document to the database
+        
+        Args:
+            name: Document name
+            description: Document description
+            metadata: Additional metadata
+            file_path: Path to the document file
+            
+        Returns:
+            Document ID
+        """
+        doc_id = str(uuid.uuid4())
+        
+        self.documents[doc_id] = {
+            'id': doc_id,
+            'name': name,
+            'description': description,
+            'metadata': metadata or {},
+            'file_path': file_path,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        # Update stats
+        self.stats['documents_count'] += 1
+        self.stats['last_modified'] = datetime.now().isoformat()
+        
+        logger.info(f"Added document with ID: {doc_id}")
+        return doc_id
+    
+    def add_chunks(self, document_id: str, chunks: List[str], embeddings: List[List[float]] = None, 
+                  metadata: List[Dict] = None) -> List[int]:
+        """
+        Add document chunks to the database
+        
+        Args:
+            document_id: Document ID
+            chunks: List of text chunks
+            embeddings: List of embedding vectors (optional)
+            metadata: List of metadata dictionaries (optional)
+            
+        Returns:
+            List of chunk IDs
+        """
+        if document_id not in self.documents:
+            logger.warning(f"Document {document_id} not found")
+            return []
+            
+        if not chunks:
+            logger.warning("No chunks provided to add_chunks")
+            return []
+        
+        # Delete existing chunks for this document
+        existing_chunks = [c_id for c_id, chunk in self.chunks.items() 
+                           if chunk['document_id'] == document_id]
+        for c_id in existing_chunks:
+            del self.chunks[c_id]
+        
+        # Add new chunks
+        chunk_ids = []
+        for i, chunk in enumerate(chunks):
+            chunk_id = len(self.chunks) + 1
+            
+            # Use provided metadata if available, otherwise use empty dict
+            chunk_metadata = metadata[i] if metadata and i < len(metadata) else {}
+            
+            self.chunks[chunk_id] = {
+                'id': chunk_id,
+                'document_id': document_id,
+                'chunk_text': chunk,
+                'chunk_index': i,
+                'metadata': chunk_metadata,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            chunk_ids.append(chunk_id)
+        
+        # Update stats
+        self.stats['chunks_count'] = len(self.chunks)
+        self.stats['last_modified'] = datetime.now().isoformat()
+        
+        logger.info(f"Added {len(chunks)} chunks for document {document_id}")
+        return chunk_ids
+    
+    def search(self, query: str, query_embedding: List[float] = None, top_k: int = 5) -> List[Dict]:
+        """
+        Search for similar document chunks
+
         Args:
             query: Query text
+            query_embedding: Query embedding vector (optional)
             top_k: Number of results to return
             
         Returns:
-            List of search results with document IDs and scores
+            List of search results containing document_id, chunk_id, score, and metadata
         """
-        try:
-            # Generate query embedding
-            query_vector = self._generate_embeddings(query)
-            
-            conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=DictCursor)
-            
-            # Check if we're using pgvector or the fallback approach
-            has_vector_column = True
-            try:
-                cursor.execute("SELECT embedding FROM document_chunks LIMIT 1")
-                cursor.fetchone()  # This will raise an exception if the column doesn't exist
-            except Exception:
-                logger.info("Using embedding_json fallback for search")
-                has_vector_column = False
-            
-            if has_vector_column:
-                # Search using pgvector similarity
-                try:
-                    cursor.execute("""
-                        SELECT 
-                            dc.id as chunk_id,
-                            dc.document_id,
-                            d.name as document_name,
-                            dc.chunk_text,
-                            dc.embedding <-> %s::vector as distance,
-                            d.metadata,
-                            d.file_path
-                        FROM 
-                            document_chunks dc
-                        JOIN 
-                            documents d ON dc.document_id = d.id
-                        ORDER BY 
-                            distance ASC
-                        LIMIT %s
-                    """, (str(query_vector.tolist()), top_k))
-                except Exception as e:
-                    logger.error(f"Error with pgvector search: {str(e)}")
-                    # Fallback to manual calculation
-                    has_vector_column = False
-            
-            results = []
-            
-            if not has_vector_column:
-                # Fallback approach with manual similarity calculation
-                # Get all chunks
-                cursor.execute("""
-                    SELECT 
-                        dc.id as chunk_id,
-                        dc.document_id,
-                        d.name as document_name,
-                        dc.chunk_text,
-                        dc.embedding_json,
-                        d.metadata,
-                        d.file_path
-                    FROM 
-                        document_chunks dc
-                    JOIN 
-                        documents d ON dc.document_id = d.id
-                """)
-                
-                # Manually calculate distances
-                all_results = []
-                for row in cursor:
-                    try:
-                        # Parse the embedding JSON
-                        embedding = None
-                        if row['embedding_json']:
-                            embedding = np.array(json.loads(row['embedding_json']))
-                        
-                        if embedding is None:
-                            continue
-                            
-                        # Calculate distance (using Euclidean distance)
-                        distance = np.linalg.norm(embedding - query_vector)
-                        
-                        all_results.append({
-                            'row': row,
-                            'distance': distance
-                        })
-                    except Exception as e:
-                        logger.warning(f"Error processing row {row['chunk_id']}: {str(e)}")
-                
-                # Sort by distance and take top k
-                all_results.sort(key=lambda x: x['distance'])
-                top_results = all_results[:top_k]
-                
-                # Format results
-                for result in top_results:
-                    row = result['row']
-                    distance = result['distance']
-                    similarity = 1.0 / (1.0 + distance)
-                    
-                    results.append({
-                        'document_id': row['document_id'],
-                        'chunk_id': f"{row['document_id']}_chunk_{row['chunk_id']}",
-                        'document_name': row['document_name'],
-                        'text': row['chunk_text'],
-                        'score': distance,
-                        'similarity': similarity,
-                        'metadata': row['metadata'],
-                        'file_path': row['file_path']
-                    })
-            else:
-                # Process results from pgvector query
-                for row in cursor:
-                    # Calculate a similarity score from the distance (lower distance = higher similarity)
-                    distance = float(row['distance'])
-                    similarity = 1.0 / (1.0 + distance)
-                    
-                    results.append({
-                        'document_id': row['document_id'],
-                        'chunk_id': f"{row['document_id']}_chunk_{row['chunk_id']}",
-                        'document_name': row['document_name'],
-                        'text': row['chunk_text'],
-                        'score': distance,
-                        'similarity': similarity,
-                        'metadata': row['metadata'],
-                        'file_path': row['file_path']
-                    })
-            
-            return results
-            
-        except Exception as e:
-            logger.error(f"Error searching vector database: {str(e)}")
+        # For the mock implementation, just return random chunks
+        if not self.chunks:
+            logger.warning("No document chunks found")
             return []
+        
+        # Get all chunks as a list
+        all_chunks = list(self.chunks.values())
+        
+        # Select random chunks (or all if fewer than top_k)
+        selected_count = min(top_k, len(all_chunks))
+        selected_chunks = random.sample(all_chunks, selected_count)
+        
+        results = []
+        for chunk in selected_chunks:
+            document = self.documents.get(chunk['document_id'], {})
+            
+            results.append({
+                'chunk_id': chunk['id'],
+                'document_id': chunk['document_id'],
+                'chunk_text': chunk['chunk_text'],
+                'score': random.uniform(0.1, 0.9),  # Random similarity score
+                'metadata': chunk.get('metadata', {}),
+                'document_name': document.get('name', ''),
+                'document_metadata': document.get('metadata', {})
+            })
+        
+        # Sort by score (ascending - lower is better in vector similarity)
+        results.sort(key=lambda x: x['score'])
+        
+        return results
     
-    def get_stats(self) -> Dict[str, Any]:
+    def get_document(self, document_id: str) -> Dict:
         """
-        Get statistics about the vector database
+        Get a document by ID
+        
+        Args:
+            document_id: Document ID
+            
+        Returns:
+            Document data
+        """
+        return self.documents.get(document_id)
+    
+    def get_documents(self) -> Dict[str, Dict]:
+        """
+        Get all documents
         
         Returns:
-            Dictionary of statistics
+            Dictionary of document data keyed by document ID
         """
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Initialize stats dictionary
-            stats = {
-                'documents_count': 0,
-                'chunks_count': 0,
-                'vector_dim': self.vector_dim,
-                'last_modified': datetime.now().isoformat(),
-                'documents_size': '0 bytes',
-                'chunks_size': '0 bytes'
-            }
-            
-            # Get stats from the database
-            try:
-                cursor.execute("SELECT * FROM vector_db_stats WHERE id = 1")
-                row = cursor.fetchone()
-                if row:
-                    # Access by index instead of by name for compatibility
-                    stats['documents_count'] = row[1]  # documents_count is the 2nd column
-                    stats['chunks_count'] = row[2]     # chunks_count is the 3rd column
-                    stats['vector_dim'] = row[3]       # vector_dim is the 4th column
-                    if row[4]:  # last_modified is the 5th column
-                        stats['last_modified'] = row[4].isoformat()
-            except Exception as e:
-                logger.warning(f"Error getting stats from vector_db_stats: {str(e)}")
-            
-            # Add additional stats
-            try:
-                cursor.execute("SELECT COUNT(*) FROM documents")
-                count = cursor.fetchone()
-                if count and count[0]:
-                    stats['documents_count'] = count[0]
-            except Exception as e:
-                logger.warning(f"Error counting documents: {str(e)}")
-            
-            try:
-                cursor.execute("SELECT COUNT(*) FROM document_chunks")
-                count = cursor.fetchone()
-                if count and count[0]:
-                    stats['chunks_count'] = count[0]
-            except Exception as e:
-                logger.warning(f"Error counting document chunks: {str(e)}")
-            
-            # Get size information
-            try:
-                cursor.execute("""
-                    SELECT 
-                        pg_size_pretty(pg_total_relation_size('documents')) as documents_size,
-                        pg_size_pretty(pg_total_relation_size('document_chunks')) as chunks_size
-                """)
-                size_info = cursor.fetchone()
-                if size_info:
-                    stats['documents_size'] = size_info[0]  # documents_size
-                    stats['chunks_size'] = size_info[1]     # chunks_size
-            except Exception as e:
-                logger.warning(f"Could not get size information: {str(e)}")
-                stats['documents_size'] = 'Unknown'
-                stats['chunks_size'] = 'Unknown'
-            
-            return stats
-            
-        except Exception as e:
-            logger.error(f"Error getting vector database stats: {str(e)}")
-            return {
-                'documents_count': 0,
-                'chunks_count': 0,
-                'vector_dim': self.vector_dim,
-                'error': str(e)
-            }
+        return self.documents
     
-    def get_documents(self) -> Dict[str, Any]:
+    def get_chunks(self, document_id: str) -> List[Dict]:
         """
-        Get all documents in the vector database
+        Get chunks for a document
         
+        Args:
+            document_id: Document ID
+            
         Returns:
-            Dictionary of document metadata
+            List of chunks
         """
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor(cursor_factory=DictCursor)
-            
-            cursor.execute("SELECT id, name, description, metadata, file_path FROM documents")
-            
-            documents = {}
-            for row in cursor:
-                doc_id = row['id']
-                documents[doc_id] = {
-                    'id': doc_id,
-                    'name': row['name'],
-                    'description': row['description'],
-                    'file_path': row['file_path'],
-                    'metadata': row['metadata']
-                }
-            
-            return documents
-            
-        except Exception as e:
-            logger.error(f"Error getting documents from vector database: {str(e)}")
-            return {}
+        return [chunk for chunk_id, chunk in self.chunks.items() 
+                if chunk['document_id'] == document_id]
     
-    def reset(self) -> bool:
+    def delete_document(self, document_id: str) -> bool:
         """
-        Reset the vector database, removing all documents
+        Delete a document and its chunks
         
+        Args:
+            document_id: Document ID
+            
         Returns:
-            True if successful, False otherwise
+            Success flag
         """
-        try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-            
-            # Delete all documents (cascades to chunks)
-            cursor.execute("DELETE FROM documents")
-            
-            # Reset stats
-            cursor.execute("""
-                UPDATE vector_db_stats
-                SET 
-                    documents_count = 0,
-                    chunks_count = 0,
-                    last_modified = CURRENT_TIMESTAMP
-                WHERE id = 1
-            """)
-            
-            conn.commit()
-            
-            logger.info("Reset vector database")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error resetting vector database: {str(e)}")
-            if self.conn:
-                self.conn.rollback()
+        if document_id not in self.documents:
+            logger.warning(f"Document {document_id} not found for deletion")
             return False
+        
+        # Delete document
+        del self.documents[document_id]
+        
+        # Delete associated chunks
+        chunk_ids = [c_id for c_id, chunk in self.chunks.items() 
+                     if chunk['document_id'] == document_id]
+        
+        for c_id in chunk_ids:
+            del self.chunks[c_id]
+        
+        # Update stats
+        self.stats['documents_count'] = len(self.documents)
+        self.stats['chunks_count'] = len(self.chunks)
+        self.stats['last_modified'] = datetime.now().isoformat()
+        
+        logger.info(f"Deleted document {document_id} with {len(chunk_ids)} chunks")
+        return True
     
-    def close(self):
-        """Close the database connection"""
-        if self.conn:
-            self.conn.close()
-            self.conn = None
+    def get_stats(self) -> Dict:
+        """
+        Get database statistics
+        
+        Returns:
+            Statistics data
+        """
+        return self.stats
 
 # Create a singleton instance
 pg_vector_db_service = PgVectorDBService()

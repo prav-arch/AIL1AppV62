@@ -26,10 +26,14 @@ VECTOR_DIMENSION = 384
 
 # Check if we're in development mode or production
 IS_DEVELOPMENT = os.environ.get('REPL_ID') is not None
-USE_MOCK_DB = os.environ.get('USE_MOCK_DB', 'False') == 'True'
+USE_MOCK_DB = os.environ.get('USE_MOCK_DB', 'True') == 'True'  # Default to using mock in development
 
 def get_connection_params():
     """Get ClickHouse connection parameters"""
+    # In development mode, use local settings for easier debugging
+    if IS_DEVELOPMENT:
+        logger.info("Running in development mode (Replit)")
+        
     return {
         'host': CLICKHOUSE_HOST,
         'port': CLICKHOUSE_PORT,

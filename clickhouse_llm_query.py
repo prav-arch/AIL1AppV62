@@ -9,11 +9,13 @@ import os
 import uuid
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from clickhouse_driver import Client
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# Check if we're in development or production environment
+IS_DEVELOPMENT = os.environ.get('REPL_ID') is not None
 
 # ClickHouse connection parameters (will be used in production environment)
 CLICKHOUSE_CONFIG = {
@@ -22,22 +24,44 @@ CLICKHOUSE_CONFIG = {
     'user': os.environ.get('CLICKHOUSE_USER', 'default'),
     'password': os.environ.get('CLICKHOUSE_PASSWORD', ''),
     'database': os.environ.get('CLICKHOUSE_DB', 'l1_app_db'),
-    'connect_timeout': 10
+    'connect_timeout': 5  # Reduced timeout for faster fallback
 }
+
+# Track connection state to avoid repeated connection attempts
+_connection_attempted = False
+_clickhouse_available = False
 
 def get_clickhouse_client():
     """Get a ClickHouse client connection"""
+    global _connection_attempted, _clickhouse_available
+    
+    # If we've already tried to connect and failed, don't try again
+    if _connection_attempted and not _clickhouse_available:
+        return None
+        
+    _connection_attempted = True
+    
     try:
+        from clickhouse_driver import Client
         client = Client(**CLICKHOUSE_CONFIG)
         # Verify the connection with a simple query
         client.execute("SELECT 1")
+        _clickhouse_available = True
         return client
     except Exception as e:
         logger.error(f"Error connecting to ClickHouse: {e}")
+        _clickhouse_available = False
         return None
 
 def is_clickhouse_available():
     """Check if ClickHouse is available"""
+    global _connection_attempted, _clickhouse_available
+    
+    # If we've already determined availability, return cached result
+    if _connection_attempted:
+        return _clickhouse_available
+        
+    # Otherwise, attempt to connect
     client = get_clickhouse_client()
     return client is not None
 
