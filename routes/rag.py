@@ -96,61 +96,103 @@ def test_upload():
 
 @rag_bp.route('/api/documents', methods=['GET'])
 def get_documents():
-    """Return list of documents in the knowledge base"""
+    """Return list of documents in the knowledge base from ClickHouse"""
     try:
-        # Sample document data
-        documents = [
-            {
-                'id': 'doc_001',
-                'name': 'network_guide.pdf',
-                'type': 'PDF',
-                'size': '1.2 MB',
-                'date_added': '2023-05-20',
-                'status': 'indexed',
-                'chunks': 45,
-                'category': 'Technical'
-            },
-            {
-                'id': 'doc_002',
-                'name': 'financial_report.xlsx',
-                'type': 'Excel',
-                'size': '0.8 MB',
-                'date_added': '2023-05-18',
-                'status': 'indexed',
-                'chunks': 32,
-                'category': 'Finance'
-            },
-            {
-                'id': 'doc_003',
-                'name': 'network_capture.pcap',
-                'type': 'PCAP',
-                'size': '5.6 MB',
-                'date_added': '2023-05-15',
-                'status': 'processing',
-                'chunks': 0,
-                'category': 'Technical'
-            },
-            {
-                'id': 'doc_004',
-                'name': 'product_documentation.docx',
-                'type': 'Word',
-                'size': '3.1 MB',
-                'date_added': '2023-05-12',
-                'status': 'indexed',
-                'chunks': 56,
-                'category': 'Product'
-            },
-            {
-                'id': 'doc_005',
-                'name': 'ai_research_paper.pdf',
-                'type': 'PDF',
-                'size': '2.3 MB',
-                'date_added': '2023-05-10',
-                'status': 'indexed',
-                'chunks': 37,
-                'category': 'Research'
+        # Get real document data from ClickHouse
+        query = f"""
+        SELECT 
+            id, name, filename, description, minio_url, bucket, storage_type, 
+            status, indexed, file_size, created_at
+        FROM {Document.table_name}
+        ORDER BY created_at DESC
+        LIMIT 100
+        """
+        
+        # Execute the query
+        results = Document.execute(query)
+        
+        # Format the results
+        documents = []
+        
+        for row in results:
+            # Get document type based on file extension
+            filename = row[2]  # filename is at index 2
+            file_ext = os.path.splitext(filename)[1].lower() if filename else ''
+            
+            # Determine file type
+            if file_ext in ['.pdf']:
+                file_type = 'PDF'
+            elif file_ext in ['.docx', '.doc']:
+                file_type = 'Word'
+            elif file_ext in ['.xlsx', '.xls', '.csv']:
+                file_type = 'Excel'
+            elif file_ext in ['.txt', '.md']:
+                file_type = 'Text'
+            elif file_ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']:
+                file_type = 'Image'
+            elif file_ext in ['.pptx', '.ppt']:
+                file_type = 'PowerPoint'
+            else:
+                file_type = 'Other'
+            
+            # Format file size
+            file_size = row[9]  # file_size is at index 9
+            if file_size < 1024:
+                size_str = f"{file_size} B"
+            elif file_size < 1024 * 1024:
+                size_str = f"{file_size / 1024:.1f} KB"
+            elif file_size < 1024 * 1024 * 1024:
+                size_str = f"{file_size / (1024 * 1024):.1f} MB"
+            else:
+                size_str = f"{file_size / (1024 * 1024 * 1024):.1f} GB"
+            
+            # Format date
+            created_at = row[10]  # created_at is at index 10
+            if isinstance(created_at, datetime):
+                date_str = created_at.strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                date_str = str(created_at)
+                
+            # Get document ID and status
+            document_id = row[0]  # id is at index 0
+            status = row[7]  # status is at index 7
+            
+            # Count chunks for this document
+            try:
+                chunks_query = f"""
+                SELECT COUNT(*) FROM {DocumentChunk.table_name}
+                WHERE document_id = %s
+                """
+                chunks_result = DocumentChunk.execute(chunks_query, (document_id,))
+                chunks_count = chunks_result[0][0] if chunks_result else 0
+            except Exception as e:
+                logger.error(f"Error counting chunks: {str(e)}")
+                chunks_count = 0
+            
+            # Create document entry
+            document = {
+                'id': document_id,
+                'name': row[1],  # name is at index 1
+                'filename': filename,
+                'description': row[3] if row[3] else '',  # description is at index 3
+                'type': file_type,
+                'size': size_str,
+                'date_added': date_str,
+                'status': status,
+                'minio_url': row[4],  # minio_url is at index 4
+                'bucket': row[5],  # bucket is at index 5
+                'storage_type': row[6],  # storage_type is at index 6 
+                'indexed': bool(row[8]),  # indexed is at index 8
+                'chunks': chunks_count,
+                'category': file_type
             }
-        ]
+            
+            documents.append(document)
+        
+        # If no documents found, provide a helpful message
+        if not documents:
+            logger.info("No documents found in ClickHouse")
+            # Return empty list, frontend will handle display logic
         
         return jsonify(documents)
     except Exception as e:
@@ -164,12 +206,104 @@ def get_vectordb_stats():
         # Get actual stats from the FAISS vector service
         vector_stats = vector_service.get_stats()
         
-        # Enhance with additional information
-        stats = {
-            **vector_stats,
-            'embedding_model': 'all-MiniLM-L6-v2',
-            'index_size': f"{random.randint(1, 50)}.{random.randint(1, 9)} MB",
-            'recent_queries': [
+        # Get document count from ClickHouse
+        try:
+            doc_count_query = f"SELECT COUNT(*) FROM {Document.table_name}"
+            doc_count_result = Document.execute(doc_count_query)
+            doc_count = doc_count_result[0][0] if doc_count_result and len(doc_count_result) > 0 else 0
+        except Exception as doc_error:
+            logger.error(f"Error counting documents: {str(doc_error)}")
+            doc_count = 0
+            
+        # Get chunk count from ClickHouse
+        try:
+            chunk_count_query = f"SELECT COUNT(*) FROM {DocumentChunk.table_name}"
+            chunk_count_result = DocumentChunk.execute(chunk_count_query)
+            chunk_count = chunk_count_result[0][0] if chunk_count_result and len(chunk_count_result) > 0 else 0
+        except Exception as chunk_error:
+            logger.error(f"Error counting chunks: {str(chunk_error)}")
+            chunk_count = 0
+            
+        # Get total file size from ClickHouse
+        try:
+            size_query = f"SELECT SUM(file_size) FROM {Document.table_name}"
+            size_result = Document.execute(size_query)
+            total_size = size_result[0][0] if size_result and len(size_result) > 0 and size_result[0][0] is not None else 0
+            
+            # Format total size
+            if total_size < 1024:
+                size_str = f"{total_size} B"
+            elif total_size < 1024 * 1024:
+                size_str = f"{total_size / 1024:.1f} KB"
+            elif total_size < 1024 * 1024 * 1024:
+                size_str = f"{total_size / (1024 * 1024):.1f} MB"
+            else:
+                size_str = f"{total_size / (1024 * 1024 * 1024):.1f} GB"
+        except Exception as size_error:
+            logger.error(f"Error calculating total size: {str(size_error)}")
+            size_str = "0 B"
+            
+        # Get recent prompts from LLMPrompt table
+        try:
+            recent_query_query = f"""
+            SELECT prompt, created_at, response_time 
+            FROM {LLMPrompt.table_name} 
+            ORDER BY created_at DESC 
+            LIMIT 3
+            """
+            recent_query_result = LLMPrompt.execute(recent_query_query)
+            
+            recent_queries = []
+            if recent_query_result and len(recent_query_result) > 0:
+                for row in recent_query_result:
+                    prompt = row[0]
+                    created_at = row[1]
+                    response_time = row[2]
+                    
+                    # Format prompt for display (truncate if too long)
+                    if len(prompt) > 50:
+                        display_prompt = prompt[:47] + '...'
+                    else:
+                        display_prompt = prompt
+                        
+                    # Format time
+                    if isinstance(created_at, datetime):
+                        time_str = created_at.strftime('%H:%M:%S')
+                    else:
+                        time_str = str(created_at)
+                        
+                    recent_queries.append({
+                        'query': display_prompt,
+                        'time': time_str,
+                        'matches': random.randint(1, 10),  # Not tracked in DB yet
+                        'latency': int(response_time * 1000) if response_time else 50
+                    })
+            
+            # If no queries found in DB, provide some sample data
+            if not recent_queries:
+                recent_queries = [
+                    {
+                        'query': 'How to configure network settings',
+                        'time': '12:45:32',
+                        'matches': 3,
+                        'latency': 45
+                    },
+                    {
+                        'query': 'Troubleshoot CPU performance issues',
+                        'time': '12:42:18',
+                        'matches': 5,
+                        'latency': 62
+                    },
+                    {
+                        'query': 'Financial report summary 2023',
+                        'time': '12:35:56',
+                        'matches': 4,
+                        'latency': 38
+                    }
+                ]
+        except Exception as query_error:
+            logger.error(f"Error getting recent queries: {str(query_error)}")
+            recent_queries = [
                 {
                     'query': 'How to configure network settings',
                     'time': '12:45:32',
@@ -188,7 +322,16 @@ def get_vectordb_stats():
                     'matches': 4,
                     'latency': 38
                 }
-            ],
+            ]
+            
+        # Enhance with additional information
+        stats = {
+            **vector_stats,
+            'document_count': doc_count,
+            'chunk_count': chunk_count,
+            'total_size': size_str,
+            'embedding_model': 'all-MiniLM-L6-v2',
+            'recent_queries': recent_queries,
             'performance': {
                 'average_query_time': random.randint(10, 100),
                 'index_build_time': random.randint(100, 500),
@@ -578,33 +721,32 @@ def upload_document():
         except Exception as e:
             logger.warning(f"Could not remove temporary file {file_path}: {str(e)}")
                 
-        # Save document information to database
+        # Save document information to ClickHouse database
         try:
             # Calculate file size (use 0 if file is already removed)
             file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
             
-            # Insert document info into the database
-            cursor = db.cursor()
-            cursor.execute("""
-                INSERT INTO rag_documents 
-                (document_id, name, filename, description, minio_url, bucket, storage_type, status, indexed, file_size)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                doc_id, 
-                document_name, 
-                filename, 
-                description, 
-                object_url, 
-                'l1appuploads', 
-                'minio', 
-                'indexed' if indexed else ('processing' if index_immediately else 'uploaded'),
-                indexed,
-                file_size
-            ))
-            db.commit()
-            logger.info(f"Document information saved to database: {doc_id}")
+            # Create document entry in ClickHouse using the Document model
+            doc_status = 'indexed' if indexed else ('processing' if index_immediately else 'uploaded')
+            
+            # Save to ClickHouse using the Document model
+            Document.create(
+                name=document_name,
+                description=description,
+                metadata={'upload_date': datetime.now().isoformat()},
+                file_path=file_path,
+                minio_url=object_url,
+                bucket='l1appuploads',
+                storage_type='minio',
+                status=doc_status,
+                indexed=indexed,
+                filename=filename,
+                file_size=file_size
+            )
+            
+            logger.info(f"Document information saved to ClickHouse: {doc_id}")
         except Exception as db_error:
-            logger.error(f"Error saving to database: {str(db_error)}")
+            logger.error(f"Error saving to ClickHouse: {str(db_error)}")
             # Continue even if database save fails - the file is already in Minio
         
         # Return success response
