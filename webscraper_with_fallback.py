@@ -21,7 +21,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Suppress only the specific InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+# Fix for LSP issue - use urllib3 directly instead of requests.packages
+import urllib3
+urllib3.disable_warnings(InsecureRequestWarning)
 
 class WebScraper:
     """Web scraper with enhanced error handling and SSL workarounds"""
@@ -69,12 +71,41 @@ class WebScraper:
         
         for attempt in range(self.max_retries):
             try:
-                # Try trafilatura first (gives best results for most pages)
+                # Try trafilatura first but with signal handling disabled
+                # This fixes the "Signal only works in main thread" error
                 logger.info(f"Attempt {attempt+1}/{self.max_retries} using trafilatura")
-                downloaded = trafilatura.fetch_url(url, timeout=self.timeout)
+                
+                # Use trafilatura with SIGNAL_TIMEOUT=0 to disable signal handling
+                # Get the downloaded content
+                try:
+                    # First try with fetch_url which is more resilient
+                    # Note: trafilatura.fetch_url doesn't accept timeout parameter directly
+                    downloaded = trafilatura.fetch_url(url)
+                except Exception as fetch_error:
+                    logger.warning(f"trafilatura.fetch_url error: {fetch_error}")
+                    # If that fails, try with a simple requests get
+                    verify = not ignore_ssl_errors
+                    response = self.session.get(url, timeout=self.timeout, verify=verify)
+                    response.raise_for_status()
+                    downloaded = response.text
+                
                 if downloaded:
-                    content = trafilatura.extract(downloaded, include_comments=False, include_tables=True, 
-                                                 include_images=True, include_links=True, output_format='txt')
+                    try:
+                        # Extract with SIGNAL_TIMEOUT=0 to disable signal handling
+                        import trafilatura.settings
+                        # Store original value
+                        original_timeout = trafilatura.settings.SIGNAL_TIMEOUT
+                        # Disable signal handling
+                        trafilatura.settings.SIGNAL_TIMEOUT = 0
+                        
+                        content = trafilatura.extract(downloaded, include_comments=False, include_tables=True, 
+                                                     include_images=True, include_links=True, output_format='txt')
+                        
+                        # Restore original value
+                        trafilatura.settings.SIGNAL_TIMEOUT = original_timeout
+                    except Exception as extract_error:
+                        logger.warning(f"trafilatura.extract error: {extract_error}")
+                        content = None
                     
                     if content and len(content.strip()) > 100:  # Consider it successful if we got meaningful content
                         logger.info(f"Successfully extracted content with trafilatura (length: {len(content)})")

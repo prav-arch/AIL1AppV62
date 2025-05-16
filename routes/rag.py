@@ -639,12 +639,23 @@ def scrape_webpage():
             try:
                 # Import requests and temporarily modify its SSL verification behavior
                 import urllib3
+                import trafilatura.settings
+                
+                # Fix for "Signal only works in main thread" error
+                # Store original value
+                original_timeout = trafilatura.settings.SIGNAL_TIMEOUT
+                # Disable signal handling
+                trafilatura.settings.SIGNAL_TIMEOUT = 0
+                
                 if ignore_ssl_errors:
                     # Disable SSL warnings when verification is disabled
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     
                 # Try with trafilatura (which doesn't have a verify param)
                 downloaded = fetch_url(url)
+                
+                # Restore original value
+                trafilatura.settings.SIGNAL_TIMEOUT = original_timeout
             except Exception as trafilatura_error:
                 logger.warning(f"Trafilatura error: {str(trafilatura_error)}")
                 downloaded = None
