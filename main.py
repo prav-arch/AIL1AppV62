@@ -19,7 +19,27 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
-# Configure the database connection
+# Configure ClickHouse database connection
+from clickhouse_models import initialize_database, Document, DocumentChunk, VectorDBStats, get_clickhouse_client
+
+# Setup ClickHouse connection parameters
+CLICKHOUSE_CONFIG = {
+    'host': 'localhost',
+    'port': 9000,
+    'user': 'default',
+    'password': '',
+    'database': 'l1_app_db',
+    'connect_timeout': 10
+}
+
+try:
+    # Initialize ClickHouse database
+    initialize_database()
+    logging.info("ClickHouse database initialized successfully")
+except Exception as e:
+    logging.error(f"Error initializing ClickHouse database: {e}")
+    
+# Still keep SQLAlchemy for session management with smaller tables
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
