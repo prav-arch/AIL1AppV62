@@ -1,0 +1,277 @@
+#!/bin/bash
+#
+# Script to install Apache NiFi and Apache Airflow without certificate verification
+# This script is designed to work on a GPU server environment
+
+set -e
+echo "=== Installation Script for Apache NiFi and Apache Airflow ==="
+echo "This script will install both tools without certificate verification"
+
+# Create installation directories
+INSTALL_DIR="$HOME/data_tools"
+NIFI_DIR="$INSTALL_DIR/nifi"
+AIRFLOW_DIR="$INSTALL_DIR/airflow"
+
+mkdir -p "$NIFI_DIR"
+mkdir -p "$AIRFLOW_DIR"
+
+# Function to download files with certificate verification disabled
+download_file() {
+    url="$1"
+    output_file="$2"
+    echo "Downloading $url to $output_file"
+    
+    # Try curl first (with certificate verification disabled)
+    if command -v curl &> /dev/null; then
+        curl -k -L -o "$output_file" "$url" || {
+            # If curl fails, try wget
+            if command -v wget &> /dev/null; then
+                wget --no-check-certificate -O "$output_file" "$url" || {
+                    echo "Both curl and wget failed. Using Python as fallback"
+                    python3 -c "
+import ssl
+import urllib.request
+
+# Disable SSL verification
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# Download the file
+urllib.request.urlretrieve('$url', '$output_file')
+"
+                }
+            else
+                # Use Python as fallback
+                python3 -c "
+import ssl
+import urllib.request
+
+# Disable SSL verification
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# Download the file
+urllib.request.urlretrieve('$url', '$output_file')
+"
+            fi
+        }
+    elif command -v wget &> /dev/null; then
+        wget --no-check-certificate -O "$output_file" "$url" || {
+            echo "wget failed. Using Python as fallback"
+            python3 -c "
+import ssl
+import urllib.request
+
+# Disable SSL verification
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# Download the file
+urllib.request.urlretrieve('$url', '$output_file')
+"
+        }
+    else
+        # Use Python as final fallback
+        python3 -c "
+import ssl
+import urllib.request
+
+# Disable SSL verification
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# Download the file
+urllib.request.urlretrieve('$url', '$output_file')
+"
+    fi
+}
+
+# ===== Apache NiFi Installation =====
+echo ""
+echo "=== Installing Apache NiFi ==="
+
+# Download the latest stable NiFi release
+NIFI_VERSION="1.23.2"
+NIFI_FILENAME="nifi-$NIFI_VERSION-bin.zip"
+NIFI_URL="https://dlcdn.apache.org/nifi/$NIFI_VERSION/$NIFI_FILENAME"
+NIFI_DOWNLOAD="$INSTALL_DIR/$NIFI_FILENAME"
+
+echo "Downloading Apache NiFi $NIFI_VERSION..."
+download_file "$NIFI_URL" "$NIFI_DOWNLOAD"
+
+echo "Extracting NiFi..."
+if command -v unzip &> /dev/null; then
+    unzip -q "$NIFI_DOWNLOAD" -d "$NIFI_DIR"
+else
+    python3 -c "
+import zipfile
+with zipfile.ZipFile('$NIFI_DOWNLOAD', 'r') as zip_ref:
+    zip_ref.extractall('$NIFI_DIR')
+"
+fi
+
+# Move files from the extracted directory to NIFI_DIR
+mv "$NIFI_DIR"/nifi-$NIFI_VERSION/* "$NIFI_DIR"/
+rmdir "$NIFI_DIR"/nifi-$NIFI_VERSION
+
+# Clean up the download
+rm "$NIFI_DOWNLOAD"
+
+# Configure NiFi for minimal setup (lower memory usage)
+sed -i 's/-Xms512m/-Xms256m/g' "$NIFI_DIR/conf/bootstrap.conf"
+sed -i 's/-Xmx512m/-Xmx1g/g' "$NIFI_DIR/conf/bootstrap.conf"
+
+# Create start/stop scripts for NiFi
+cat > "$NIFI_DIR/start_nifi.sh" << 'EOF'
+#!/bin/bash
+cd "$(dirname "$0")"
+./bin/nifi.sh start
+echo "NiFi starting. It may take a minute to fully start."
+echo "Once started, NiFi will be available at http://localhost:8080/nifi"
+EOF
+
+cat > "$NIFI_DIR/stop_nifi.sh" << 'EOF'
+#!/bin/bash
+cd "$(dirname "$0")"
+./bin/nifi.sh stop
+echo "NiFi stopped."
+EOF
+
+chmod +x "$NIFI_DIR/start_nifi.sh" "$NIFI_DIR/stop_nifi.sh"
+
+# ===== Apache Airflow Installation =====
+echo ""
+echo "=== Installing Apache Airflow ==="
+
+# Create Python virtual environment for Airflow
+echo "Creating Python virtual environment for Airflow..."
+python3 -m venv "$AIRFLOW_DIR/venv"
+
+# Install Airflow with constraints to avoid SSL verification issues
+AIRFLOW_VERSION="2.7.3"
+PYTHON_VERSION="$(python3 --version | cut -d " " -f 2 | cut -d "." -f 1-2)"
+CONSTRAINT_URL="https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+CONSTRAINT_FILE="$AIRFLOW_DIR/constraints.txt"
+
+echo "Downloading Airflow constraints file..."
+download_file "$CONSTRAINT_URL" "$CONSTRAINT_FILE"
+
+echo "Installing Airflow $AIRFLOW_VERSION..."
+"$AIRFLOW_DIR/venv/bin/pip" install --no-cache-dir --upgrade pip
+
+# Disable SSL verification for pip installation
+export PYTHONWARNINGS="ignore:Unverified HTTPS request"
+"$AIRFLOW_DIR/venv/bin/pip" install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org "apache-airflow==${AIRFLOW_VERSION}" --constraint "$CONSTRAINT_FILE"
+
+# Additional Airflow providers
+echo "Installing Airflow providers..."
+"$AIRFLOW_DIR/venv/bin/pip" install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org apache-airflow-providers-http apache-airflow-providers-postgres apache-airflow-providers-ssh
+
+# Set Airflow home and initialize the database
+export AIRFLOW_HOME="$AIRFLOW_DIR/home"
+mkdir -p "$AIRFLOW_HOME"
+
+# Create basic Airflow config
+cat > "$AIRFLOW_HOME/airflow.cfg" << EOF
+[core]
+dags_folder = $AIRFLOW_HOME/dags
+base_log_folder = $AIRFLOW_HOME/logs
+executor = LocalExecutor
+sql_alchemy_conn = sqlite:///$AIRFLOW_HOME/airflow.db
+load_examples = False
+
+[webserver]
+web_server_port = 8081
+authenticate = False
+
+[scheduler]
+min_file_process_interval = 60
+EOF
+
+# Create DAGs directory
+mkdir -p "$AIRFLOW_HOME/dags"
+
+echo "Initializing Airflow database..."
+"$AIRFLOW_DIR/venv/bin/airflow" db init
+
+# Create start/stop scripts for Airflow
+cat > "$AIRFLOW_DIR/start_airflow.sh" << EOF
+#!/bin/bash
+export AIRFLOW_HOME="$AIRFLOW_HOME"
+cd "$AIRFLOW_DIR"
+
+# Start Airflow webserver
+./venv/bin/airflow webserver -D
+
+# Start Airflow scheduler
+./venv/bin/airflow scheduler -D
+
+echo "Airflow started."
+echo "Webserver available at http://localhost:8081"
+EOF
+
+cat > "$AIRFLOW_DIR/stop_airflow.sh" << 'EOF'
+#!/bin/bash
+pkill -f "airflow webserver" || true
+pkill -f "airflow scheduler" || true
+echo "Airflow stopped."
+EOF
+
+chmod +x "$AIRFLOW_DIR/start_airflow.sh" "$AIRFLOW_DIR/stop_airflow.sh"
+
+# Create a sample DAG for testing
+cat > "$AIRFLOW_HOME/dags/test_dag.py" << 'EOF'
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+dag = DAG(
+    'test_dag',
+    default_args=default_args,
+    description='A simple test DAG',
+    schedule_interval=timedelta(days=1),
+    start_date=datetime(2023, 1, 1),
+    catchup=False,
+)
+
+t1 = BashOperator(
+    task_id='print_date',
+    bash_command='date',
+    dag=dag,
+)
+
+t2 = BashOperator(
+    task_id='print_hello',
+    depends_on_past=False,
+    bash_command='echo "Hello from Airflow!"',
+    dag=dag,
+)
+
+t1 >> t2
+EOF
+
+# ===== Finalize Installation =====
+echo ""
+echo "=== Installation Complete ==="
+echo ""
+echo "NiFi has been installed to: $NIFI_DIR"
+echo "Airflow has been installed to: $AIRFLOW_DIR"
+echo ""
+echo "To start NiFi:"
+echo "  $NIFI_DIR/start_nifi.sh"
+echo "  Access NiFi at: http://localhost:8080/nifi"
+echo ""
+echo "To start Airflow:"
+echo "  $AIRFLOW_DIR/start_airflow.sh"
+echo "  Access Airflow at: http://localhost:8081"
+echo ""
+echo "To stop the services:"
+echo "  $NIFI_DIR/stop_nifi.sh"
+echo "  $AIRFLOW_DIR/stop_airflow.sh"
+echo ""
+echo "A sample Airflow DAG has been created in: $AIRFLOW_HOME/dags/test_dag.py"
