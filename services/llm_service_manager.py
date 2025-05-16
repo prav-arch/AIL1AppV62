@@ -24,10 +24,12 @@ def start_llm_service():
     
     logging.info("Starting LLM service...")
     
-    # Check if model exists
+    # Check for the specific model
     model_path = "/tmp/llm_models/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
+    
+    # If specific model not found, check for any GGUF model in the directory
     if not os.path.exists(model_path):
-        logging.warning(f"LLM model not found at {model_path}, checking alternative paths...")
+        logging.warning(f"LLM model not found at {model_path}, checking for alternatives...")
         
         # Check for other models in the directory
         model_dir = "/tmp/llm_models"
@@ -65,7 +67,8 @@ def start_llm_service():
         atexit.register(stop_llm_service)
         
         # Start a thread to check the LLM service status
-        threading.Thread(target=monitor_llm_service, daemon=True).start()
+        monitor_thread = threading.Thread(target=monitor_llm_service, daemon=True)
+        monitor_thread.start()
         
         # Wait a moment for the service to start
         time.sleep(2)
