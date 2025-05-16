@@ -19,43 +19,19 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
-# Configure ClickHouse database connection parameters for GPU server
-# These will be used when deploying to your GPU server
-CLICKHOUSE_CONFIG = {
-    'host': 'localhost',
-    'port': 9000,
-    'user': 'default',
-    'password': '',
-    'database': 'l1_app_db',
-    'connect_timeout': 10
-}
-
-# For Replit environment, we'll skip actual ClickHouse initialization
-# But still import the models for compatibility
+# Import ClickHouse database modules
 try:
     from clickhouse_models import Document, DocumentChunk, VectorDBStats, get_clickhouse_client
-    logging.info("ClickHouse models imported successfully")
-except Exception as e:
-    logging.error(f"Error importing ClickHouse models: {e}")
+    from clickhouse_llm_query import (
+        initialize_database, save_llm_query, update_llm_query_response,
+        get_llm_query_count, get_today_llm_query_count, get_llm_queries
+    )
     
-# Still keep SQLAlchemy for session management with smaller tables
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-# Import and initialize the database
-from models import db, LLMQuery
-
-# Initialize the app with the database extension
-db.init_app(app)
-
-# Create database tables within application context
-with app.app_context():
-    db.create_all()
-    logging.info("Database tables created")
+    # Initialize the ClickHouse database
+    initialize_database()
+    logging.info("ClickHouse database initialized successfully")
+except Exception as e:
+    logging.error(f"Error initializing ClickHouse: {e}")
 
 # Disable template caching during development
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -108,19 +84,17 @@ def kafka_browser():
 @app.route('/api/dashboard/metrics', methods=['GET'])
 def api_dashboard_metrics():
     """Return dashboard metrics for display"""
-    # Get real count of LLM queries
-    with app.app_context():
-        try:
-            # Count total queries
-            total_queries = LLMQuery.query.count()
-            
-            # Count queries from today
-            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            queries_today = LLMQuery.query.filter(LLMQuery.created_at >= today).count()
-        except Exception as e:
-            logging.error(f"Error getting query counts: {str(e)}")
-            total_queries = 0
-            queries_today = 0
+    # Get real count of LLM queries from ClickHouse
+    try:
+        # Count total queries
+        total_queries = get_llm_query_count()
+        
+        # Count queries from today
+        queries_today = get_today_llm_query_count()
+    except Exception as e:
+        logging.error(f"Error getting query counts: {str(e)}")
+        total_queries = 0
+        queries_today = 0
     
     return jsonify({
         'total_documents': random.randint(50, 200),
@@ -492,17 +466,8 @@ def api_llm_queries():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
-        # Query the database with pagination
-        queries = LLMQuery.query.order_by(LLMQuery.created_at.desc()).paginate(
-            page=page, per_page=per_page, error_out=False)
-        
-        # Convert to list of dictionaries
-        result = {
-            'queries': [q.to_dict() for q in queries.items],
-            'total': queries.total,
-            'pages': queries.pages,
-            'current_page': queries.page
-        }
+        # Get queries from ClickHouse
+        result = get_llm_queries(page=page, per_page=per_page)
         
         return jsonify(result)
     except Exception as e:
