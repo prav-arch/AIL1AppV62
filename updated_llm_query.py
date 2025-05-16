@@ -11,11 +11,14 @@ def new_llm_query_handler():
     """Process an LLM query and return the response"""
     start_time = time.time()
     data = request.json or {}
-    prompt = data.get('query', '')  # Changed from 'prompt' to 'query' to match frontend
+    
+    # Accept either 'query' or 'prompt' field for flexibility
+    prompt = data.get('query', data.get('prompt', ''))
     
     if not prompt:
+        # Return a more informative error message
         return jsonify({
-            'error': 'No query provided'
+            'error': 'No query provided. Please include a "query" or "prompt" field in your request.'
         }), 400
         
     # Extract parameters - ensure variables are defined before use
