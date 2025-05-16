@@ -1,5 +1,5 @@
 """
-Database utilities for the application that don't depend on PostgreSQL
+Database utilities for the application with ClickHouse and FAISS
 """
 
 import os
