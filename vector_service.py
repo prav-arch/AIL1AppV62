@@ -296,11 +296,9 @@ def get_stats() -> Dict[str, Any]:
 
 def generate_embedding(text: str) -> List[float]:
     """
-    Generate a mock embedding for text content
-    
-    This is a temporary implementation that creates random embeddings of the correct 
-    dimension. In a production environment, you would replace this with a proper 
-    embedding model like SentenceTransformers, OpenAI embeddings, etc.
+    Generate embeddings for text content using available methods:
+    1. Try SentenceTransformers if available (best quality)
+    2. Fall back to TF-IDF + SVD otherwise
     
     Args:
         text: The text to generate an embedding for
@@ -310,25 +308,78 @@ def generate_embedding(text: str) -> List[float]:
     """
     dimension = FAISS_DIMENSION
     
-    # Create a deterministic embedding based on the text hash
-    # This ensures the same text always gets the same embedding
-    import hashlib
-    import numpy as np
+    try:
+        # Try importing sentence_transformers for high-quality embeddings
+        from sentence_transformers import SentenceTransformer
+        
+        # Use one of the smaller models that's commonly available
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        embedding = model.encode(text, normalize_embeddings=True)
+        
+        # Resize if necessary
+        if len(embedding) > dimension:
+            embedding = embedding[:dimension]
+        elif len(embedding) < dimension:
+            # Pad with zeros if needed
+            padding = np.zeros(dimension - len(embedding))
+            embedding = np.concatenate([embedding, padding])
+            
+        logger.info(f"Generated embedding using SentenceTransformer with dimension {len(embedding)}")
+        return embedding.tolist()
     
-    # Create a hash of the text
-    text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
-    
-    # Use the hash to seed the random number generator
-    hash_value = int(text_hash, 16) % (2**32)
-    np.random.seed(hash_value)
-    
-    # Generate a random vector
-    vector = np.random.randn(dimension).astype(np.float32)
-    
-    # Normalize to unit length (cosine similarity)
-    vector = vector / np.linalg.norm(vector)
-    
-    return vector.tolist()
+    except ImportError:
+        logger.warning("SentenceTransformers not available, using scikit-learn for embeddings")
+        
+        try:
+            # Fall back to TF-IDF + SVD (scikit-learn)
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            from sklearn.decomposition import TruncatedSVD
+            import numpy as np
+            
+            # Create TF-IDF vectorizer
+            vectorizer = TfidfVectorizer(max_features=1000)
+            
+            # Fit and transform the text
+            tfidf_matrix = vectorizer.fit_transform([text])
+            
+            # Reduce dimensionality with SVD
+            svd = TruncatedSVD(n_components=dimension)
+            embedding = svd.fit_transform(tfidf_matrix)[0]
+            
+            # Normalize
+            embedding = embedding / np.linalg.norm(embedding)
+            
+            logger.info(f"Generated embedding using TF-IDF + SVD with dimension {len(embedding)}")
+            return embedding.tolist()
+        
+        except ImportError:
+            logger.warning("Scikit-learn not available, using simple embedding technique")
+            
+            # Basic tokenization and hashing as a last resort
+            import hashlib
+            import numpy as np
+            
+            # Split text into tokens
+            tokens = text.lower().split()
+            
+            # Create an empty embedding vector
+            embedding = np.zeros(dimension, dtype=np.float32)
+            
+            # Fill embedding vector with token hashes
+            for i, token in enumerate(tokens):
+                # Hash the token
+                token_hash = int(hashlib.md5(token.encode('utf-8')).hexdigest(), 16)
+                
+                # Use the hash to set values in the embedding
+                pos = token_hash % dimension
+                embedding[pos] += 1.0 / (i + 1)  # Weigh earlier tokens more
+            
+            # Normalize the vector
+            if np.linalg.norm(embedding) > 0:
+                embedding = embedding / np.linalg.norm(embedding)
+            
+            logger.info(f"Generated embedding using basic hashing with dimension {len(embedding)}")
+            return embedding.tolist()
 
 # For testing
 if __name__ == "__main__":
