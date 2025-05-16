@@ -120,7 +120,7 @@ def api_recent_kafka_messages():
     try:
         from services.mock_api_services import get_recent_kafka_messages
         messages = get_recent_kafka_messages()
-        return jsonify(messages)
+        return jsonify({'messages': messages})
     except Exception as e:
         logging.error(f"Error getting Kafka messages: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -131,7 +131,13 @@ def api_pipeline_status():
     try:
         from services.mock_api_services import get_pipeline_status
         data = get_pipeline_status()
-        return jsonify(data)
+        # Format the response to match what the frontend expects
+        pipelines = data.get('active_pipelines', [])
+        # Add description field to each pipeline as expected by frontend
+        for pipeline in pipelines:
+            pipeline['description'] = f"Processing {pipeline.get('data_processed', '0 MB')} with {pipeline.get('nodes', 0)} nodes"
+        
+        return jsonify({'pipelines': pipelines})
     except Exception as e:
         logging.error(f"Error getting pipeline status: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -141,8 +147,17 @@ def api_latest_anomalies():
     """Return latest anomalies information"""
     try:
         from services.mock_api_services import get_latest_anomalies
+        import random
         data = get_latest_anomalies()
-        return jsonify(data)
+        # Format the response to match what the frontend expects
+        anomalies = data.get('recent_anomalies', [])
+        # Ensure each anomaly has the fields expected by the frontend
+        for anomaly in anomalies:
+            if 'time_ago' not in anomaly:
+                # Ensure time_ago field exists for the frontend
+                anomaly['time_ago'] = f"{random.randint(1, 60)} minutes ago"
+        
+        return jsonify({'anomalies': anomalies})
     except Exception as e:
         logging.error(f"Error fetching latest anomalies: {str(e)}")
         return jsonify({'error': str(e)}), 500
