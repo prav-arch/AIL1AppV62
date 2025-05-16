@@ -287,12 +287,20 @@ class PgVectorDatabase:
             
             # Create index on the vector column
             try:
-                cursor.execute(f"""
-                    CREATE INDEX IF NOT EXISTS page_chunks_embedding_idx 
-                    ON page_chunks 
-                    USING ivfflat (embedding vector_l2_ops)
-                    WITH (lists = 100);
-                """)
+                # Try to create the vector index, but first check if the embedding column exists
+                try:
+                    cursor.execute("SELECT embedding FROM page_chunks LIMIT 1")
+                    # If we get here, the column exists
+                    cursor.execute(f"""
+                        CREATE INDEX IF NOT EXISTS page_chunks_embedding_idx 
+                        ON page_chunks 
+                        USING ivfflat (embedding vector_l2_ops)
+                        WITH (lists = 100);
+                    """)
+                except Exception as column_error:
+                    logger.warning(f"Embedding column doesn't exist, skipping index creation: {str(column_error)}")
+                    if conn:
+                        conn.rollback()
             except Exception as e:
                 logger.warning(f"Could not create vector index, continuing without it: {str(e)}")
                 if conn:
