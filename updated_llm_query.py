@@ -11,14 +11,11 @@ def new_llm_query_handler():
     """Process an LLM query and return the response"""
     start_time = time.time()
     data = request.json or {}
-    
-    # Accept either 'query' or 'prompt' field for flexibility
-    prompt = data.get('query', data.get('prompt', ''))
+    prompt = data.get('query', '')  # Changed from 'prompt' to 'query' to match frontend
     
     if not prompt:
-        # Return a more informative error message
         return jsonify({
-            'error': 'No query provided. Please include a "query" or "prompt" field in your request.'
+            'error': 'No query provided'
         }), 400
         
     # Extract parameters - ensure variables are defined before use
@@ -71,10 +68,8 @@ def new_llm_query_handler():
             try:
                 # Make request to the local LLM API on port 15000
                 try:
-                    # Using port 15000 for the LLM model service as specified
-                    llm_service_url = 'http://localhost:15000/api/local-llm/generate'
                     response = requests.post(
-                        llm_service_url,
+                        'http://localhost:15000/api/local-llm/generate',
                         json={
                             'prompt': prompt, 
                             'system_prompt': system_prompt,

@@ -43,34 +43,25 @@ def kafka_browser():
 @app.route('/api/dashboard/metrics')
 def api_dashboard_metrics():
     """Return dashboard metrics for display"""
-    # Generate consistent values for metrics to avoid random fluctuations when refreshing
-    metrics = {
-        'llm_requests': 287,
-        'today_llm_requests': 36,
-        'documents_indexed': 142,
-        'today_indexed': 12,
-        'anomalies_detected': 64,
-        'today_anomalies': 8,
-        'pipeline_jobs': 15,
-        'active_jobs': 4
-    }
-    
     try:
-        # Try to fetch real metrics if available
         import clickhouse_llm_query
         llm_requests = clickhouse_llm_query.get_llm_query_count()
         today_llm_requests = clickhouse_llm_query.get_today_llm_query_count()
-        
-        # Only update if valid numbers were returned
-        if isinstance(llm_requests, int) and llm_requests > 0:
-            metrics['llm_requests'] = llm_requests
-        if isinstance(today_llm_requests, int) and today_llm_requests > 0:
-            metrics['today_llm_requests'] = today_llm_requests
     except Exception as e:
         logging.error(f"Error fetching LLM metrics: {str(e)}")
-        # Keep using the default metrics defined above
+        llm_requests = random.randint(100, 500)
+        today_llm_requests = random.randint(10, 50)
     
-    return jsonify(metrics)
+    return jsonify({
+        'llm_requests': llm_requests,
+        'today_llm_requests': today_llm_requests,
+        'documents_indexed': random.randint(50, 200),
+        'today_indexed': random.randint(5, 20),
+        'anomalies_detected': random.randint(10, 100),
+        'today_anomalies': random.randint(1, 10),
+        'pipeline_jobs': random.randint(5, 20),
+        'active_jobs': random.randint(1, 5)
+    })
 
 @app.route('/api/dashboard/recent-kafka-messages')
 def api_recent_kafka_messages():
@@ -792,10 +783,6 @@ def api_llm_queries():
             'mock': True  # Indicate this is mock data
         })
 
-# Import the port configuration
-from port_config import PORT
-
 # Run the app
 if __name__ == '__main__':
-    # Use the PORT value from config
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
