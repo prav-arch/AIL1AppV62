@@ -26,4 +26,7 @@ dependencies = [
     "flask-login>=0.6.3",
     "oauthlib>=3.2.2",
     "pyjwt>=2.10.1",
+    "boto3>=1.38.17",
+    "clickhouse-driver>=0.2.9",
+    "urllib3>=2.4.0",
 ]

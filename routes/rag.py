@@ -395,16 +395,17 @@ def search_rag():
 @rag_bp.route('/api/documents/upload', methods=['POST'])
 @rag_bp.route('/api/upload-document', methods=['POST'])  # Added alternate route to match frontend
 def upload_document():
-    """Upload a document to the RAG system"""
+    """Upload a document to the RAG system and save to Minio bucket l1appuploads"""
     import os
     import traceback
     from werkzeug.utils import secure_filename
+    from services.minio_service import MinioService
     
-    # Create a local directory that we can definitely write to
+    # Initialize Minio Service
+    minio_service = MinioService()
+    
+    # Create a local directory for temporary file storage
     upload_dir = os.path.join(os.getcwd(), 'uploads')
-    # The remote directory can't be created because of filesystem restrictions
-    # So we'll record it for reference but only save to the local directory
-    remote_dir = '/home/users/praveen.joe/uploads'  # This is just for reference
     
     # Log request details for debugging
     logger.info(f"====== Upload document request received ======")
@@ -466,17 +467,33 @@ def upload_document():
         # At this point we know file.filename is a valid string
         filename = secure_filename(str(file.filename))
         file_path = os.path.join(upload_dir, filename)
-        # Also log the intended remote path even though we may not be able to write to it
-        remote_path = os.path.join(remote_dir, filename)
         
-        logger.info(f"Saving file to: {file_path}")
-        # Save the file
+        # Save file temporarily to local filesystem
+        logger.info(f"Saving file temporarily to: {file_path}")
         file.save(file_path)
-        logger.info(f"File saved successfully to {file_path}")
+        logger.info(f"File saved temporarily to {file_path}")
         
-        # We can't write to the remote path because of filesystem restrictions
-        logger.warning(f"Cannot save to remote path {remote_path} due to filesystem restrictions. " +
-                      f"File is saved locally at {file_path} instead.")
+        # Prepare metadata for Minio
+        metadata = {
+            'description': description,
+            'original_name': document_name,
+            'content_type': file.content_type if hasattr(file, 'content_type') else 'application/octet-stream'
+        }
+        
+        # Upload to Minio bucket
+        logger.info(f"Uploading file to Minio bucket 'l1appuploads'")
+        success, object_url = minio_service.upload_file(
+            file_path=file_path,
+            object_name=filename,
+            bucket_name='l1appuploads',
+            metadata=metadata
+        )
+        
+        if not success:
+            logger.error(f"Failed to upload file to Minio bucket")
+            return jsonify({'error': 'Failed to upload file to storage'}), 500
+            
+        logger.info(f"File successfully uploaded to Minio: {object_url}")
         
         # Generate a unique document ID
         doc_id = f'doc_{random.randint(100, 999)}'
