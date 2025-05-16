@@ -6,8 +6,8 @@ import logging
 import os
 
 # Import vector database service
-# Using PostgreSQL with pgvector instead of FAISS
-from services.pg_vector_db import pg_vector_db_service as vector_db_service
+# Using ClickHouse vector database service
+from services.clickhouse_vector_db import clickhouse_vector_db_service as vector_db_service
 
 # Set up logger
 logger = logging.getLogger(__name__)
