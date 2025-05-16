@@ -7,7 +7,13 @@ import logging
 import requests
 import uuid
 import random
+import os
 from flask import request, jsonify, Response, stream_with_context, current_app
+
+# Constants for LLM service
+LLM_HOST = os.environ.get("LLM_HOST", "localhost")
+LLM_PORT = os.environ.get("LLM_PORT", "15000")
+LLM_API_URL = f"http://{LLM_HOST}:{LLM_PORT}/v1/chat/completions"
 
 def new_llm_query_handler():
     """Process an LLM query and return the response"""

@@ -14,6 +14,16 @@ logging.basicConfig(level=logging.DEBUG)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
 
+# Initialize LLM service
+try:
+    from services.llm_service_manager import start_llm_service
+    # Start LLM service in background thread to avoid blocking app startup
+    import threading
+    threading.Thread(target=start_llm_service, daemon=True).start()
+    logging.info("LLM service initialization started in background")
+except Exception as e:
+    logging.warning(f"Could not initialize LLM service: {str(e)}")
+
 # Routes for main pages
 @app.route('/')
 def test():
