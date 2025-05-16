@@ -180,25 +180,21 @@ async function fetchDashboardMetrics() {
 
 // Update dashboard metrics with the fetched data
 function updateDashboardMetrics(data) {
-    // Update counter cards
-    if (data.counters) {
-        const { llm_requests, docs_indexed, anomalies, pipelines } = data.counters;
-        
-        if (document.getElementById('llm-request-count')) {
-            document.getElementById('llm-request-count').textContent = llm_requests;
-        }
-        
-        if (document.getElementById('docs-indexed-count')) {
-            document.getElementById('docs-indexed-count').textContent = docs_indexed;
-        }
-        
-        if (document.getElementById('anomalies-count')) {
-            document.getElementById('anomalies-count').textContent = anomalies;
-        }
-        
-        if (document.getElementById('pipelines-count')) {
-            document.getElementById('pipelines-count').textContent = pipelines;
-        }
+    // Update counter cards - direct values from API
+    if (document.getElementById('llm-request-count') && data.llm_requests !== undefined) {
+        document.getElementById('llm-request-count').textContent = data.llm_requests;
+    }
+    
+    if (document.getElementById('docs-indexed-count') && data.documents_indexed !== undefined) {
+        document.getElementById('docs-indexed-count').textContent = data.documents_indexed;
+    }
+    
+    if (document.getElementById('anomalies-count') && data.anomalies_detected !== undefined) {
+        document.getElementById('anomalies-count').textContent = data.anomalies_detected;
+    }
+    
+    if (document.getElementById('pipeline-jobs-count') && data.pipeline_jobs !== undefined) {
+        document.getElementById('pipeline-jobs-count').textContent = data.pipeline_jobs;
     }
     
     // Update system health metrics
@@ -259,7 +255,7 @@ function updateDashboardMetrics(data) {
 // Fetch recent Kafka messages
 async function fetchRecentKafkaMessages() {
     try {
-        const response = await fetchWithTimeout('/api/kafka/messages');
+        const response = await fetchWithTimeout('/api/dashboard/recent-kafka-messages');
         const data = await response.json();
         
         const messagesContainer = document.getElementById('recent-messages');
@@ -269,7 +265,7 @@ async function fetchRecentKafkaMessages() {
         messagesContainer.innerHTML = '';
         
         // Add messages to the container
-        data.messages.forEach(message => {
+        data.forEach(message => {
             addRecentKafkaMessage(message);
         });
     } catch (error) {
@@ -307,7 +303,7 @@ function addRecentKafkaMessage(message) {
 // Fetch pipeline status
 async function fetchPipelineStatus() {
     try {
-        const response = await fetchWithTimeout('/api/pipeline/status');
+        const response = await fetchWithTimeout('/api/dashboard/pipeline-status');
         const data = await response.json();
         
         const pipelineContainer = document.getElementById('pipeline-status');
@@ -317,7 +313,8 @@ async function fetchPipelineStatus() {
         pipelineContainer.innerHTML = '';
         
         // Add pipeline items
-        data.pipelines.forEach(pipeline => {
+        // Direct use of returned jobs array
+        data.forEach(pipeline => {
             updatePipelineStatus(pipeline);
         });
     } catch (error) {
@@ -367,7 +364,7 @@ function updatePipelineStatus(pipeline) {
 // Fetch latest anomalies
 async function fetchLatestAnomalies() {
     try {
-        const response = await fetchWithTimeout('/api/anomalies/latest');
+        const response = await fetchWithTimeout('/api/dashboard/latest-anomalies');
         const data = await response.json();
         
         const anomaliesContainer = document.getElementById('latest-anomalies');
@@ -377,7 +374,7 @@ async function fetchLatestAnomalies() {
         anomaliesContainer.innerHTML = '';
         
         // Add anomalies to the container
-        data.anomalies.forEach(anomaly => {
+        data.forEach(anomaly => {
             addLatestAnomaly(anomaly);
         });
     } catch (error) {
