@@ -441,6 +441,8 @@ function getTimeAgo(date) {
 
 // Helper function to get the appropriate badge class based on status
 function getStatusBadgeClass(status) {
+    if (!status) return 'bg-secondary';
+    
     status = status.toLowerCase();
     
     if (status === 'running' || status === 'success' || status === 'completed') {
@@ -453,5 +455,29 @@ function getStatusBadgeClass(status) {
         return 'bg-danger';
     } else {
         return 'bg-info';
+    }
+}
+
+// Helper function to safely handle fetch errors
+function handleFetchError(error, operation) {
+    console.error(`Error ${operation}:`, error);
+    // Could add user-facing error messages here if needed
+}
+
+// Helper function for fetch with timeout
+async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
     }
 }
