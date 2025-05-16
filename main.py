@@ -19,19 +19,38 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
-# Import ClickHouse database modules
-try:
-    from clickhouse_models import Document, DocumentChunk, VectorDBStats, get_clickhouse_client
-    from clickhouse_llm_query import (
-        initialize_database, save_llm_query, update_llm_query_response,
-        get_llm_query_count, get_today_llm_query_count, get_llm_queries
+# Set up database access (either real ClickHouse or mock implementation)
+# In development we'll use the mock, on your GPU server it will use real ClickHouse
+USE_MOCK_DB = os.environ.get('USE_REAL_CLICKHOUSE', '0') != '1'
+
+if USE_MOCK_DB:
+    # Use mock implementation for development environment
+    logging.info("Using mock ClickHouse implementation for development")
+    from mock_clickhouse import (
+        get_llm_query_count, get_today_llm_query_count, save_llm_query, 
+        update_llm_query_response, get_llm_queries
     )
-    
-    # Initialize the ClickHouse database
-    initialize_database()
-    logging.info("ClickHouse database initialized successfully")
-except Exception as e:
-    logging.error(f"Error initializing ClickHouse: {e}")
+else:
+    # Use real ClickHouse implementation for production
+    try:
+        logging.info("Using real ClickHouse implementation")
+        from clickhouse_models import Document, DocumentChunk, VectorDBStats, get_clickhouse_client
+        from clickhouse_llm_query import (
+            initialize_database, save_llm_query, update_llm_query_response,
+            get_llm_query_count, get_today_llm_query_count, get_llm_queries
+        )
+        
+        # Initialize the ClickHouse database
+        initialize_database()
+        logging.info("ClickHouse database initialized successfully")
+    except Exception as e:
+        logging.error(f"Error initializing ClickHouse: {e}")
+        # Fallback to mock if ClickHouse fails to initialize
+        logging.info("Falling back to mock ClickHouse implementation")
+        from mock_clickhouse import (
+            get_llm_query_count, get_today_llm_query_count, save_llm_query, 
+            update_llm_query_response, get_llm_queries
+        )
 
 # Disable template caching during development
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -326,23 +345,24 @@ def api_llm_query():
     temperature = settings.get('temperature', 0.7)
     max_tokens = settings.get('max_tokens', 1024)
     
-    # Create a new LLMQuery record
+    # Create a new LLM query record in ClickHouse
     start_time = time.time()
-    llm_query = LLMQuery()
-    llm_query.query_text = prompt
-    llm_query.agent_type = data.get('agent_type', 'general')
-    llm_query.temperature = temperature
-    llm_query.max_tokens = max_tokens
-    llm_query.used_rag = data.get('use_rag', False)
+    agent_type = data.get('agent_type', 'general')
+    use_rag = data.get('use_rag', False)
     
-    # Save to database
+    # Save to database using ClickHouse storage
     try:
-        db.session.add(llm_query)
-        db.session.commit()
-        logging.info(f"Saved LLM query to database with ID: {llm_query.id}")
+        query_id = save_llm_query(
+            query_text=prompt, 
+            agent_type=agent_type,
+            temperature=temperature, 
+            max_tokens=max_tokens,
+            used_rag=use_rag
+        )
+        logging.info(f"Saved LLM query to database with ID: {query_id}")
     except Exception as e:
         logging.error(f"Error saving LLM query to database: {str(e)}")
-        db.session.rollback()
+        query_id = None
     
     # Use streaming response to the local LLM endpoint
     try:
