@@ -507,6 +507,7 @@ def api_rag_search():
 @app.route('/api/llm/query', methods=['POST'])
 def api_llm_query():
     """Process an LLM query and return the response"""
+    start_time = time.time()
     data = request.json or {}
     prompt = data.get('prompt', '')
     
@@ -580,12 +581,15 @@ def api_llm_query():
                     
                     # Update the LLMQuery record with the error
                     try:
-                        llm_query.error = error_msg
-                        llm_query.response_time_ms = int((time.time() - start_time) * 1000)
-                        db.session.commit()
+                        if query_id:
+                            clickhouse_llm_query.update_llm_query_response(
+                                query_id=query_id,
+                                response_text="",
+                                error=error_msg,
+                                response_time_ms=int((time.time() - start_time) * 1000)
+                            )
                     except Exception as e:
                         logging.error(f"Error updating LLM query: {str(e)}")
-                        db.session.rollback()
                     
                     yield f"data: {json.dumps({'error': error_msg})}\n\n"
                     yield "data: [DONE]\n\n"
