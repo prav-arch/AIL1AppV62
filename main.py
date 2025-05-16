@@ -792,6 +792,10 @@ def api_llm_queries():
             'mock': True  # Indicate this is mock data
         })
 
+# Import the port configuration
+from port_config import PORT
+
 # Run the app
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=15000, debug=True)
+    # Use the PORT value from config
+    app.run(host='0.0.0.0', port=PORT, debug=True)
