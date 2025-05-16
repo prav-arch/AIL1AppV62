@@ -19,10 +19,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
-# Configure ClickHouse database connection
-from clickhouse_models import initialize_database, Document, DocumentChunk, VectorDBStats, get_clickhouse_client
-
-# Setup ClickHouse connection parameters
+# Configure ClickHouse database connection parameters for GPU server
+# These will be used when deploying to your GPU server
 CLICKHOUSE_CONFIG = {
     'host': 'localhost',
     'port': 9000,
@@ -32,12 +30,13 @@ CLICKHOUSE_CONFIG = {
     'connect_timeout': 10
 }
 
+# For Replit environment, we'll skip actual ClickHouse initialization
+# But still import the models for compatibility
 try:
-    # Initialize ClickHouse database
-    initialize_database()
-    logging.info("ClickHouse database initialized successfully")
+    from clickhouse_models import Document, DocumentChunk, VectorDBStats, get_clickhouse_client
+    logging.info("ClickHouse models imported successfully")
 except Exception as e:
-    logging.error(f"Error initializing ClickHouse database: {e}")
+    logging.error(f"Error importing ClickHouse models: {e}")
     
 # Still keep SQLAlchemy for session management with smaller tables
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
@@ -394,7 +393,7 @@ def api_llm_query():
         def generate():
             full_response = ""
             try:
-                # Make request to the local LLM API
+                # Make request to the local LLM API on port 15000
                 response = requests.post(
                     'http://localhost:15000/api/local-llm/generate',
                     json={
