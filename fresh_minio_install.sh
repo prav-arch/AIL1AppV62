@@ -121,7 +121,7 @@ if ~/minio/mc ls myminio; then
   echo -e "${GREEN}Installation complete!${NC}"
   echo -e "${GREEN}Access the Minio API at: http://SERVER_IP:8000${NC}"
   echo -e "${GREEN}Access the Minio Console at: http://SERVER_IP:8001${NC}"
-  echo -e "${GREEN}Username: dpcoe${NC}"
+  echo -e "${GREEN}Username: dpcoeadmin${NC}"
   echo -e "${GREEN}Password: dpcoeadmin${NC}"
 else
   echo -e "${RED}Failed to connect to Minio.${NC}"
