@@ -279,6 +279,91 @@ class VectorService:
                 "index_size": "0 B",
                 "index_size_bytes": 0
             }
+            
+    def generate_embedding(self, text: str) -> List[float]:
+        """
+        Generate embeddings for text content using available methods:
+        1. Try SentenceTransformers if available (best quality)
+        2. Fall back to TF-IDF + SVD otherwise
+        
+        Args:
+            text: The text to generate an embedding for
+            
+        Returns:
+            A list of floats representing the embedding vector
+        """
+        dimension = self.dimension
+        
+        try:
+            # Try importing sentence_transformers for high-quality embeddings
+            from sentence_transformers import SentenceTransformer
+            
+            # Use one of the smaller models that's commonly available
+            model = SentenceTransformer('all-MiniLM-L6-v2')
+            embedding = model.encode(text, normalize_embeddings=True)
+            
+            # Resize if necessary
+            if len(embedding) > dimension:
+                embedding = embedding[:dimension]
+            elif len(embedding) < dimension:
+                # Pad with zeros if needed
+                padding = np.zeros(dimension - len(embedding))
+                embedding = np.concatenate([embedding, padding])
+                
+            logger.info(f"Generated embedding using SentenceTransformer with dimension {len(embedding)}")
+            return embedding.tolist()
+        
+        except ImportError:
+            logger.warning("SentenceTransformers not available, using scikit-learn for embeddings")
+            
+            try:
+                # Fall back to TF-IDF + SVD (scikit-learn)
+                from sklearn.feature_extraction.text import TfidfVectorizer
+                from sklearn.decomposition import TruncatedSVD
+                
+                # Create TF-IDF vectorizer
+                vectorizer = TfidfVectorizer(max_features=1000)
+                
+                # Fit and transform the text
+                tfidf_matrix = vectorizer.fit_transform([text])
+                
+                # Reduce dimensionality with SVD
+                svd = TruncatedSVD(n_components=dimension)
+                embedding = svd.fit_transform(tfidf_matrix)[0]
+                
+                # Normalize
+                embedding = embedding / np.linalg.norm(embedding)
+                
+                logger.info(f"Generated embedding using TF-IDF + SVD with dimension {len(embedding)}")
+                return embedding.tolist()
+            
+            except ImportError:
+                logger.warning("Scikit-learn not available, using simple embedding technique")
+                
+                # Basic tokenization and hashing as a last resort
+                import hashlib
+                
+                # Split text into tokens
+                tokens = text.lower().split()
+                
+                # Create an empty embedding vector
+                embedding = np.zeros(dimension, dtype=np.float32)
+                
+                # Fill embedding vector with token hashes
+                for i, token in enumerate(tokens):
+                    # Hash the token
+                    token_hash = int(hashlib.md5(token.encode('utf-8')).hexdigest(), 16)
+                    
+                    # Use the hash to set values in the embedding
+                    pos = token_hash % dimension
+                    embedding[pos] += 1.0 / (i + 1)  # Weigh earlier tokens more
+                
+                # Normalize the vector
+                if np.linalg.norm(embedding) > 0:
+                    embedding = embedding / np.linalg.norm(embedding)
+                
+                logger.info(f"Generated embedding using basic hashing with dimension {len(embedding)}")
+                return embedding.tolist()
 
 # Singleton instance for the application
 _vector_service = None
