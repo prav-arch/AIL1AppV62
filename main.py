@@ -507,9 +507,9 @@ def api_rag_search():
 @app.route('/api/llm/query', methods=['POST'])
 def api_llm_query():
     """Process an LLM query and return the response"""
-    start_time = time.time()
-    data = request.json or {}
-    prompt = data.get('prompt', '')
+    # Import the new handler that doesn't use undefined variables
+    from updated_llm_query import new_llm_query_handler
+    return new_llm_query_handler()
     
     if not prompt:
         return jsonify({'error': 'Prompt is required'}), 400
