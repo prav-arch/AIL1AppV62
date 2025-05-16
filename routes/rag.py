@@ -696,7 +696,14 @@ def scrape_webpage():
                     }
                     
                     # Add to vector database
-                    indexed = vector_db_service.add_document(doc_id, text_content, doc_metadata)
+                    # Generate embedding for the web content
+                    embedding = vector_service.generate_embedding(text_content)
+                    
+                    # Add to FAISS vector service
+                    vector_service.add_vectors([doc_id], [embedding])
+                    
+                    # Successfully indexed
+                    indexed = True
                     
                     if indexed:
                         logger.info(f"Scraped document {doc_id} added to vector database successfully")
