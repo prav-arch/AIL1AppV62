@@ -7,14 +7,14 @@ import os
 import json
 
 # Import FAISS vector service for GPU server
-from vector_service import FaissVectorService
+from vector_service import VectorService, get_vector_service, get_stats
 
 # Import ClickHouse client model
 from clickhouse_models import LLMPrompt, Document, DocumentChunk, initialize_database
 
 # Create FAISS vector service instance - this uses GPU-optimized vector operations
 # and completely replaces the need for PostgreSQL/pgvector
-vector_service = FaissVectorService()
+vector_service = get_vector_service()
 
 # Set up logger
 logger = logging.getLogger(__name__)

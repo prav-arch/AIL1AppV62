@@ -7,14 +7,14 @@ import logging
 import random
 from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
-from vector_service import FaissVectorService
+from vector_service import VectorService, get_vector_service, get_stats
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create FAISS vector service instance
-vector_service = FaissVectorService()
+vector_service = get_vector_service()
 
 # Create blueprint
 database_bp = Blueprint('database', __name__, url_prefix='/api/database')
