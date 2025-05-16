@@ -82,10 +82,10 @@ EOF
     echo -e "${GREEN}Minio will now start. To stop it, press Ctrl+C.${NC}"
     echo -e "${GREEN}To start Minio again later, run: ~/minio/start-minio.sh${NC}"
     echo -e "${GREEN}To check if Minio is running: ~/minio/check-minio.sh${NC}"
-    echo -e "${GREEN}Access the Minio API at: http://${SERVER_IP}:9000${NC}"
-    echo -e "${GREEN}Access the Minio Console at: http://${SERVER_IP}:9001${NC}"
-    echo -e "${GREEN}Username: admin${NC}"
-    echo -e "${GREEN}Password: admin${NC}"
+    echo -e "${GREEN}Access the Minio API at: http://${SERVER_IP}:8000${NC}"
+    echo -e "${GREEN}Access the Minio Console at: http://${SERVER_IP}:8001${NC}"
+    echo -e "${GREEN}Username: dpcoe${NC}"
+    echo -e "${GREEN}Password: dpcoeadmin${NC}"
     
     # Start Minio in the foreground
     ~/minio/start-minio.sh
@@ -144,10 +144,10 @@ EOF
     echo -e "${GREEN}  Stop:    ~/minio/manage-minio.sh stop${NC}"
     echo -e "${GREEN}  Restart: ~/minio/manage-minio.sh restart${NC}"
     echo -e "${GREEN}  Status:  ~/minio/manage-minio.sh status${NC}"
-    echo -e "${GREEN}Access the Minio API at: http://${SERVER_IP}:9000${NC}"
-    echo -e "${GREEN}Access the Minio Console at: http://${SERVER_IP}:9001${NC}"
-    echo -e "${GREEN}Username: admin${NC}"
-    echo -e "${GREEN}Password: admin${NC}"
+    echo -e "${GREEN}Access the Minio API at: http://${SERVER_IP}:8000${NC}"
+    echo -e "${GREEN}Access the Minio Console at: http://${SERVER_IP}:8001${NC}"
+    echo -e "${GREEN}Username: dpcoe${NC}"
+    echo -e "${GREEN}Password: dpcoeadmin${NC}"
     
     # Check if Minio started successfully
     sleep 3
