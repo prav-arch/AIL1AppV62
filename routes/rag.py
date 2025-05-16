@@ -630,49 +630,33 @@ def scrape_webpage():
         
         # Try to fetch webpage content
         try:
-            # Set up SSL verification for requests
-            ssl_verify = not ignore_ssl_errors
+            # Import our web scraper service that works properly in multi-threaded environments
+            from services.web_scraper_service import scraper_service
             
-            # For trafilatura, we don't use the SSL verification directly
-            # as it doesn't accept this parameter
-            logger.info(f"Fetching URL with trafilatura: {url}")
-            try:
-                # Import requests and temporarily modify its SSL verification behavior
-                import urllib3
-                import trafilatura.settings
-                
-                # Fix for "Signal only works in main thread" error
-                # Store original value
-                original_timeout = trafilatura.settings.SIGNAL_TIMEOUT
-                # Disable signal handling
-                trafilatura.settings.SIGNAL_TIMEOUT = 0
-                
-                if ignore_ssl_errors:
-                    # Disable SSL warnings when verification is disabled
-                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                    
-                # Try with trafilatura (which doesn't have a verify param)
-                downloaded = fetch_url(url)
-                
-                # Restore original value
-                trafilatura.settings.SIGNAL_TIMEOUT = original_timeout
-            except Exception as trafilatura_error:
-                logger.warning(f"Trafilatura error: {str(trafilatura_error)}")
-                downloaded = None
+            # Log scraping attempt
+            logger.info(f"Fetching URL with web scraper service: {url}")
             
-            if not downloaded:
-                # If trafilatura fails, try with requests
-                logger.info(f"Trafilatura failed, trying with requests: {url}")
-                response = requests.get(url, verify=ssl_verify, timeout=10)
-                response.raise_for_status()  # Raise exception for 4XX/5XX responses
-                downloaded = response.text
+            # Use the scraper service to get the content
+            scrape_result = scraper_service.scrape_url(url, ignore_ssl_errors=ignore_ssl_errors)
             
-            # Extract main content
-            text_content = extract(downloaded)
+            if not scrape_result['success']:
+                # Scraping failed
+                error_message = scrape_result.get('error', 'Unknown error during web scraping')
+                logger.error(f"Web scraper error: {error_message}")
+                return jsonify({'error': f'Failed to scrape URL: {error_message}'}), 400
             
-            if not text_content:
-                logger.warning(f"No text content extracted from {url}")
-                text_content = downloaded  # Use the raw HTML if extraction fails
+            # Extract the content from the successful result
+            text_content = scrape_result['content']
+            downloaded = text_content  # For compatibility with existing code
+            
+            # We also have the title available if needed
+            page_title = scrape_result.get('title', '')
+            if not name and page_title:
+                name = page_title
+            
+            # We already have the text content from our web scraper service
+            # No need to use extract() function which causes "Signal only works in main thread" error
+            logger.info(f"Successfully extracted content with length: {len(text_content)}")
             
             # Save the content to a file
             safe_filename = secure_filename(name)
