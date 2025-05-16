@@ -757,6 +757,12 @@ def api_llm_query():
     from updated_llm_query import new_llm_query_handler
     return new_llm_query_handler()
 
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle internal server errors gracefully"""
+    logging.error(f"Internal server error: {error}")
+    return jsonify({'error': 'An internal server error occurred. Please try again later.'}), 500
+
 @app.route('/api/llm/queries')
 def api_llm_queries():
     """Return list of LLM queries for the dashboard"""
