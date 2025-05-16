@@ -142,6 +142,86 @@ def api_pipeline_status():
         logging.error(f"Error getting pipeline status: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/pipeline/nifi/jobs', methods=['GET'])
+def api_nifi_jobs():
+    """Return NiFi jobs for the data pipeline dashboard"""
+    try:
+        # Generate mock NiFi jobs
+        jobs = []
+        for i in range(5):
+            jobs.append({
+                'id': f'nifi-job-{i+1}',
+                'name': f'Data Collection Job {i+1}',
+                'status': random.choice(['running', 'stopped', 'failed', 'waiting']),
+                'type': 'file-processing',
+                'created_at': (datetime.now() - timedelta(days=random.randint(1, 30))).isoformat(),
+                'last_run': (datetime.now() - timedelta(hours=random.randint(1, 24))).isoformat(),
+                'schedule': f'Every {random.randint(1, 6)} hours'
+            })
+        return jsonify({'jobs': jobs})
+    except Exception as e:
+        logging.error(f"Error getting NiFi jobs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pipeline/airflow/dags', methods=['GET'])
+def api_airflow_dags():
+    """Return Airflow DAGs for the data pipeline dashboard"""
+    try:
+        # Generate mock Airflow DAGs
+        dags = []
+        for i in range(5):
+            dags.append({
+                'id': f'airflow-dag-{i+1}',
+                'name': f'Processing Workflow {i+1}',
+                'status': random.choice(['active', 'paused', 'failed']),
+                'schedule': f'0 {random.randint(0, 23)} * * *',
+                'last_run': (datetime.now() - timedelta(hours=random.randint(1, 24))).isoformat(),
+                'next_run': (datetime.now() + timedelta(hours=random.randint(1, 24))).isoformat(),
+                'duration': f'{random.randint(10, 120)} minutes'
+            })
+        return jsonify({'dags': dags})
+    except Exception as e:
+        logging.error(f"Error getting Airflow DAGs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pipeline/jobs/status', methods=['GET'])
+def api_jobs_status():
+    """Return status overview for jobs in the data pipeline"""
+    try:
+        # Generate mock job status statistics
+        status = {
+            'total': random.randint(20, 50),
+            'running': random.randint(5, 15),
+            'failed': random.randint(0, 5),
+            'waiting': random.randint(3, 10),
+            'completed': random.randint(10, 30)
+        }
+        return jsonify(status)
+    except Exception as e:
+        logging.error(f"Error getting job status: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/kafka/topics', methods=['GET'])
+def api_kafka_topics():
+    """Return Kafka topics for the Kafka browser"""
+    try:
+        # Generate mock Kafka topics
+        topics = []
+        for i in range(10):
+            topics.append({
+                'name': f'topic-{i+1}',
+                'partitions': random.randint(1, 10),
+                'replication_factor': random.randint(1, 3),
+                'messages': random.randint(100, 10000),
+                'size': f'{random.randint(1, 100)} MB',
+                'retention': f'{random.randint(1, 7)} days',
+                'created_at': (datetime.now() - timedelta(days=random.randint(1, 90))).isoformat()
+            })
+        return jsonify({'topics': topics})
+    except Exception as e:
+        logging.error(f"Error getting Kafka topics: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/anomalies/latest', methods=['GET'])
 def api_latest_anomalies():
     """Return latest anomalies information"""
