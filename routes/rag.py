@@ -4,9 +4,13 @@ import time
 from datetime import datetime, timedelta
 import logging
 import os
+import json
 
 # Import FAISS vector service for GPU server
 from vector_service import FaissVectorService
+
+# Import ClickHouse client model
+from clickhouse_models import LLMPrompt, Document, DocumentChunk, initialize_database
 
 # Create FAISS vector service instance - this uses GPU-optimized vector operations
 # and completely replaces the need for PostgreSQL/pgvector
@@ -574,6 +578,35 @@ def upload_document():
         except Exception as e:
             logger.warning(f"Could not remove temporary file {file_path}: {str(e)}")
                 
+        # Save document information to database
+        try:
+            # Calculate file size (use 0 if file is already removed)
+            file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+            
+            # Insert document info into the database
+            cursor = db.cursor()
+            cursor.execute("""
+                INSERT INTO rag_documents 
+                (document_id, name, filename, description, minio_url, bucket, storage_type, status, indexed, file_size)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                doc_id, 
+                document_name, 
+                filename, 
+                description, 
+                object_url, 
+                'l1appuploads', 
+                'minio', 
+                'indexed' if indexed else ('processing' if index_immediately else 'uploaded'),
+                indexed,
+                file_size
+            ))
+            db.commit()
+            logger.info(f"Document information saved to database: {doc_id}")
+        except Exception as db_error:
+            logger.error(f"Error saving to database: {str(db_error)}")
+            # Continue even if database save fails - the file is already in Minio
+        
         # Return success response
         response_data = {
             'success': True,

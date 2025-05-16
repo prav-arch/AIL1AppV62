@@ -84,20 +84,41 @@ class Document(BaseModel):
         'description String',
         'metadata String',
         'file_path String',
-        'created_at DateTime DEFAULT now()'
+        'created_at DateTime DEFAULT now()',
+        'minio_url String',
+        'bucket String',
+        'storage_type String',
+        'status String',
+        'indexed UInt8',
+        'filename String',
+        'file_size UInt64'
     ]
     
     @classmethod
-    def create(cls, name: str, description: str, metadata: Dict = None, file_path: str = None) -> str:
-        """Create a new document"""
+    def create(cls, name: str, description: str, metadata: Dict = None, file_path: str = None, 
+               minio_url: str = None, bucket: str = None, storage_type: str = None, 
+               status: str = None, indexed: bool = False, filename: str = None, file_size: int = 0) -> str:
+        """Create a new document with Minio storage information"""
         document_id = str(uuid.uuid4())
         metadata_str = json.dumps(metadata) if metadata else '{}'
         
         query = f"""
-        INSERT INTO {cls.table_name} (id, name, description, metadata, file_path)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO {cls.table_name} (
+            id, name, description, metadata, file_path, 
+            minio_url, bucket, storage_type, status, indexed, 
+            filename, file_size
+        )
+        VALUES (
+            %s, %s, %s, %s, %s, 
+            %s, %s, %s, %s, %s, 
+            %s, %s
+        )
         """
-        params = (document_id, name, description, metadata_str, file_path or '')
+        params = (
+            document_id, name, description, metadata_str, file_path or '',
+            minio_url or '', bucket or '', storage_type or '', status or '', 1 if indexed else 0,
+            filename or '', file_size or 0
+        )
         
         cls.execute(query, params)
         
