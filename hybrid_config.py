@@ -18,8 +18,8 @@ DB_CONFIG = {
     'clickhouse': {
         'host': os.getenv('CLICKHOUSE_HOST', 'localhost'),
         'port': int(os.getenv('CLICKHOUSE_PORT', 9000)),
-        'user': os.getenv('CLICKHOUSE_USER', 'l1_app_user'),
-        'password': os.getenv('CLICKHOUSE_PASSWORD', 'test'),
+        'user': os.getenv('CLICKHOUSE_USER', 'default'),
+        'password': os.getenv('CLICKHOUSE_PASSWORD', ''),
         'database': os.getenv('CLICKHOUSE_DATABASE', 'l1_app_db'),
         'version': '18.16.1',  # Specific ClickHouse version
     },
