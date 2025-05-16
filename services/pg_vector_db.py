@@ -154,16 +154,8 @@ class PgVectorDBService:
             """)
             
             # Try to create index on the vector column
-            try:
-                cursor.execute(f"""
-                    CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx 
-                    ON document_chunks 
-                    USING ivfflat (embedding vector_l2_ops)
-                    WITH (lists = 100);
-                """)
-            except Exception as e:
-                logger.warning(f"Could not create vector index, continuing without it: {str(e)}")
-                conn.rollback()
+            # Skip vector index creation as we're using FAISS instead
+            logger.info("Skipping PostgreSQL vector index creation since we're using FAISS")
             
             # Create stats table
             cursor.execute("""
