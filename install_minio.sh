@@ -19,14 +19,14 @@ echo "Creating directories..."
 mkdir -p ~/minio/data
 mkdir -p ~/.minio
 
-# Download Minio binary
+# Download Minio binary with certificate checks disabled
 echo "Downloading Minio..."
-wget https://dl.min.io/server/minio/release/linux-amd64/minio -O ~/minio/minio
+wget --no-check-certificate https://dl.min.io/server/minio/release/linux-amd64/minio -O ~/minio/minio
 chmod +x ~/minio/minio
 
-# Download Minio client
+# Download Minio client with certificate checks disabled
 echo "Downloading Minio client..."
-wget https://dl.min.io/client/mc/release/linux-amd64/mc -O ~/minio/mc
+wget --no-check-certificate https://dl.min.io/client/mc/release/linux-amd64/mc -O ~/minio/mc
 chmod +x ~/minio/mc
 
 # Create environment file
@@ -51,9 +51,12 @@ MINIO_DATA_DIR=~/minio/data
 # Force HTTP (disable HTTPS completely)
 export MINIO_SERVER_URL="http://${SERVER_IP}:9000"
 export MINIO_BROWSER_REDIRECT_URL="http://${SERVER_IP}:9001"
+export MINIO_CERT_INSECURE=true
+export MINIO_SKIP_CLIENT_CERT_VERIFY=true
+export MINIO_SKIP_CERT_VERIFY=true
 
 # Start Minio server
-~/minio/minio server --console-address :9001 --address :9000 \$MINIO_DATA_DIR
+~/minio/minio server --console-address :9001 --address :9000 --certs-dir=/tmp \$MINIO_DATA_DIR
 EOF
 
 chmod +x ~/minio/start-minio.sh
@@ -93,11 +96,12 @@ else
     
     # Configure Minio client (with insecure flag)
     echo "Configuring Minio client..."
-    ~/minio/mc alias set myminio http://${SERVER_IP}:9000 admin admin --insecure
+    export MC_INSECURE=true  # Set global environment variable to disable certificate checks
+    ~/minio/mc --insecure alias set myminio http://${SERVER_IP}:9000 admin admin --insecure
     
     # Create a bucket for data
     echo "Creating a data bucket..."
-    ~/minio/mc mb myminio/data-bucket --insecure
+    ~/minio/mc --insecure mb myminio/data-bucket --insecure
     
     # Create a simple management script
     cat > ~/minio/manage-minio.sh << EOF
