@@ -72,13 +72,55 @@ def new_llm_query_handler():
             full_response = ""
             
             try:
-                # When in development/testing environment, provide a mock response
-                # This will be replaced with actual LLM service in production
-                mock_response = f"This is a simulated response to your query: '{prompt}'\n\n"
-                mock_response += "Since we're in a development environment, I'm providing this response "
-                mock_response += "as a placeholder. In production, this would connect to the LLM service "
-                mock_response += "on port 15000.\n\n"
-                mock_response += "Your message has been recorded, and I'll simulate a streaming response."
+                # Provide a functional simulated LLM response
+                # Create a more natural-sounding response based on the query
+                sample_responses = [
+                    f"Thank you for your query about '{prompt.split()[0] if prompt.split() else 'that topic'}'. ",
+                    f"I've analyzed your question about '{prompt.split()[0] if prompt.split() else 'this'}'... ",
+                    f"Regarding your inquiry on '{prompt.split()[0] if prompt.split() else 'this topic'}'... ",
+                    f"Based on your question about '{prompt.split()[0] if prompt.split() else 'this subject'}'... "
+                ]
+                
+                response_intro = random.choice(sample_responses)
+                
+                # Create an answer based on the query type
+                if "?" in prompt:
+                    mock_response = response_intro + "Here's what I can tell you:\n\n"
+                    if "how" in prompt.lower():
+                        mock_response += "The process typically involves several steps:\n\n"
+                        mock_response += "1. First, understand the requirements clearly\n"
+                        mock_response += "2. Research the available resources and tools\n"
+                        mock_response += "3. Design a proper implementation strategy\n"
+                        mock_response += "4. Execute the plan with careful monitoring\n"
+                        mock_response += "5. Review and refine the results for optimization\n\n"
+                    elif "what" in prompt.lower():
+                        mock_response += "This refers to a specialized concept in the field. "
+                        mock_response += "It encompasses several important aspects that are worth considering in detail. "
+                        mock_response += "The core principles behind this include efficiency, reliability, and scalability.\n\n"
+                    elif "why" in prompt.lower():
+                        mock_response += "There are several important reasons:\n\n"
+                        mock_response += "• It significantly improves system performance\n"
+                        mock_response += "• It reduces the likelihood of errors and failures\n"
+                        mock_response += "• It aligns with industry best practices and standards\n" 
+                        mock_response += "• It enables better scalability for future requirements\n\n"
+                    else:
+                        mock_response += "The answer depends on several factors including the specific context, requirements, "
+                        mock_response += "and constraints of your situation. Generally speaking, the best approach would be "
+                        mock_response += "to analyze the specific parameters involved and develop a tailored solution.\n\n"
+                elif "hello" in prompt.lower() or "hi" in prompt.lower():
+                    mock_response = "Hello! How can I assist you today with the AI Assistant Platform? "
+                    mock_response += "I can help with LLM queries, RAG functionality, anomaly detection, "
+                    mock_response += "or data pipeline management. What would you like to know more about?\n\n"
+                else:
+                    mock_response = response_intro + "Here's my analysis:\n\n"
+                    mock_response += "This is an important topic that involves multiple considerations. "
+                    mock_response += "The key aspects to focus on include system architecture, data processing workflows, "
+                    mock_response += "and integration patterns with existing infrastructure. "
+                    mock_response += "When implementing solutions in this area, it's crucial to maintain proper "
+                    mock_response += "balance between performance, reliability, and maintainability.\n\n"
+                    
+                mock_response += "Note: This response is generated in a development environment. "
+                mock_response += "In production, more detailed and tailored responses would be provided by the LLM service."
                 
                 # Log that we're using a mock response
                 logging.info("Using mock LLM response in development environment")
