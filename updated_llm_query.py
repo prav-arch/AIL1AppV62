@@ -71,8 +71,10 @@ def new_llm_query_handler():
             try:
                 # Make request to the local LLM API on port 15000
                 try:
+                    # Using port 15000 for the LLM model service as specified
+                    llm_service_url = 'http://localhost:15000/api/local-llm/generate'
                     response = requests.post(
-                        'http://localhost:15000/api/local-llm/generate',
+                        llm_service_url,
                         json={
                             'prompt': prompt, 
                             'system_prompt': system_prompt,
