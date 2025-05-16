@@ -19,6 +19,25 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(nam
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "super-secret-key")
 
+# Configure the database connection
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Import and initialize the database
+from models import db, LLMQuery
+
+# Initialize the app with the database extension
+db.init_app(app)
+
+# Create database tables within application context
+with app.app_context():
+    db.create_all()
+    logging.info("Database tables created")
+
 # Disable template caching during development
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
@@ -70,13 +89,28 @@ def kafka_browser():
 @app.route('/api/dashboard/metrics', methods=['GET'])
 def api_dashboard_metrics():
     """Return dashboard metrics for display"""
+    # Get real count of LLM queries
+    with app.app_context():
+        try:
+            # Count total queries
+            total_queries = LLMQuery.query.count()
+            
+            # Count queries from today
+            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            queries_today = LLMQuery.query.filter(LLMQuery.created_at >= today).count()
+        except Exception as e:
+            logging.error(f"Error getting query counts: {str(e)}")
+            total_queries = 0
+            queries_today = 0
+    
     return jsonify({
         'total_documents': random.randint(50, 200),
         'active_pipelines': random.randint(5, 15),
         'kafka_topics': random.randint(10, 30),
         'anomalies_detected': random.randint(0, 20),
         'system_health': random.choice(['good', 'excellent', 'fair']),
-        'llm_queries_today': random.randint(100, 500),
+        'llm_queries_today': queries_today,
+        'total_llm_queries': total_queries,
         'last_updated': datetime.now().isoformat()
     })
 
@@ -299,6 +333,24 @@ def api_llm_query():
     temperature = settings.get('temperature', 0.7)
     max_tokens = settings.get('max_tokens', 1024)
     
+    # Create a new LLMQuery record
+    start_time = time.time()
+    llm_query = LLMQuery()
+    llm_query.query_text = prompt
+    llm_query.agent_type = data.get('agent_type', 'general')
+    llm_query.temperature = temperature
+    llm_query.max_tokens = max_tokens
+    llm_query.used_rag = data.get('use_rag', False)
+    
+    # Save to database
+    try:
+        db.session.add(llm_query)
+        db.session.commit()
+        logging.info(f"Saved LLM query to database with ID: {llm_query.id}")
+    except Exception as e:
+        logging.error(f"Error saving LLM query to database: {str(e)}")
+        db.session.rollback()
+    
     # Use streaming response to the local LLM endpoint
     try:
         # Create system prompt based on agent type
@@ -320,6 +372,7 @@ def api_llm_query():
             system_prompt += "\n\n[Relevant information from knowledge base would be added here]"
         
         def generate():
+            full_response = ""
             try:
                 # Make request to the local LLM API
                 response = requests.post(
@@ -338,6 +391,16 @@ def api_llm_query():
                 if response.status_code != 200:
                     error_msg = f"Error from LLM API: {response.text}"
                     logging.error(error_msg)
+                    
+                    # Update the LLMQuery record with the error
+                    try:
+                        llm_query.error = error_msg
+                        llm_query.response_time_ms = int((time.time() - start_time) * 1000)
+                        db.session.commit()
+                    except Exception as e:
+                        logging.error(f"Error updating LLM query: {str(e)}")
+                        db.session.rollback()
+                    
                     yield f"data: {json.dumps({'error': error_msg})}\n\n"
                     yield "data: [DONE]\n\n"
                     return
@@ -346,10 +409,41 @@ def api_llm_query():
                 for line in response.iter_lines():
                     if line:
                         line = line.decode('utf-8')
+                        
+                        # Extract text token if possible
+                        try:
+                            if line.startswith('data: ') and line != 'data: [DONE]':
+                                data_json = json.loads(line[6:])
+                                if 'text' in data_json:
+                                    full_response += data_json['text']
+                        except:
+                            pass
+                            
                         yield f"{line}\n\n"
+                
+                # Update the LLMQuery record with the full response
+                try:
+                    llm_query.response_text = full_response
+                    llm_query.response_time_ms = int((time.time() - start_time) * 1000)
+                    db.session.commit()
+                    logging.info(f"Updated LLM query {llm_query.id} with response")
+                except Exception as e:
+                    logging.error(f"Error updating LLM query response: {str(e)}")
+                    db.session.rollback()
+                    
             except Exception as e:
                 error_msg = f"Error in LLM streaming: {str(e)}"
                 logging.error(error_msg)
+                
+                # Update the LLMQuery record with the error
+                try:
+                    llm_query.error = error_msg
+                    llm_query.response_time_ms = int((time.time() - start_time) * 1000)
+                    db.session.commit()
+                except Exception as err:
+                    logging.error(f"Error updating LLM query: {str(err)}")
+                    db.session.rollback()
+                
                 yield f"data: {json.dumps({'error': error_msg})}\n\n"
                 yield "data: [DONE]\n\n"
         
@@ -358,7 +452,43 @@ def api_llm_query():
     except Exception as e:
         error_msg = f"Error processing LLM request: {str(e)}"
         logging.error(error_msg)
+        
+        # Update the LLMQuery record with the error
+        try:
+            llm_query.error = error_msg
+            llm_query.response_time_ms = int((time.time() - start_time) * 1000)
+            db.session.commit()
+        except Exception as err:
+            logging.error(f"Error updating LLM query: {str(err)}")
+            db.session.rollback()
+            
         return jsonify({'error': error_msg}), 500
+
+# Add API endpoint to get LLM queries for dashboard
+@app.route('/api/llm/queries', methods=['GET'])
+def api_llm_queries():
+    """Return list of LLM queries for the dashboard"""
+    try:
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        # Query the database with pagination
+        queries = LLMQuery.query.order_by(LLMQuery.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False)
+        
+        # Convert to list of dictionaries
+        result = {
+            'queries': [q.to_dict() for q in queries.items],
+            'total': queries.total,
+            'pages': queries.pages,
+            'current_page': queries.page
+        }
+        
+        return jsonify(result)
+    except Exception as e:
+        logging.error(f"Error retrieving LLM queries: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # Start the server when run directly
 if __name__ == '__main__':
