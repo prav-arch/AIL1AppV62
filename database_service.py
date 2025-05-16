@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 CLICKHOUSE_CONFIG = {
     'host': 'localhost',
     'port': 9000,
-    'user': 'default',  # PostgreSQL user is always default
-    'password': '',     # Password is empty
+    'user': 'default',  # ClickHouse default user
+    'password': '',     # Password is empty by default
     'database': 'l1_app_db',
     'connect_timeout': 10
 }

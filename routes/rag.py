@@ -308,9 +308,9 @@ def search_rag():
                     'search_time': search_time,
                     'note': 'No documents have been added to the vector database yet. These are sample results.',
                     'metadata': {
-                        'embedding_model': 'pgvector',
+                        'embedding_model': 'faiss-vector',
                         'similarity_metric': 'L2',
-                        'retrieval_method': 'postgresql'
+                        'retrieval_method': 'faiss'
                     }
                 })
         
@@ -383,9 +383,9 @@ def search_rag():
             'total_matches': len(results),
             'search_time': search_time,
             'metadata': {
-                'embedding_model': 'pgvector',
+                'embedding_model': 'faiss-vector',
                 'similarity_metric': 'L2',
-                'retrieval_method': 'postgresql'
+                'retrieval_method': 'faiss'
             }
         })
     except Exception as e:
