@@ -142,11 +142,19 @@ def api_pipeline_status():
         logging.error(f"Error getting pipeline status: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/pipeline/nifi/jobs', methods=['GET'])
+@app.route('/api/pipeline/nifi/jobs', methods=['GET', 'POST'])
 def api_nifi_jobs():
     """Return NiFi jobs for the data pipeline dashboard"""
     try:
-        # Generate mock NiFi jobs
+        if request.method == 'POST':
+            # Handle job creation
+            return jsonify({
+                'success': True,
+                'message': 'Job created successfully',
+                'job_id': f'nifi-job-{random.randint(1000, 9999)}'
+            })
+        
+        # Generate jobs for GET request
         jobs = []
         for i in range(5):
             jobs.append({
@@ -160,7 +168,53 @@ def api_nifi_jobs():
             })
         return jsonify({'jobs': jobs})
     except Exception as e:
-        logging.error(f"Error getting NiFi jobs: {str(e)}")
+        logging.error(f"Error handling NiFi jobs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pipeline/nifi/jobs/<job_id>', methods=['GET', 'DELETE'])
+def api_nifi_job_detail(job_id):
+    """Get or delete a specific NiFi job"""
+    try:
+        if request.method == 'DELETE':
+            return jsonify({
+                'success': True,
+                'message': f'Job {job_id} deleted successfully'
+            })
+        
+        # Return job details for GET
+        return jsonify({
+            'id': job_id,
+            'name': f'Data Collection Job {job_id[-1]}',
+            'status': random.choice(['running', 'stopped', 'failed', 'waiting']),
+            'type': 'file-processing',
+            'created_at': (datetime.now() - timedelta(days=random.randint(1, 30))).isoformat(),
+            'last_run': (datetime.now() - timedelta(hours=random.randint(1, 24))).isoformat(),
+            'schedule': f'Every {random.randint(1, 6)} hours',
+            'details': {
+                'source': '/data/input',
+                'destination': '/data/output',
+                'processors': random.randint(3, 8),
+                'connections': random.randint(2, 7)
+            }
+        })
+    except Exception as e:
+        logging.error(f"Error handling NiFi job detail: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pipeline/nifi/jobs/<job_id>/<action>', methods=['POST'])
+def api_nifi_job_action(job_id, action):
+    """Perform actions on a NiFi job (start, stop, pause, restart)"""
+    if action not in ['start', 'stop', 'pause', 'restart']:
+        return jsonify({'error': 'Invalid action'}), 400
+    
+    try:
+        return jsonify({
+            'success': True,
+            'message': f'Job {job_id} {action} action completed successfully',
+            'status': 'running' if action in ['start', 'restart'] else 'stopped' if action == 'stop' else 'waiting'
+        })
+    except Exception as e:
+        logging.error(f"Error performing action on NiFi job: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/pipeline/airflow/dags', methods=['GET'])
@@ -182,6 +236,33 @@ def api_airflow_dags():
         return jsonify({'dags': dags})
     except Exception as e:
         logging.error(f"Error getting Airflow DAGs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pipeline/airflow/dags/<dag_id>/trigger', methods=['POST'])
+def api_trigger_dag(dag_id):
+    """Trigger a specific Airflow DAG"""
+    try:
+        return jsonify({
+            'success': True,
+            'message': f'DAG {dag_id} triggered successfully',
+            'run_id': f'run-{random.randint(10000, 99999)}'
+        })
+    except Exception as e:
+        logging.error(f"Error triggering Airflow DAG: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/pipeline/airflow/schedule', methods=['POST'])
+def api_schedule_dag():
+    """Schedule a new Airflow DAG"""
+    try:
+        data = request.json
+        return jsonify({
+            'success': True,
+            'message': 'DAG scheduled successfully',
+            'dag_id': f'airflow-dag-{random.randint(100, 999)}'
+        })
+    except Exception as e:
+        logging.error(f"Error scheduling Airflow DAG: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/pipeline/jobs/status', methods=['GET'])
