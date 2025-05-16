@@ -8,7 +8,8 @@ import os
 # Import FAISS vector service for GPU server
 from vector_service import FaissVectorService
 
-# Create FAISS vector service instance
+# Create FAISS vector service instance - this uses GPU-optimized vector operations
+# and completely replaces the need for PostgreSQL/pgvector
 vector_service = FaissVectorService()
 
 # Set up logger
