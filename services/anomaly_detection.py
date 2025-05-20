@@ -31,135 +31,192 @@ SEVERITY_LEVELS = {
     "FATAL": 3
 }
 
+# Singleton instance for the anomaly detector
+_anomaly_detector = None
+
 class AnomalyDetector:
     """Service for detecting anomalies in log files using advanced ML techniques"""
     
     def __init__(self, logs_dir="/tmp/logs"):
         """Initialize the anomaly detector with ML models"""
         self.logs_dir = logs_dir
-        # Patterns for traditional rule-based detection
-        self.anomaly_patterns = [
-            (r"ERROR|CRITICAL|FATAL", "High severity log entry"),
-            (r"exception|fail|failed|timeout|timed out", "Failure or exception indication"),
-            (r"memory leak|out of memory|memory usage exceed", "Memory issues"),
-            (r"CPU usage|high load|overload", "CPU performance issues"),
-            (r"disk space|storage|capacity", "Storage capacity issues"),
-            (r"attack|security|breach|unauthorized|hack", "Security concerns"),
-            (r"latency|slow|performance|degraded", "Performance degradation"),
-            (r"crash|abort|terminate|killed", "Application crash or termination"),
-            (r"database|connection lost|reconnect", "Database connectivity issues"),
-            (r"API|service unavailable|endpoint", "API or service availability issues")
-        ]
         
-        # ML model configurations
+        # ML models for anomaly detection
         self.isolation_forest = IsolationForest(
-            n_estimators=100, 
-            contamination="auto",  # Auto-detect contamination 
+            contamination=0.05,  # Expected proportion of anomalies
             random_state=42,
-            max_samples='auto'
+            n_estimators=100
         )
         
-        self.vectorizer = TfidfVectorizer(
-            max_features=100,
-            stop_words='english',
-            min_df=2
-        )
-        
-        self.svd = TruncatedSVD(n_components=10)
-        
+        # DBSCAN for clustering similar log messages
         self.dbscan = DBSCAN(
-            eps=0.5,
-            min_samples=2,
-            metric='cosine'
+            eps=0.5,  # Maximum distance between samples
+            min_samples=5,  # Minimum samples in a cluster
+            metric='cosine'  # Use cosine similarity for text
         )
+        
+        # TF-IDF vectorizer for text-based features
+        self.vectorizer = TfidfVectorizer(
+            max_features=1000,
+            stop_words='english',
+            lowercase=True,
+            token_pattern=r'\b[a-zA-Z][a-zA-Z0-9_]+\b'
+        )
+        
+        # Feature extraction for log messages
+        self.feature_reducer = TruncatedSVD(n_components=10)
     
     def load_log_files(self) -> Dict[str, List[str]]:
         """Load all log files from the logs directory"""
         log_files = {}
         
-        try:
-            if not os.path.exists(self.logs_dir):
-                logger.warning(f"Logs directory {self.logs_dir} not found")
-                return log_files
+        if not os.path.exists(self.logs_dir):
+            logger.warning(f"Logs directory {self.logs_dir} does not exist")
+            os.makedirs(self.logs_dir, exist_ok=True)
             
-            for filename in os.listdir(self.logs_dir):
-                if filename.endswith(".log"):
-                    file_path = os.path.join(self.logs_dir, filename)
-                    try:
-                        with open(file_path, 'r') as file:
-                            log_files[filename] = file.readlines()
-                    except Exception as e:
-                        logger.error(f"Error reading log file {filename}: {e}")
-        except Exception as e:
-            logger.error(f"Error accessing logs directory: {e}")
+            # Create sample log files for testing if none exist
+            self._create_sample_logs()
         
+        # Read all log files in the directory
+        for filename in os.listdir(self.logs_dir):
+            if filename.endswith('.log'):
+                try:
+                    filepath = os.path.join(self.logs_dir, filename)
+                    with open(filepath, 'r') as f:
+                        content = f.readlines()
+                    log_files[filename] = content
+                except Exception as e:
+                    logger.error(f"Error reading log file {filename}: {e}")
+        
+        if not log_files:
+            logger.warning("No log files found, creating sample logs")
+            self._create_sample_logs()
+            return self.load_log_files()
+            
         return log_files
+    
+    def _create_sample_logs(self):
+        """Create sample log files for testing if no real logs exist"""
+        sample_logs = {
+            'application.log': [
+                "2025-05-20 08:00:12 INFO [App] Application started successfully\n",
+                "2025-05-20 08:15:23 INFO [DataService] Loaded 1275 records from database\n",
+                "2025-05-20 08:30:45 WARNING [DbConnector] Slow database response (305ms)\n",
+                "2025-05-20 09:12:33 ERROR [AuthService] Failed to authenticate user: Invalid credentials\n",
+                "2025-05-20 09:12:34 ERROR [AuthService] Failed to authenticate user: Invalid credentials\n",
+                "2025-05-20 09:12:35 ERROR [AuthService] Failed to authenticate user: Invalid credentials\n",
+                "2025-05-20 09:12:40 ERROR [AuthService] Account locked due to multiple failed attempts\n",
+                "2025-05-20 09:45:22 WARNING [MemoryMonitor] High memory usage: 85%\n",
+                "2025-05-20 10:15:01 CRITICAL [SystemMonitor] CPU usage exceeded threshold: 95%\n",
+                "2025-05-20 10:15:05 ERROR [ApiService] Connection timeout when calling external service\n",
+                "2025-05-20 10:15:10 ERROR [ApiService] Failed to process request due to upstream service error\n"
+            ],
+            'system.log': [
+                "2025-05-20 07:58:02 INFO [Kernel] System booted successfully in 23.4s\n",
+                "2025-05-20 08:02:15 INFO [NetworkManager] Established connection to network 'main-network'\n",
+                "2025-05-20 09:30:11 WARNING [DiskMonitor] Disk space running low on /dev/sda1 (85% used)\n",
+                "2025-05-20 10:14:30 ERROR [Driver] Failed to initialize hardware acceleration\n",
+                "2025-05-20 10:14:35 ERROR [Graphics] Falling back to software rendering\n",
+                "2025-05-20 10:16:22 CRITICAL [PowerManager] Unexpected power state transition detected\n",
+                "2025-05-20 10:16:25 CRITICAL [SystemMonitor] Multiple system services failing\n",
+                "2025-05-20 10:17:01 CRITICAL [Kernel] Unhandled exception in kernel mode: 0xC000021A\n"
+            ]
+        }
+        
+        # Write sample logs to files
+        for filename, lines in sample_logs.items():
+            filepath = os.path.join(self.logs_dir, filename)
+            with open(filepath, 'w') as f:
+                f.writelines(lines)
     
     def parse_log_line(self, line: str) -> Dict[str, Any]:
         """Parse a log line into structured data"""
-        # Basic log format: YYYY-MM-DD HH:MM:SS LEVEL [Component] Message
-        match = re.match(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (\w+) \[([^\]]+)\] (.+)$', line.strip())
-        
-        if match:
-            timestamp, level, component, message = match.groups()
-            return {
-                "timestamp": timestamp,
-                "level": level,
-                "component": component,
-                "message": message,
-                "severity": SEVERITY_LEVELS.get(level, 0)
-            }
-        
-        return {
-            "timestamp": "",
-            "level": "UNKNOWN",
-            "component": "UNKNOWN",
-            "message": line.strip(),
-            "severity": 0
+        parsed = {
+            'timestamp': None,
+            'level': 'INFO',  # Default level
+            'component': 'Unknown',
+            'message': line.strip(),
+            'raw': line.strip()
         }
+        
+        # Extract timestamp
+        timestamp_match = re.search(r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})', line)
+        if timestamp_match:
+            parsed['timestamp'] = timestamp_match.group(1)
+            
+        # Extract severity level
+        level_match = re.search(r'\b(INFO|WARNING|WARN|ERROR|CRITICAL|FATAL)\b', line)
+        if level_match:
+            parsed['level'] = level_match.group(1)
+            
+        # Extract component
+        component_match = re.search(r'\[([^]]+)\]', line)
+        if component_match:
+            parsed['component'] = component_match.group(1)
+            
+        # Extract message - everything after timestamp and level
+        if timestamp_match and level_match:
+            level_pos = line.find(level_match.group(0)) + len(level_match.group(0))
+            
+            # If we have a component, start message after it
+            if component_match:
+                level_pos = line.find(component_match.group(0)) + len(component_match.group(0))
+            
+            if level_pos < len(line):
+                parsed['message'] = line[level_pos:].strip()
+        
+        # Calculate severity based on level
+        parsed['severity'] = SEVERITY_LEVELS.get(parsed['level'], 0)
+        
+        return parsed
     
     def extract_features_from_logs(self, parsed_lines: List[Dict[str, Any]]) -> np.ndarray:
         """
         Extract numerical features from parsed log lines for ML-based anomaly detection
         """
-        features = []
-        
-        for parsed in parsed_lines:
-            # Extract features that might be useful for anomaly detection
-            severity = parsed["severity"]
-            message_length = len(parsed["message"])
-            has_error = 1 if severity >= 2 else 0
-            has_warning = 1 if severity == 1 else 0
-            hour = 0
-            minute = 0
-            
-            # Extract time features if timestamp exists
-            if parsed["timestamp"]:
-                try:
-                    dt = datetime.datetime.strptime(parsed["timestamp"], "%Y-%m-%d %H:%M:%S")
-                    hour = dt.hour
-                    minute = dt.minute
-                except ValueError:
-                    pass
-            
-            # Create feature vector
-            feature_vector = [
-                severity,
-                message_length,
-                has_error,
-                has_warning,
-                hour,
-                minute
-            ]
-            features.append(feature_vector)
-        
-        # If no features, return empty array
-        if not features:
+        if not parsed_lines:
             return np.array([])
+            
+        # Extract message texts
+        messages = [line['message'] for line in parsed_lines]
+        
+        # Vectorize messages using TF-IDF
+        try:
+            message_vectors = self.vectorizer.fit_transform(messages)
+            
+            # Reduce dimensionality for efficiency
+            reduced_vectors = self.feature_reducer.fit_transform(message_vectors)
+        except Exception as e:
+            logger.error(f"Error vectorizing messages: {e}")
+            # Fallback to simple features
+            reduced_vectors = np.zeros((len(messages), 10))
+        
+        # Create additional numerical features
+        numerical_features = np.zeros((len(parsed_lines), 4))
+        
+        for i, line in enumerate(parsed_lines):
+            # Feature 1: Message length
+            numerical_features[i, 0] = len(line['message'])
+            
+            # Feature 2: Severity level
+            numerical_features[i, 1] = line['severity']
+            
+            # Feature 3: Has error code?
+            numerical_features[i, 2] = 1 if re.search(r'(error|exception).*?(\d+|0x[a-fA-F0-9]+)', 
+                                                     line['message'], re.IGNORECASE) else 0
+            
+            # Feature 4: Has stack trace indicator?
+            numerical_features[i, 3] = 1 if re.search(r'(stack|trace|at\s+[\w\.]+\.[\w<>]+\(|exception in thread)', 
+                                                     line['message'], re.IGNORECASE) else 0
+            
+        # Combine text and numerical features
+        combined_features = np.hstack((reduced_vectors, numerical_features))
         
         # Normalize features
         scaler = StandardScaler()
-        return scaler.fit_transform(np.array(features))
+        normalized_features = scaler.fit_transform(combined_features)
+        
+        return normalized_features
     
     def detect_ml_anomalies(self, filename: str, lines: List[str], parsed_lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -169,85 +226,70 @@ class AnomalyDetector:
         """
         anomalies = []
         
-        # Need enough data for meaningful ML analysis
-        if len(parsed_lines) < 5:
+        if not parsed_lines:
             return anomalies
-        
-        # Extract messages for text-based analysis
-        messages = [parsed["message"] for parsed in parsed_lines]
-        
-        # ---------- Isolation Forest for numerical features ----------
-        # Extract and normalize features
+            
+        # Extract features from log lines
         features = self.extract_features_from_logs(parsed_lines)
         
-        if len(features) > 0:
-            # Fit the Isolation Forest model
-            self.isolation_forest.fit(features)
-            
-            # Predict anomalies (-1 for anomalies, 1 for normal)
-            predictions = self.isolation_forest.predict(features)
-            
-            # Find anomalies
-            for i, pred in enumerate(predictions):
-                if pred == -1:  # Anomaly detected
-                    parsed = parsed_lines[i]
-                    
-                    # Create anomaly record
+        if features.size == 0:
+            return anomalies
+        
+        # 1. Isolation Forest for outlier detection
+        try:
+            isolation_predictions = self.isolation_forest.fit_predict(features)
+            for i, pred in enumerate(isolation_predictions):
+                if pred == -1:  # Isolation Forest marks outliers as -1
                     anomaly = {
-                        "id": f"{filename}_{i}_ml_isolation",
+                        "id": f"ml_isolation_{filename}_{i}",
                         "type": "ml_isolation_forest",
                         "algorithm": "Isolation Forest",
-                        "timestamp": parsed["timestamp"],
-                        "component": parsed["component"],
-                        "message": parsed["message"],
-                        "severity": max(1, parsed["severity"]),  # At least WARNING level
                         "source_file": filename,
-                        "line_number": i + 1,
-                        "context": self._get_context(lines, i),
-                        "confidence": 0.85,  # Base confidence level
-                        "explanation": "Statistical outlier detected based on temporal patterns and severity"
+                        "line_number": i,
+                        "severity": max(2, parsed_lines[i]['severity']),  # At least ERROR level
+                        "confidence": 0.8,  # Fixed confidence for Isolation Forest
+                        "timestamp": parsed_lines[i].get('timestamp', ''),
+                        "component": parsed_lines[i].get('component', 'Unknown'),
+                        "message": f"ML-detected anomaly: {parsed_lines[i]['message']}",
+                        "explanation": "This log entry was detected as anomalous based on its unusual patterns compared to other log entries.",
+                        "context": self._get_context(lines, i)
                     }
                     anomalies.append(anomaly)
-        
-        # ---------- Text-based anomaly detection with DBSCAN ----------
-        try:
-            # Only proceed if we have enough messages
-            if len(messages) >= 5:
-                # Generate TF-IDF vectors
-                tfidf_matrix = self.vectorizer.fit_transform(messages)
-                
-                # Apply dimensionality reduction if we have enough features
-                if tfidf_matrix.shape[1] > 10:
-                    text_features = self.svd.fit_transform(tfidf_matrix)
-                else:
-                    text_features = tfidf_matrix.toarray()
-                
-                # Apply DBSCAN clustering
-                clusters = self.dbscan.fit_predict(text_features)
-                
-                # Find outliers (labeled as -1 by DBSCAN)
-                for i, cluster_id in enumerate(clusters):
-                    if cluster_id == -1:  # This is an outlier
-                        parsed = parsed_lines[i]
-                        
-                        # Create anomaly record
-                        anomaly = {
-                            "id": f"{filename}_{i}_ml_dbscan",
-                            "type": "ml_dbscan_cluster",
-                            "algorithm": "DBSCAN Clustering",
-                            "timestamp": parsed["timestamp"],
-                            "component": parsed["component"],
-                            "message": parsed["message"],
-                            "severity": max(1, parsed["severity"]),  # At least WARNING level
-                            "source_file": filename,
-                            "line_number": i + 1,
-                            "context": self._get_context(lines, i),
-                            "confidence": 0.75,  # Base confidence level
-                            "explanation": "Unusual log message content compared to other messages in this log file"
-                        }
-                        anomalies.append(anomaly)
         except Exception as e:
-            logger.warning(f"Text-based anomaly detection failed: {e}")
+            logger.error(f"Error in Isolation Forest anomaly detection: {e}")
+        
+        # 2. DBSCAN clustering for contextual anomalies
+        try:
+            # Extract only text features for DBSCAN
+            messages = [line['message'] for line in parsed_lines]
+            message_vectors = self.vectorizer.fit_transform(messages)
+            
+            # Apply dimensionality reduction
+            reduced_vectors = self.feature_reducer.fit_transform(message_vectors)
+            
+            # Perform DBSCAN clustering
+            dbscan_labels = self.dbscan.fit_predict(reduced_vectors)
+            
+            # Find outliers (points not assigned to any cluster, labeled as -1)
+            for i, label in enumerate(dbscan_labels):
+                if label == -1 and parsed_lines[i]['severity'] >= 1:  # Only consider WARNING+ as anomalies
+                    anomaly = {
+                        "id": f"ml_dbscan_{filename}_{i}",
+                        "type": "ml_dbscan_cluster",
+                        "algorithm": "DBSCAN Clustering",
+                        "source_file": filename,
+                        "line_number": i,
+                        "severity": max(1, parsed_lines[i]['severity']),
+                        "confidence": 0.7,  # Fixed confidence for DBSCAN
+                        "timestamp": parsed_lines[i].get('timestamp', ''),
+                        "component": parsed_lines[i].get('component', 'Unknown'),
+                        "message": f"ML-detected unusual pattern: {parsed_lines[i]['message']}",
+                        "explanation": "This log entry contains unusual language patterns that don't match any common log message clusters.",
+                        "context": self._get_context(lines, i)
+                    }
+                    anomalies.append(anomaly)
+        except Exception as e:
+            logger.error(f"Error in DBSCAN anomaly detection: {e}")
         
         return anomalies
     
@@ -256,133 +298,194 @@ class AnomalyDetector:
         1. Rule-based detection for known patterns
         2. ML-based detection for complex and unknown patterns
         """
+        all_anomalies = []
         log_files = self.load_log_files()
-        anomalies = []
         
         for filename, lines in log_files.items():
-            # Traditional rule-based anomaly detection
-            rule_based_anomalies = self._detect_file_anomalies(filename, lines)
-            anomalies.extend(rule_based_anomalies)
-            
-            # Parse lines for ML detection
-            parsed_lines = [self.parse_log_line(line) for line in lines]
-            
-            # ML-based anomaly detection
-            ml_anomalies = self.detect_ml_anomalies(filename, lines, parsed_lines)
-            anomalies.extend(ml_anomalies)
+            file_anomalies = self._detect_file_anomalies(filename, lines)
+            all_anomalies.extend(file_anomalies)
         
-        # Remove duplicates (same line detected by multiple methods)
-        unique_anomalies = {}
-        for anomaly in anomalies:
-            key = f"{anomaly['source_file']}_{anomaly['line_number']}"
-            # Keep the anomaly with highest confidence/severity if duplicate
-            if key not in unique_anomalies or unique_anomalies[key]['severity'] < anomaly['severity']:
-                unique_anomalies[key] = anomaly
+        # Sort anomalies by severity (descending) and timestamp
+        all_anomalies.sort(key=lambda x: (-x.get('severity', 0), x.get('timestamp', '')))
         
-        # Sort by severity (descending) and timestamp (descending)
-        return sorted(list(unique_anomalies.values()), 
-                      key=lambda x: (-x.get("severity", 0), x.get("timestamp", "")), 
-                      reverse=True)
+        return all_anomalies
     
     def _detect_file_anomalies(self, filename: str, lines: List[str]) -> List[Dict[str, Any]]:
         """Detect anomalies in a specific log file"""
         anomalies = []
+        
+        # Parse all lines
         parsed_lines = [self.parse_log_line(line) for line in lines]
         
-        # Detect high severity log entries
+        # 1. Detect high severity anomalies (ERROR/CRITICAL)
         for i, parsed in enumerate(parsed_lines):
-            if parsed["severity"] >= 2:  # ERROR or higher
+            if parsed['severity'] >= 2:  # ERROR or higher
                 anomaly = {
-                    "id": f"{filename}_{i}",
+                    "id": f"high_severity_{filename}_{i}",
                     "type": "high_severity",
-                    "timestamp": parsed["timestamp"],
-                    "component": parsed["component"],
-                    "message": parsed["message"],
-                    "severity": parsed["severity"],
                     "source_file": filename,
-                    "line_number": i + 1,
+                    "line_number": i,
+                    "severity": parsed['severity'],
+                    "timestamp": parsed.get('timestamp', ''),
+                    "component": parsed.get('component', 'Unknown'),
+                    "message": parsed['message'],
                     "context": self._get_context(lines, i)
                 }
                 anomalies.append(anomaly)
-            
-            # Check for pattern-based anomalies
-            for pattern, description in self.anomaly_patterns:
-                if re.search(pattern, parsed["message"], re.IGNORECASE):
-                    if not any(a["line_number"] == i + 1 and a["source_file"] == filename for a in anomalies):
-                        anomaly = {
-                            "id": f"{filename}_{i}",
-                            "type": "pattern_match",
-                            "pattern_description": description,
-                            "timestamp": parsed["timestamp"],
-                            "component": parsed["component"],
-                            "message": parsed["message"],
-                            "severity": max(1, parsed["severity"]),  # At least WARN level
-                            "source_file": filename,
-                            "line_number": i + 1,
-                            "context": self._get_context(lines, i)
-                        }
-                        anomalies.append(anomaly)
         
-        # Detect sequences of related errors (e.g., multiple retries)
-        components = defaultdict(list)
+        # 2. Detect known error patterns
+        pattern_anomalies = []
         for i, parsed in enumerate(parsed_lines):
-            components[parsed["component"]].append((i, parsed))
+            message = parsed['message'].lower()
+            component = parsed.get('component', '').lower()
+            
+            # Detect memory-related issues
+            if re.search(r'(out of memory|memory.*?leak|memory.*?(full|exceeded))', message):
+                pattern_anomalies.append({
+                    "id": f"pattern_memory_{filename}_{i}",
+                    "type": "pattern_match",
+                    "pattern": "memory_issue",
+                    "source_file": filename,
+                    "line_number": i,
+                    "severity": max(2, parsed['severity']),
+                    "timestamp": parsed.get('timestamp', ''),
+                    "component": parsed.get('component', 'Unknown'),
+                    "message": parsed['message'],
+                    "context": self._get_context(lines, i)
+                })
+            
+            # Detect disk space issues
+            elif re.search(r'(disk space|disk.*?full|no space left)', message):
+                pattern_anomalies.append({
+                    "id": f"pattern_disk_{filename}_{i}",
+                    "type": "pattern_match",
+                    "pattern": "disk_issue",
+                    "source_file": filename,
+                    "line_number": i,
+                    "severity": max(2, parsed['severity']),
+                    "timestamp": parsed.get('timestamp', ''),
+                    "component": parsed.get('component', 'Unknown'),
+                    "message": parsed['message'],
+                    "context": self._get_context(lines, i)
+                })
+            
+            # Detect connectivity issues
+            elif re.search(r'(timeout|connection.*?fail|cannot connect|unreachable)', message):
+                pattern_anomalies.append({
+                    "id": f"pattern_connection_{filename}_{i}",
+                    "type": "pattern_match",
+                    "pattern": "connectivity_issue",
+                    "source_file": filename,
+                    "line_number": i,
+                    "severity": max(2, parsed['severity']),
+                    "timestamp": parsed.get('timestamp', ''),
+                    "component": parsed.get('component', 'Unknown'),
+                    "message": parsed['message'],
+                    "context": self._get_context(lines, i)
+                })
+            
+            # Detect database issues
+            elif re.search(r'(database|db).*?(error|fail|issue|timeout)', message) or ('database' in component and parsed['severity'] >= 2):
+                pattern_anomalies.append({
+                    "id": f"pattern_database_{filename}_{i}",
+                    "type": "pattern_match",
+                    "pattern": "database_issue",
+                    "source_file": filename,
+                    "line_number": i,
+                    "severity": max(2, parsed['severity']),
+                    "timestamp": parsed.get('timestamp', ''),
+                    "component": parsed.get('component', 'Unknown'),
+                    "message": parsed['message'],
+                    "context": self._get_context(lines, i)
+                })
+            
+            # Detect security issues
+            elif re.search(r'(security|auth.*?fail|invalid.*?token|permission denied|unauthorized)', message):
+                pattern_anomalies.append({
+                    "id": f"pattern_security_{filename}_{i}",
+                    "type": "pattern_match",
+                    "pattern": "security_issue",
+                    "source_file": filename,
+                    "line_number": i,
+                    "severity": max(2, parsed['severity']),
+                    "timestamp": parsed.get('timestamp', ''),
+                    "component": parsed.get('component', 'Unknown'),
+                    "message": parsed['message'],
+                    "context": self._get_context(lines, i)
+                })
+                
+        anomalies.extend(pattern_anomalies)
         
-        for component, entries in components.items():
-            if len(entries) >= 3:  # At least 3 entries from the same component
-                error_sequences = self._detect_error_sequences(entries, lines)
-                anomalies.extend(error_sequences)
+        # 3. Detect sequences of related errors
+        entries = [(i, parsed) for i, parsed in enumerate(parsed_lines) if parsed['severity'] >= 1]
+        sequence_anomalies = self._detect_error_sequences(entries, lines)
+        anomalies.extend(sequence_anomalies)
+        
+        # 4. Detect ML-based anomalies using advanced techniques
+        ml_anomalies = self.detect_ml_anomalies(filename, lines, parsed_lines)
+        anomalies.extend(ml_anomalies)
         
         return anomalies
     
     def _detect_error_sequences(self, entries: List[Tuple[int, Dict]], lines: List[str]) -> List[Dict[str, Any]]:
         """Detect sequences of related errors"""
         anomalies = []
-        component = entries[0][1]["component"]
-        filename = entries[0][1].get("source_file", "unknown")
         
-        # Look for retries, reconnections, or repeated errors
-        retry_patterns = [
-            r"retry|attempt|reconnect",
-            r"\(\d+/\d+\)"  # Matches patterns like (1/3), (2/5), etc.
-        ]
-        
-        for i in range(len(entries) - 1):
-            idx1, entry1 = entries[i]
+        if len(entries) < 3:
+            return anomalies
             
-            # Skip if not an error
-            if entry1["severity"] < 2:
+        # Group errors by component
+        component_errors = defaultdict(list)
+        for i, entry in entries:
+            component = entry.get('component', 'Unknown')
+            component_errors[component].append((i, entry))
+        
+        # Look for sequences of errors in the same component
+        for component, errors in component_errors.items():
+            if len(errors) < 3:
                 continue
-            
-            sequence_found = False
-            sequence_lines = [idx1]
-            
-            # Look for related errors in the next entries
-            for j in range(i + 1, min(i + 5, len(entries))):
-                idx2, entry2 = entries[j]
                 
-                # Check if entries are likely related
-                if entry2["severity"] >= 2 and any(re.search(pattern, entry1["message"], re.IGNORECASE) and 
-                                               re.search(pattern, entry2["message"], re.IGNORECASE) 
-                                               for pattern in retry_patterns):
-                    sequence_found = True
-                    sequence_lines.append(idx2)
+            # Check for errors close together in time
+            sequence_lines = []
+            current_sequence = []
             
-            if sequence_found and len(sequence_lines) >= 2:
-                # Get all lines in sequence
+            for i in range(len(errors) - 1):
+                current_sequence.append(errors[i][0])  # Line number
+                
+                # If next error is within 5 lines, continue the sequence
+                if errors[i+1][0] - errors[i][0] <= 5:
+                    continue
+                
+                # Otherwise, check if we have a sequence
+                if len(current_sequence) >= 3:
+                    sequence_lines.append(current_sequence)
+                
+                current_sequence = []
+            
+            # Check last sequence
+            if len(current_sequence) >= 3:
+                sequence_lines.append(current_sequence)
+            
+            # Create anomalies for sequences
+            for seq_idx, sequence in enumerate(sequence_lines):
+                first_line = sequence[0]
+                last_line = sequence[-1]
                 context = []
-                for idx in sorted(sequence_lines):
-                    context.append(lines[idx].strip())
+                
+                # Collect all context lines
+                for line_num in range(max(0, first_line - 2), min(len(lines), last_line + 3)):
+                    context.append(lines[line_num].strip())
                 
                 anomaly = {
-                    "id": f"{filename}_{idx1}_sequence",
+                    "id": f"seq_{component}_{seq_idx}",
                     "type": "error_sequence",
-                    "timestamp": entry1["timestamp"],
+                    "source_file": errors[0][1].get('source_file', 'unknown_file'),
+                    "line_number": first_line,
+                    "severity": 3,  # Sequences are always high severity
+                    "timestamp": errors[0][1].get('timestamp', ''),
                     "component": component,
-                    "message": f"Sequence of related errors in component {component}",
-                    "severity": 2,  # ERROR level
-                    "source_file": filename,
-                    "line_number": idx1 + 1,
+                    "message": f"Sequence of {len(sequence)} related errors in component {component}",
+                    "related_lines": sequence,
                     "context": context
                 }
                 anomalies.append(anomaly)
@@ -452,390 +555,162 @@ class AnomalyDetector:
             "recommendations": recommendations,
             "source": "rules"
         }
-        
-# Delete this and everything after it
-        
-        ANOMALY DETAILS:
-        Type: {anomaly.get('type', '')}
-        Component: {anomaly.get('component', '')}
-        Message: {anomaly.get('message', '')}
-        Severity: {severity_text}
-        Source: {anomaly.get('source_file', '')}:{anomaly.get('line_number', 0)}
-        
-        CONTEXT:
-        {context_str}
-        
-        Based on this information, provide 3-5 actionable recommendations to fix this issue. For each recommendation, include:
-        1. A clear title (max 10 words)
-        2. A detailed description of what to do (2-3 sentences)
-        
-        Format your response as a JSON array of objects with 'title' and 'description' fields.
-        Example:
-        [
-          {
-            "title": "First recommendation title",
-            "description": "Detailed description of what to do and why it will help resolve the issue."
-          },
-          {
-            "title": "Second recommendation title",
-            "description": "Another detailed description with specific actions to take."
-          }
-        ]
-        """
-        
-        # Format prompt in the chat completion format
-        formatted_prompt = f"<s>[INST] {system_prompt} [/INST]</s>[INST] {prompt} [/INST]"
-        
-        try:
-            # Set path to the local Mistral model
-            model_path = "/tmp/llm_models/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
-            
-            # Check if the model exists
-            if not os.path.exists(model_path):
-                logging.warning(f"Mistral model not found at {model_path}")
-                # Fall back to predefined recommendations
-                return {
-                    "found": True,
-                    "anomaly": anomaly,
-                    "recommendations": self._get_fallback_recommendations(anomaly)
-                }
-            
-            # Load the model directly
-            try:
-                # Initialize the Llama model with minimal context window to save memory
-                llm = Llama(
-                    model_path=model_path,
-                    n_ctx=2048,        # Smaller context window to reduce memory usage
-                    n_batch=512,       # Batch size for prompt processing
-                    verbose=False
-                )
-                
-                # Generate response from the local model
-                output = llm(
-                    formatted_prompt,
-                    max_tokens=1000,    # Limit response length
-                    temperature=0.2,    # Low temperature for more focused recommendations
-                    stop=["</s>"]       # Stop at the end of the response
-                )
-                
-                # The llama-cpp-python interface returns a different output format than OpenAI
-                # For llama-cpp's output we need to get the text from the returned dict
-                response_text = output.get('choices', [{}])[0].get('text', '')
-                
-                # Try to extract JSON from the response
-                try:
-                    import re
-                    # First, try to find and extract the JSON array
-                    json_match = re.search(r'\[\s*\{.*\}\s*\]', response_text, re.DOTALL)
-                    
-                    if json_match:
-                        json_str = json_match.group(0)
-                        recommendations = json.loads(json_str)
-                    else:
-                        # If no JSON array found, try to manually extract recommendations
-                        recommendations = []
-                        
-                        # Find recommendation titles (often numbered or with clear headings)
-                        title_pattern = r'(?:^\d+\.\s+|\*\*|\b)([A-Z][^.!?:]*(?::|\.))(?:\s|\n)'
-                        titles = re.findall(title_pattern, response_text, re.MULTILINE)
-                        
-                        # Extract descriptions following titles
-                        for i, title in enumerate(titles[:5]):  # Limit to 5 recommendations
-                            title = title.strip(': .\n\r\t')
-                            description = ""
-                            
-                            # Try to find the description after the title until the next title or end
-                            start_pos = response_text.find(title) + len(title)
-                            end_pos = len(response_text)
-                            
-                            if i < len(titles) - 1:
-                                next_title = titles[i + 1]
-                                next_pos = response_text.find(next_title)
-                                if next_pos > start_pos:
-                                    end_pos = next_pos
-                            
-                            description = response_text[start_pos:end_pos].strip(': .\n\r\t')
-                            
-                            # Clean up the description
-                            description = re.sub(r'^\s*[-:]\s*', '', description)
-                            description = description.strip()
-                            
-                            if title and description:
-                                recommendations.append({
-                                    "title": title[:50],  # Limit title length
-                                    "description": description[:300]  # Limit description length
-                                })
-                    
-                    # Validate recommendations format and ensure we have at least one
-                    if isinstance(recommendations, list) and len(recommendations) > 0 and all(isinstance(r, dict) and 'title' in r and 'description' in r for r in recommendations):
-                        return {
-                            "found": True,
-                            "anomaly": anomaly,
-                            "recommendations": recommendations
-                        }
-                except Exception as e:
-                    logging.warning(f"Error parsing LLM response: {e}")
-                        # First, try to find and extract the JSON array
-                        import re
-                        json_match = re.search(r'\[\s*\{.*\}\s*\]', content, re.DOTALL)
-                        
-                        if json_match:
-                            json_str = json_match.group(0)
-                            recommendations = json.loads(json_str)
-                        else:
-                            # If no JSON array found, try to manually extract recommendations
-                            recommendations = []
-                            # Find recommendation titles (often numbered or with clear headings)
-                            title_pattern = r'(?:^\d+\.\s+|\*\*|\b)([A-Z][^.!?:]*(?::|\.))(?:\s|\n)'
-                            titles = re.findall(title_pattern, content, re.MULTILINE)
-                            
-                            # Extract descriptions following titles
-                            for i, title in enumerate(titles[:5]):  # Limit to 5 recommendations
-                                title = title.strip(': .\n\r\t')
-                                description = ""
-                                
-                                # Try to find the description after the title until the next title or end
-                                start_pos = content.find(title) + len(title)
-                                end_pos = len(content)
-                                
-                                if i < len(titles) - 1:
-                                    next_title = titles[i + 1]
-                                    next_pos = content.find(next_title)
-                                    if next_pos > start_pos:
-                                        end_pos = next_pos
-                                
-                                description = content[start_pos:end_pos].strip(': .\n\r\t')
-                                
-                                # Clean up the description
-                                description = re.sub(r'^\s*[-:]\s*', '', description)
-                                description = description.strip()
-                                
-                                if title and description:
-                                    recommendations.append({
-                                        "title": title[:50],  # Limit title length
-                                        "description": description[:300]  # Limit description length
-                                    })
-                            
-                        # Validate recommendations format and ensure we have at least one
-                        if isinstance(recommendations, list) and len(recommendations) > 0 and all(isinstance(r, dict) and 'title' in r and 'description' in r for r in recommendations):
-                            return {
-                                "found": True,
-                                "anomaly": anomaly,
-                                "recommendations": recommendations
-                            }
-                    except Exception as e:
-                        logger.warning(f"Error parsing response: {e}")
-                        # Continue to fallback
-            except Exception as e:
-                logger.warning(f"Error connecting to local service: {e}")
-                # Continue to fallback
-                
-            # If any step fails, fall back to predefined recommendations
-            recommendations = self._get_fallback_recommendations(anomaly)
-            return {
-                "found": True,
-                "anomaly": anomaly,
-                "recommendations": recommendations
-            }
-                
-        except Exception as e:
-            logger.warning(f"Error generating recommendations: {e}")
-            recommendations = self._get_fallback_recommendations(anomaly)
-            return {
-                "found": True,
-                "anomaly": anomaly,
-                "recommendations": recommendations
-            }
-        
-    def _get_fallback_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
-        """Generate fallback recommendations if LLM is not available"""
-        recommendations = []
-        
-        # Generic recommendations based on anomaly type
-        if anomaly["type"] == "high_severity":
-            recommendations.extend(self._get_severity_recommendations(anomaly))
-        
-        if anomaly["type"] == "pattern_match":
-            recommendations.extend(self._get_pattern_recommendations(anomaly))
-        
-        if anomaly["type"] == "error_sequence":
-            recommendations.extend(self._get_sequence_recommendations(anomaly))
-        
-        # Component-specific recommendations
-        component_recs = self._get_component_recommendations(anomaly["component"], anomaly["message"])
-        if component_recs:
-            recommendations.extend(component_recs)
-            
-        return recommendations
     
     def _get_severity_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get recommendations for high severity anomalies"""
         recs = [{
-            "title": "Investigate Error",
-            "description": f"Investigate the {anomaly['component']} component to identify the root cause of the error."
+            "title": "Check System Resources",
+            "description": "Verify CPU, memory, and disk usage on the server. High severity errors often correlate with resource exhaustion."
+        }, {
+            "title": "Review Recent Changes",
+            "description": "Investigate recent deployments, configuration changes, or updates that may have triggered this issue."
+        }, {
+            "title": "Monitor Related Components",
+            "description": f"Watch for issues in systems that interact with {anomaly['component']} as this could be a cascading failure from another component."
         }]
-        
-        if "exception" in anomaly["message"].lower() or "stack trace" in anomaly["message"].lower():
-            recs.append({
-                "title": "Review Stack Trace",
-                "description": "Analyze the stack trace to identify the specific method or line where the error occurred."
-            })
         
         return recs
     
     def _get_pattern_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get recommendations based on pattern matching"""
-        pattern_desc = anomaly.get("pattern_description", "").lower()
-        message = anomaly.get("message", "").lower()
+        pattern = anomaly.get("pattern", "")
         
-        recs = []
-        
-        if "memory" in pattern_desc:
-            recs.append({
-                "title": "Memory Optimization",
-                "description": "Check for memory leaks and optimize memory usage in the application."
-            })
-            recs.append({
+        if pattern == "memory_issue":
+            return [{
                 "title": "Increase Memory Allocation",
-                "description": "Consider increasing the memory allocation for the service if consistently hitting limits."
-            })
-        
-        elif "cpu" in pattern_desc:
-            recs.append({
-                "title": "CPU Profiling",
-                "description": "Run CPU profiling to identify performance bottlenecks."
-            })
-            recs.append({
-                "title": "Optimize Algorithms",
-                "description": "Review and optimize CPU-intensive algorithms in the codebase."
-            })
-        
-        elif "storage" in pattern_desc or "disk" in pattern_desc:
-            recs.append({
-                "title": "Disk Space Management",
-                "description": "Implement log rotation and cleanup of temporary files."
-            })
-            recs.append({
-                "title": "Storage Monitoring",
-                "description": "Set up alerts for disk space usage before it reaches critical levels."
-            })
-        
-        elif "security" in pattern_desc:
-            recs.append({
-                "title": "Security Audit",
-                "description": "Conduct a security audit of the affected component."
-            })
-            recs.append({
-                "title": "Update Security Policies",
-                "description": "Review and update security policies and access controls."
-            })
-        
-        elif "performance" in pattern_desc or "latency" in pattern_desc:
-            recs.append({
-                "title": "Performance Tuning",
-                "description": "Optimize database queries and API calls for better performance."
-            })
-            recs.append({
-                "title": "Load Testing",
-                "description": "Conduct load testing to identify performance bottlenecks under stress."
-            })
-        
-        elif "database" in pattern_desc:
-            recs.append({
-                "title": "Database Connection Pooling",
-                "description": "Implement or optimize database connection pooling."
-            })
-            recs.append({
-                "title": "Database Failover",
-                "description": "Set up database failover mechanisms if not already in place."
-            })
-        
-        elif "api" in pattern_desc or "service" in pattern_desc:
-            recs.append({
-                "title": "Service Resilience",
-                "description": "Implement circuit breakers and fallback mechanisms for external services."
-            })
-            recs.append({
-                "title": "Retry Strategy",
-                "description": "Optimize retry strategies with exponential backoff for external API calls."
-            })
-        
-        return recs
+                "description": "Consider adding more RAM to the system or increasing memory limits in configuration."
+            }, {
+                "title": "Check for Memory Leaks",
+                "description": "Review application code for memory leaks, especially in long-running processes."
+            }, {
+                "title": "Implement Memory Monitoring",
+                "description": "Set up alerts for memory usage thresholds to proactively detect issues before they become critical."
+            }]
+            
+        elif pattern == "disk_issue":
+            return [{
+                "title": "Clean Up Disk Space",
+                "description": "Remove temporary files, logs, and unused data to free up disk space."
+            }, {
+                "title": "Increase Storage Capacity",
+                "description": "Add more storage or migrate to a larger disk/volume."
+            }, {
+                "title": "Implement Log Rotation",
+                "description": "Configure log rotation to prevent log files from consuming all available disk space."
+            }]
+            
+        elif pattern == "connectivity_issue":
+            return [{
+                "title": "Check Network Configuration",
+                "description": "Verify network settings, DNS resolution, and firewall rules."
+            }, {
+                "title": "Increase Timeout Values",
+                "description": "Adjust connection timeout settings to be more tolerant of network latency."
+            }, {
+                "title": "Implement Retry Mechanism",
+                "description": "Add retry logic with exponential backoff for critical connections."
+            }]
+            
+        elif pattern == "database_issue":
+            return [{
+                "title": "Optimize Database Queries",
+                "description": "Review and optimize slow or resource-intensive database queries."
+            }, {
+                "title": "Check Connection Pool",
+                "description": "Verify database connection pool settings and increase capacity if needed."
+            }, {
+                "title": "Monitor Database Performance",
+                "description": "Set up monitoring for database metrics like CPU, memory, I/O, and query execution time."
+            }]
+            
+        elif pattern == "security_issue":
+            return [{
+                "title": "Review Authentication Settings",
+                "description": "Check authentication configuration and credentials management."
+            }, {
+                "title": "Implement Rate Limiting",
+                "description": "Add rate limiting for authentication attempts to prevent brute force attacks."
+            }, {
+                "title": "Audit Access Logs",
+                "description": "Review security logs for suspicious activity patterns."
+            }]
+            
+        # Generic recommendations for other patterns
+        return [{
+            "title": "Investigate Root Cause",
+            "description": f"Analyze the specific error pattern '{pattern}' to determine underlying causes."
+        }, {
+            "title": "Add Detailed Logging",
+            "description": "Enhance logging around this issue to capture more context for future occurrences."
+        }]
     
     def _get_sequence_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get recommendations for error sequences"""
-        return [
-            {
-                "title": "Retry Strategy Review",
-                "description": "Review the retry strategy to ensure it's not too aggressive and includes proper backoff."
-            },
-            {
-                "title": "Failover Mechanisms",
-                "description": "Implement or improve failover mechanisms to handle repeated failures more gracefully."
-            },
-            {
-                "title": "Circuit Breaker Pattern",
-                "description": "Implement a circuit breaker pattern to prevent cascading failures when a service is consistently unavailable."
-            }
-        ]
+        return [{
+            "title": "Perform Root Cause Analysis",
+            "description": f"Investigate the first error in the sequence within the {anomaly['component']} component as it likely triggered subsequent failures."
+        }, {
+            "title": "Implement Circuit Breaker",
+            "description": "Add circuit breaker patterns to prevent cascading failures when errors occur."
+        }, {
+            "title": "Enhance Error Handling",
+            "description": "Improve error handling to make the system more resilient to this sequence of failures."
+        }, {
+            "title": "Add Automatic Recovery",
+            "description": "Implement automatic recovery mechanisms that can detect and resolve this error pattern."
+        }]
     
     def _get_component_recommendations(self, component: str, message: str) -> List[Dict[str, str]]:
         """Get component-specific recommendations"""
         component = component.lower()
-        message = message.lower()
         
         if "database" in component or "db" in component:
-            return [
-                {
-                    "title": "Database Health Check",
-                    "description": "Verify database server status, connection pool settings, and query performance."
-                },
-                {
-                    "title": "Database Monitoring",
-                    "description": "Set up monitoring for database connection counts, query performance, and server resources."
-                }
-            ]
-        
-        elif "network" in component or "connection" in component:
-            return [
-                {
-                    "title": "Network Diagnostics",
-                    "description": "Run network diagnostics to check for packet loss, latency, or connectivity issues."
-                },
-                {
-                    "title": "Network Redundancy",
-                    "description": "Ensure redundant network paths are available and properly configured."
-                }
-            ]
-        
-        elif "security" in component or "auth" in component:
-            return [
-                {
-                    "title": "Security Audit",
-                    "description": "Conduct a security audit focusing on authentication and authorization mechanisms."
-                },
-                {
-                    "title": "Rate Limiting",
-                    "description": "Implement or adjust rate limiting to prevent brute force attacks."
-                }
-            ]
-        
-        elif "api" in component or "service" in component:
-            return [
-                {
-                    "title": "Service Health Monitoring",
-                    "description": "Set up health checks and monitoring for the API service."
-                },
-                {
-                    "title": "Service Documentation",
-                    "description": "Ensure API contracts and documentation are up to date for proper integration."
-                }
-            ]
-        
+            return [{
+                "title": "Check Database Connectivity",
+                "description": "Verify database connection settings and ensure the database is accessible."
+            }, {
+                "title": "Optimize Database Queries",
+                "description": "Review and optimize database queries to improve performance."
+            }]
+            
+        elif "network" in component:
+            return [{
+                "title": "Check Network Configuration",
+                "description": "Verify network settings, DNS resolution, and firewall rules."
+            }, {
+                "title": "Monitor Network Latency",
+                "description": "Set up monitoring for network latency and packet loss."
+            }]
+            
+        elif "auth" in component or "security" in component:
+            return [{
+                "title": "Review Authentication Settings",
+                "description": "Check authentication configuration and credentials management."
+            }, {
+                "title": "Audit Security Logs",
+                "description": "Review security logs for suspicious activity patterns."
+            }]
+            
+        elif "api" in component:
+            return [{
+                "title": "Verify API Endpoints",
+                "description": "Check API endpoint configuration and accessibility."
+            }, {
+                "title": "Implement API Monitoring",
+                "description": "Set up monitoring for API response times and error rates."
+            }]
+            
+        elif "memory" in component or "cache" in component:
+            return [{
+                "title": "Optimize Memory Usage",
+                "description": "Review memory usage patterns and optimize memory-intensive operations."
+            }, {
+                "title": "Implement Cache Eviction",
+                "description": "Add cache eviction policies to prevent memory issues."
+            }]
+            
+        # Generic recommendations if no specific component match
         return []
-
-# Singleton instance for the application
-_anomaly_detector = None
 
 def get_anomaly_detector():
     """Get or create the anomaly detector singleton"""
@@ -858,25 +733,35 @@ def get_anomaly_stats():
     """Get statistics about detected anomalies"""
     anomalies = get_anomalies()
     
-    stats = {
-        "total_count": len(anomalies),
-        "by_severity": defaultdict(int),
-        "by_component": defaultdict(int),
-        "by_type": defaultdict(int),
-        "by_file": defaultdict(int),
-        "recent_anomalies": anomalies[:5] if anomalies else []
+    # Count anomalies by type
+    type_counts = Counter(a.get('type', 'unknown') for a in anomalies)
+    
+    # Count anomalies by component
+    component_counts = Counter(a.get('component', 'Unknown') for a in anomalies)
+    
+    # Count anomalies by severity
+    severity_counts = Counter(a.get('severity', 0) for a in anomalies)
+    severity_labels = {
+        0: 'INFO',
+        1: 'WARNING',
+        2: 'ERROR',
+        3: 'CRITICAL'
     }
+    labeled_severity_counts = {severity_labels.get(k, str(k)): v for k, v in severity_counts.items()}
     
-    for anomaly in anomalies:
-        severity_name = "UNKNOWN"
-        for name, level in SEVERITY_LEVELS.items():
-            if level == anomaly["severity"]:
-                severity_name = name
-                break
-        
-        stats["by_severity"][severity_name] += 1
-        stats["by_component"][anomaly["component"]] += 1
-        stats["by_type"][anomaly["type"]] += 1
-        stats["by_file"][anomaly["source_file"]] += 1
+    # Calculate ML detection ratio
+    ml_anomalies = sum(1 for a in anomalies if a.get('type', '').startswith('ml_'))
+    ml_ratio = ml_anomalies / len(anomalies) if anomalies else 0
     
-    return stats
+    # Get timestamps for time series data
+    timestamps = [a.get('timestamp', '') for a in anomalies if a.get('timestamp')]
+    
+    return {
+        'total_anomalies': len(anomalies),
+        'by_type': dict(type_counts),
+        'by_component': dict(component_counts),
+        'by_severity': labeled_severity_counts,
+        'ml_detected_ratio': ml_ratio,
+        'ml_detected_count': ml_anomalies,
+        'timestamps': timestamps
+    }

@@ -4,7 +4,7 @@ This module provides routes for anomaly detection and recommendations.
 """
 import json
 from flask import Blueprint, jsonify, request, render_template, redirect, url_for
-from services.anomaly_detection_fixed import get_anomalies, get_anomaly_recommendations, get_anomaly_stats
+from services.anomaly_detection import get_anomalies, get_anomaly_recommendations, get_anomaly_stats
 
 anomalies_bp = Blueprint('anomalies', __name__)
 
