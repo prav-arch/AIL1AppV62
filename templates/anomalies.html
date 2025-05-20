@@ -104,7 +104,7 @@
                                     <th>Message</th>
                                     <th>Detection Method</th>
                                     <th>Source</th>
-                                    <th>Actions</th>
+                                    <th width="150">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="anomalies-table-body">
@@ -155,7 +155,9 @@
                 <pre class="bg-dark text-light p-3 mt-2" id="modal-context" style="max-height: 200px; overflow-y: auto;"></pre>
                 
                 <div class="d-grid gap-2 mt-3">
-                    <a id="btn-recommendations" href="#" class="btn btn-primary">Get Recommendations</a>
+                    <a id="btn-recommendations" href="#" class="btn btn-primary">
+                        <i class="fas fa-brain"></i> Get AI Recommendations
+                    </a>
                 </div>
             </div>
             <div class="modal-footer">
@@ -348,8 +350,8 @@
                     <button class="btn btn-sm btn-info view-details" data-id="${anomaly.id}">
                         <i class="fas fa-eye"></i> Details
                     </button>
-                    <a href="/anomalies/recommendations/${anomaly.id}" class="btn btn-sm btn-primary">
-                        <i class="fas fa-clipboard-list"></i> Get Recommendations
+                    <a href="/anomalies/recommendations/${anomaly.id}" class="btn btn-sm btn-primary ms-1">
+                        <i class="fas fa-brain"></i> AI Recommendations
                     </a>
                 </td>
             </tr>
