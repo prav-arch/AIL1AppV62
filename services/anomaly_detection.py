@@ -1,14 +1,21 @@
 """
-Anomaly Detection Service
-This module provides functionality to detect anomalies in log files and generate recommendations.
+Advanced Anomaly Detection Service
+This module provides functionality to detect anomalies in log files using machine learning techniques
+and generate intelligent recommendations based on the detected anomalies.
 """
 import os
 import re
 import json
 import logging
 import datetime
-from typing import List, Dict, Any, Tuple
+import numpy as np
+from typing import List, Dict, Any, Tuple, Optional, Union
 from collections import defaultdict, Counter
+from sklearn.ensemble import IsolationForest
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,11 +32,12 @@ SEVERITY_LEVELS = {
 }
 
 class AnomalyDetector:
-    """Service for detecting anomalies in log files"""
+    """Service for detecting anomalies in log files using advanced ML techniques"""
     
     def __init__(self, logs_dir="/tmp/logs"):
-        """Initialize the anomaly detector"""
+        """Initialize the anomaly detector with ML models"""
         self.logs_dir = logs_dir
+        # Patterns for traditional rule-based detection
         self.anomaly_patterns = [
             (r"ERROR|CRITICAL|FATAL", "High severity log entry"),
             (r"exception|fail|failed|timeout|timed out", "Failure or exception indication"),
@@ -42,6 +50,28 @@ class AnomalyDetector:
             (r"database|connection lost|reconnect", "Database connectivity issues"),
             (r"API|service unavailable|endpoint", "API or service availability issues")
         ]
+        
+        # ML model configurations
+        self.isolation_forest = IsolationForest(
+            n_estimators=100, 
+            contamination=0.05,  # Expect ~5% anomalies
+            random_state=42,
+            max_samples='auto'
+        )
+        
+        self.vectorizer = TfidfVectorizer(
+            max_features=100,
+            stop_words='english',
+            min_df=2
+        )
+        
+        self.svd = TruncatedSVD(n_components=10)
+        
+        self.dbscan = DBSCAN(
+            eps=0.5,
+            min_samples=2,
+            metric='cosine'
+        )
     
     def load_log_files(self) -> Dict[str, List[str]]:
         """Load all log files from the logs directory"""
@@ -88,17 +118,171 @@ class AnomalyDetector:
             "severity": 0
         }
     
+    def extract_features_from_logs(self, parsed_lines: List[Dict[str, Any]]) -> np.ndarray:
+        """
+        Extract numerical features from parsed log lines for ML-based anomaly detection
+        """
+        features = []
+        
+        for parsed in parsed_lines:
+            # Extract features that might be useful for anomaly detection
+            severity = parsed["severity"]
+            message_length = len(parsed["message"])
+            has_error = 1 if severity >= 2 else 0
+            has_warning = 1 if severity == 1 else 0
+            hour = 0
+            minute = 0
+            
+            # Extract time features if timestamp exists
+            if parsed["timestamp"]:
+                try:
+                    dt = datetime.datetime.strptime(parsed["timestamp"], "%Y-%m-%d %H:%M:%S")
+                    hour = dt.hour
+                    minute = dt.minute
+                except ValueError:
+                    pass
+            
+            # Create feature vector
+            feature_vector = [
+                severity,
+                message_length,
+                has_error,
+                has_warning,
+                hour,
+                minute
+            ]
+            features.append(feature_vector)
+        
+        # If no features, return empty array
+        if not features:
+            return np.array([])
+        
+        # Normalize features
+        scaler = StandardScaler()
+        return scaler.fit_transform(np.array(features))
+    
+    def detect_ml_anomalies(self, filename: str, lines: List[str], parsed_lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Detect anomalies using machine learning techniques:
+        1. Isolation Forest for detecting outliers based on numerical features
+        2. DBSCAN clustering for detecting contextual anomalies in log messages
+        """
+        anomalies = []
+        
+        # Need enough data for meaningful ML analysis
+        if len(parsed_lines) < 5:
+            return anomalies
+        
+        # Extract messages for text-based analysis
+        messages = [parsed["message"] for parsed in parsed_lines]
+        
+        # ---------- Isolation Forest for numerical features ----------
+        # Extract and normalize features
+        features = self.extract_features_from_logs(parsed_lines)
+        
+        if len(features) > 0:
+            # Fit the Isolation Forest model
+            self.isolation_forest.fit(features)
+            
+            # Predict anomalies (-1 for anomalies, 1 for normal)
+            predictions = self.isolation_forest.predict(features)
+            
+            # Find anomalies
+            for i, pred in enumerate(predictions):
+                if pred == -1:  # Anomaly detected
+                    parsed = parsed_lines[i]
+                    
+                    # Create anomaly record
+                    anomaly = {
+                        "id": f"{filename}_{i}_ml_isolation",
+                        "type": "ml_isolation_forest",
+                        "algorithm": "Isolation Forest",
+                        "timestamp": parsed["timestamp"],
+                        "component": parsed["component"],
+                        "message": parsed["message"],
+                        "severity": max(1, parsed["severity"]),  # At least WARNING level
+                        "source_file": filename,
+                        "line_number": i + 1,
+                        "context": self._get_context(lines, i),
+                        "confidence": 0.85,  # Base confidence level
+                        "explanation": "Statistical outlier detected based on temporal patterns and severity"
+                    }
+                    anomalies.append(anomaly)
+        
+        # ---------- Text-based anomaly detection with DBSCAN ----------
+        try:
+            # Only proceed if we have enough messages
+            if len(messages) >= 5:
+                # Generate TF-IDF vectors
+                tfidf_matrix = self.vectorizer.fit_transform(messages)
+                
+                # Apply dimensionality reduction if we have enough features
+                if tfidf_matrix.shape[1] > 10:
+                    text_features = self.svd.fit_transform(tfidf_matrix)
+                else:
+                    text_features = tfidf_matrix.toarray()
+                
+                # Apply DBSCAN clustering
+                clusters = self.dbscan.fit_predict(text_features)
+                
+                # Find outliers (labeled as -1 by DBSCAN)
+                for i, cluster_id in enumerate(clusters):
+                    if cluster_id == -1:  # This is an outlier
+                        parsed = parsed_lines[i]
+                        
+                        # Create anomaly record
+                        anomaly = {
+                            "id": f"{filename}_{i}_ml_dbscan",
+                            "type": "ml_dbscan_cluster",
+                            "algorithm": "DBSCAN Clustering",
+                            "timestamp": parsed["timestamp"],
+                            "component": parsed["component"],
+                            "message": parsed["message"],
+                            "severity": max(1, parsed["severity"]),  # At least WARNING level
+                            "source_file": filename,
+                            "line_number": i + 1,
+                            "context": self._get_context(lines, i),
+                            "confidence": 0.75,  # Base confidence level
+                            "explanation": "Unusual log message content compared to other messages in this log file"
+                        }
+                        anomalies.append(anomaly)
+        except Exception as e:
+            logger.warning(f"Text-based anomaly detection failed: {e}")
+        
+        return anomalies
+    
     def detect_anomalies(self) -> List[Dict[str, Any]]:
-        """Detect anomalies in log files"""
+        """Detect anomalies in log files using multiple techniques:
+        1. Rule-based detection for known patterns
+        2. ML-based detection for complex and unknown patterns
+        """
         log_files = self.load_log_files()
         anomalies = []
         
         for filename, lines in log_files.items():
-            file_anomalies = self._detect_file_anomalies(filename, lines)
-            anomalies.extend(file_anomalies)
+            # Traditional rule-based anomaly detection
+            rule_based_anomalies = self._detect_file_anomalies(filename, lines)
+            anomalies.extend(rule_based_anomalies)
+            
+            # Parse lines for ML detection
+            parsed_lines = [self.parse_log_line(line) for line in lines]
+            
+            # ML-based anomaly detection
+            ml_anomalies = self.detect_ml_anomalies(filename, lines, parsed_lines)
+            anomalies.extend(ml_anomalies)
         
-        # Sort anomalies by severity (descending) and timestamp (descending)
-        return sorted(anomalies, key=lambda x: (-x["severity"], x["timestamp"]), reverse=True)
+        # Remove duplicates (same line detected by multiple methods)
+        unique_anomalies = {}
+        for anomaly in anomalies:
+            key = f"{anomaly['source_file']}_{anomaly['line_number']}"
+            # Keep the anomaly with highest confidence/severity if duplicate
+            if key not in unique_anomalies or unique_anomalies[key]['severity'] < anomaly['severity']:
+                unique_anomalies[key] = anomaly
+        
+        # Sort by severity (descending) and timestamp (descending)
+        return sorted(list(unique_anomalies.values()), 
+                      key=lambda x: (-x.get("severity", 0), x.get("timestamp", "")), 
+                      reverse=True)
     
     def _detect_file_anomalies(self, filename: str, lines: List[str]) -> List[Dict[str, Any]]:
         """Detect anomalies in a specific log file"""

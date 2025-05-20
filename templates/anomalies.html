@@ -1,368 +1,64 @@
 {% extends "base.html" %}
-{% set active_tab = 'anomalies' %}
 
-{% block title %}Anomalies - AI Assistant Platform{% endblock %}
+{% block title %}Anomaly Detection{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Anomaly Detection Dashboard</h5>
-            </div>
-            <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card bg-light text-dark">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Total Anomalies</h6>
-                                <h2 class="display-4" id="total-anomalies">24</h2>
-                                <div class="badge bg-secondary">Last 24 hours</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-light text-dark">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Critical</h6>
-                                <h2 class="display-4 text-danger" id="critical-anomalies">5</h2>
-                                <div class="small text-danger">
-                                    <i class="fas fa-arrow-up"></i> 20% from yesterday
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-light text-dark">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Warning</h6>
-                                <h2 class="display-4 text-warning" id="warning-anomalies">12</h2>
-                                <div class="small text-warning">
-                                    <i class="fas fa-arrow-up"></i> 8% from yesterday
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-light text-dark">
-                            <div class="card-body text-center">
-                                <h6 class="card-subtitle mb-2 text-muted">Info</h6>
-                                <h2 class="display-4 text-info" id="info-anomalies">7</h2>
-                                <div class="small text-success">
-                                    <i class="fas fa-arrow-down"></i> 3% from yesterday
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Anomaly Detection Statistics</h5>
                 </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-8">
-                        <div class="card mb-md-0 mb-4">
-                            <div class="card-header">
-                                <h6 class="mb-0">Anomaly Trends</h6>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white mb-3">
+                                <div class="card-body text-center">
+                                    <h3 id="critical-count">-</h3>
+                                    <p class="mb-0">Critical Anomalies</p>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <div class="chart-container" style="position: relative; height:300px;">
-                                    <canvas id="anomaly-trends-chart"></canvas>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-dark mb-3">
+                                <div class="card-body text-center">
+                                    <h3 id="error-count">-</h3>
+                                    <p class="mb-0">Error Anomalies</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white mb-3">
+                                <div class="card-body text-center">
+                                    <h3 id="warning-count">-</h3>
+                                    <p class="mb-0">Warning Anomalies</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white mb-3">
+                                <div class="card-body text-center">
+                                    <h3 id="total-count">-</h3>
+                                    <p class="mb-0">Total Anomalies</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="mb-0">Anomaly Type Distribution</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container" style="position: relative; height:300px;">
-                                    <canvas id="anomaly-types-chart"></canvas>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">Anomalies by Component</div>
+                                <div class="card-body">
+                                    <canvas id="component-chart" width="400" height="200"></canvas>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">Detected Anomalies</h6>
-                            <div>
-                                <button class="btn btn-sm btn-outline-primary" id="refresh-anomalies">
-                                    <i class="fas fa-sync"></i> Refresh
-                                </button>
-                                <div class="btn-group btn-group-sm ms-2">
-                                    <button type="button" class="btn btn-outline-secondary">
-                                        <i class="fas fa-filter"></i> Filter
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span class="visually-hidden">Toggle Dropdown</span>
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="#" data-filter="all">All</a></li>
-                                        <li><a class="dropdown-item" href="#" data-filter="critical">Critical</a></li>
-                                        <li><a class="dropdown-item" href="#" data-filter="warning">Warning</a></li>
-                                        <li><a class="dropdown-item" href="#" data-filter="info">Info</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover" id="anomalies-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Timestamp</th>
-                                        <th>Type</th>
-                                        <th>Source</th>
-                                        <th>Description</th>
-                                        <th>Severity</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>A-1283</td>
-                                        <td>2023-05-20 14:32:15</td>
-                                        <td>Network</td>
-                                        <td>router-edge-01</td>
-                                        <td>Unusual outbound traffic spike detected (4.5GB in 5 minutes)</td>
-                                        <td><span class="badge bg-danger">Critical</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1283">Get Recommendations</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>A-1282</td>
-                                        <td>2023-05-20 13:45:22</td>
-                                        <td>System</td>
-                                        <td>app-server-03</td>
-                                        <td>Memory usage continuously above 92% for 15 minutes</td>
-                                        <td><span class="badge bg-warning">Warning</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1282">Get Recommendations</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>A-1281</td>
-                                        <td>2023-05-20 12:58:45</td>
-                                        <td>Database</td>
-                                        <td>db-cluster-main</td>
-                                        <td>Query latency increased by 300% in the last hour</td>
-                                        <td><span class="badge bg-danger">Critical</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1281">Get Recommendations</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>A-1280</td>
-                                        <td>2023-05-20 11:23:18</td>
-                                        <td>Application</td>
-                                        <td>web-frontend</td>
-                                        <td>API response time exceeding SLA (avg 3.2s)</td>
-                                        <td><span class="badge bg-warning">Warning</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1280">Get Recommendations</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>A-1279</td>
-                                        <td>2023-05-20 10:15:36</td>
-                                        <td>Security</td>
-                                        <td>firewall-main</td>
-                                        <td>Multiple failed login attempts from IP 192.168.1.45</td>
-                                        <td><span class="badge bg-danger">Critical</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1279">Get Recommendations</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>A-1278</td>
-                                        <td>2023-05-20 09:42:05</td>
-                                        <td>Storage</td>
-                                        <td>storage-array-02</td>
-                                        <td>Disk space trending to full (92% used)</td>
-                                        <td><span class="badge bg-warning">Warning</span></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-primary get-recommendation-btn" data-anomaly-id="A-1278">Get Recommendations</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Advanced Anomaly Detection -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Advanced Anomaly Detection</h5>
-            </div>
-            <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card mb-md-0 mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">Time Series Analyzer</h6>
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <span id="selected-algorithm">Z-Score</span>
-                                    </button>
-                                    <ul class="dropdown-menu" id="algorithm-selector">
-                                        <li><a class="dropdown-item" href="#" data-algorithm="zscore">Z-Score</a></li>
-                                        <li><a class="dropdown-item" href="#" data-algorithm="iqr">IQR</a></li>
-                                        <li><a class="dropdown-item" href="#" data-algorithm="isolation_forest">Isolation Forest</a></li>
-                                        <li><a class="dropdown-item" href="#" data-algorithm="one_class_svm">One-Class SVM</a></li>
-                                        <li><a class="dropdown-item" href="#" data-algorithm="dbscan">DBSCAN</a></li>
-                                        <li><a class="dropdown-item" href="#" data-algorithm="lof">Local Outlier Factor</a></li>
-                                        <li><a class="dropdown-item" href="#" data-algorithm="arima">ARIMA</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="#" data-algorithm="ensemble">Ensemble (Multi-Algorithm)</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div id="algorithm-description" class="alert alert-info mb-3">
-                                    Z-score measures how many standard deviations a data point is from the mean. Good for normally distributed data.
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="time-series-data" class="form-label">Time Series Data</label>
-                                    <textarea class="form-control" id="time-series-data" rows="4" placeholder="Enter numeric data points separated by commas or paste from CSV"></textarea>
-                                    <div class="form-text">Example: 10.5, 11.2, 10.8, 25.3, 11.1, 10.9, 11.3, 10.7, 11.0</div>
-                                </div>
-                                
-                                <div id="algorithm-params" class="mb-3">
-                                    <label class="form-label">Algorithm Parameters</label>
-                                    <div class="input-group mb-2">
-                                        <span class="input-group-text" id="param-name-label">Threshold</span>
-                                        <input type="number" class="form-control" id="param-value" value="3.0" aria-label="Parameter value" aria-describedby="param-name-label">
-                                    </div>
-                                    <div class="form-text" id="param-description">Number of standard deviations to consider anomalous</div>
-                                </div>
-                                
-                                <div id="ensemble-params" class="mb-3" style="display: none;">
-                                    <label class="form-label">Ensemble Algorithms</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="zscore" id="check-zscore" checked>
-                                        <label class="form-check-label" for="check-zscore">
-                                            Z-Score
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="iqr" id="check-iqr" checked>
-                                        <label class="form-check-label" for="check-iqr">
-                                            IQR
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="isolation_forest" id="check-isolation-forest" checked>
-                                        <label class="form-check-label" for="check-isolation-forest">
-                                            Isolation Forest
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="one_class_svm" id="check-one-class-svm">
-                                        <label class="form-check-label" for="check-one-class-svm">
-                                            One-Class SVM
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="dbscan" id="check-dbscan">
-                                        <label class="form-check-label" for="check-dbscan">
-                                            DBSCAN
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="lof" id="check-lof">
-                                        <label class="form-check-label" for="check-lof">
-                                            Local Outlier Factor
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="arima" id="check-arima">
-                                        <label class="form-check-label" for="check-arima">
-                                            ARIMA
-                                        </label>
-                                    </div>
-                                    <div class="mt-2">
-                                        <label for="ensemble-threshold" class="form-label">Agreement Threshold</label>
-                                        <input type="range" class="form-range" min="0.1" max="1.0" step="0.1" id="ensemble-threshold" value="0.5">
-                                        <div class="d-flex justify-content-between">
-                                            <span>10%</span>
-                                            <span>50%</span>
-                                            <span>100%</span>
-                                        </div>
-                                        <div class="form-text">Minimum percentage of algorithms that must agree for a point to be considered anomalous</div>
-                                    </div>
-                                </div>
-                                
-                                <button id="detect-anomalies-btn" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Detect Anomalies
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="mb-0">Results Visualization</h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="analysis-loading" class="text-center py-5" style="display: none;">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <p class="mt-2">Analyzing data...</p>
-                                </div>
-                                
-                                <div id="results-container" style="display: none;">
-                                    <div class="chart-container" style="position: relative; height:300px;">
-                                        <canvas id="anomaly-chart"></canvas>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <h6>Detected Anomalies</h6>
-                                        <div id="anomaly-summary" class="alert alert-warning">
-                                            <span id="anomaly-count">0</span> anomalies detected
-                                        </div>
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-striped" id="anomaly-results-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Index</th>
-                                                        <th>Value</th>
-                                                        <th>Score</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <!-- Results will be populated here -->
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <h6>Algorithm Metadata</h6>
-                                        <pre id="algorithm-metadata" class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;">
-                                            <!-- Metadata will be displayed here -->
-                                        </pre>
-                                    </div>
-                                </div>
-                                
-                                <div id="no-data-message" class="text-center py-5">
-                                    <div class="text-muted">
-                                        <i class="fas fa-chart-line fa-3x mb-3"></i>
-                                        <p>Enter time series data and click 'Detect Anomalies' to visualize results</p>
-                                    </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">Anomalies by Type</div>
+                                <div class="card-body">
+                                    <canvas id="type-chart" width="400" height="200"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -371,41 +67,53 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- Network Visualizations -->
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Network Visualization</h5>
-            </div>
-            <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-8">
-                        <div class="card mb-md-0 mb-4">
-                            <div class="card-header">
-                                <h6 class="mb-0">Network Topology</h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="network-topology" style="height: 400px; border: 1px solid #ccc; border-radius: 4px;"></div>
-                            </div>
-                        </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Detected Anomalies</h5>
+                    <div>
+                        <select id="filter-severity" class="form-select form-select-sm d-inline-block" style="width: auto;">
+                            <option value="">All Severities</option>
+                            <option value="3">Critical Only</option>
+                            <option value="2">Error & Critical</option>
+                            <option value="1">Warning & Above</option>
+                        </select>
+                        <select id="filter-type" class="form-select form-select-sm d-inline-block" style="width: auto;">
+                            <option value="">All Types</option>
+                            <option value="ml_isolation">ML Isolation Forest</option>
+                            <option value="ml_dbscan">ML DBSCAN Clustering</option>
+                            <option value="high_severity">High Severity</option>
+                            <option value="pattern_match">Pattern Match</option>
+                            <option value="error_sequence">Error Sequence</option>
+                        </select>
+                        <button id="refresh-anomalies" class="btn btn-sm btn-primary">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h6 class="mb-0">Traffic Patterns</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container" style="position: relative; height:180px;">
-                                    <canvas id="traffic-in-chart"></canvas>
-                                </div>
-                                <div class="chart-container" style="position: relative; height:180px; margin-top: 20px;">
-                                    <canvas id="traffic-out-chart"></canvas>
-                                </div>
-                            </div>
-                        </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Timestamp</th>
+                                    <th>Component</th>
+                                    <th>Message</th>
+                                    <th>Detection Method</th>
+                                    <th>Source</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="anomalies-table-body">
+                                <!-- Anomalies will be listed here -->
+                                <tr>
+                                    <td colspan="7" class="text-center">Loading anomalies...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -413,426 +121,325 @@
     </div>
 </div>
 
-<!-- Recommendation Modal -->
-<div class="modal fade" id="recommendationModal" tabindex="-1" aria-labelledby="recommendationModalLabel" aria-hidden="true">
+<!-- Anomaly Details Modal -->
+<div class="modal fade" id="anomalyDetailsModal" tabindex="-1" aria-labelledby="anomalyDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="recommendationModalLabel">Recommendations for Anomaly</h5>
+                <h5 class="modal-title" id="anomalyDetailsModalLabel">Anomaly Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="d-flex align-items-start mb-3">
-                    <div class="flex-shrink-0">
-                        <span class="badge bg-danger fs-6 p-2"><i class="fas fa-exclamation-triangle"></i></span>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>ID:</strong> <span id="modal-id"></span></p>
+                        <p><strong>Severity:</strong> <span id="modal-severity"></span></p>
+                        <p><strong>Component:</strong> <span id="modal-component"></span></p>
+                        <p><strong>Timestamp:</strong> <span id="modal-timestamp"></span></p>
+                        <p><strong>Type:</strong> <span id="modal-type"></span></p>
+                        <p><strong>Source:</strong> <span id="modal-source"></span></p>
                     </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h5 id="anomaly-title">Network Traffic Spike</h5>
-                        <p id="anomaly-description" class="text-muted mb-0">Unusual outbound traffic spike detected (4.5GB in 5 minutes) from router-edge-01.</p>
-                    </div>
-                </div>
-                
-                <div class="card border-primary mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <h6 class="mb-0">LLM Recommendations</h6>
-                    </div>
-                    <div class="card-body">
-                        <div id="recommendation-content">
-                            <div class="d-flex justify-content-center my-5">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
+                    <div class="col-md-6">
+                        <p><strong>Message:</strong></p>
+                        <div class="border p-2 mb-3 bg-light" id="modal-message" style="min-height: 60px;"></div>
+                        
+                        <div id="ml-details-section" style="display: none;">
+                            <p><strong>ML Algorithm:</strong> <span id="modal-algorithm"></span></p>
+                            <p><strong>Confidence:</strong> <span id="modal-confidence"></span></p>
+                            <p><strong>Explanation:</strong> <span id="modal-explanation"></span></p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="card border-secondary">
-                    <div class="card-header bg-secondary text-white">
-                        <h6 class="mb-0">Similar Past Incidents</h6>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-group list-group-flush" id="similar-incidents">
-                            <li class="list-group-item d-flex justify-content-between align-items-start">
-                                <div class="ms-2 me-auto">
-                                    <div class="fw-bold">A-1145: Network Traffic Spike</div>
-                                    <span class="text-muted">2023-05-01 - Resolved in 45 minutes</span>
-                                </div>
-                                <span class="badge bg-primary rounded-pill">85% similar</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between align-items-start">
-                                <div class="ms-2 me-auto">
-                                    <div class="fw-bold">A-982: Unusual Traffic Pattern</div>
-                                    <span class="text-muted">2023-04-12 - Resolved in 2 hours</span>
-                                </div>
-                                <span class="badge bg-primary rounded-pill">72% similar</span>
-                            </li>
-                        </ul>
-                    </div>
+                <h5 class="mt-3">Context</h5>
+                <pre class="bg-dark text-light p-3 mt-2" id="modal-context" style="max-height: 200px; overflow-y: auto;"></pre>
+                
+                <div class="d-grid gap-2 mt-3">
+                    <a id="btn-recommendations" href="#" class="btn btn-primary">Get Recommendations</a>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success">Mark as Resolved</button>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
-<script src="{{ url_for('static', filename='js/anomalies.js') }}"></script>
-
-<!-- Advanced Anomaly Detection Script -->
+{% block additional_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Advanced Anomaly Detection
-    initializeAnomalyDetection();
-});
-
-// Advanced Anomaly Detection Functions
-function initializeAnomalyDetection() {
-    // Algorithm descriptions
-    const algorithmDescriptions = {
-        'zscore': 'Z-score measures how many standard deviations a data point is from the mean. Good for normally distributed data.',
-        'iqr': 'Interquartile Range (IQR) identifies outliers based on the distance from the first and third quartiles. Robust to non-normal distributions.',
-        'isolation_forest': 'Isolation Forest isolates observations by randomly selecting features. Effective for high-dimensional data and large datasets.',
-        'one_class_svm': 'One-Class SVM learns a boundary around normal data points. Effective when training data is clean (anomaly-free).',
-        'dbscan': 'DBSCAN clusters points by density. Points that cannot be clustered are considered anomalies. Good for data with varying densities.',
-        'lof': 'Local Outlier Factor compares the local density of a point with its neighbors. Effective at finding local anomalies.',
-        'arima': 'ARIMA models time series data and identifies points that deviate from the prediction. Best for seasonal and trending time series.',
-        'ensemble': 'Ensemble method combines multiple algorithms for more robust anomaly detection. Reduces false positives by requiring agreement.'
-    };
+    // Chart objects
+    let componentChart = null;
+    let typeChart = null;
     
-    // Algorithm parameter configurations
-    const paramConfigs = {
-        'zscore': { name: 'Threshold', value: 3.0, description: 'Number of standard deviations to consider anomalous' },
-        'iqr': { name: 'k', value: 1.5, description: 'Multiplier for IQR to determine outlier boundaries' },
-        'isolation_forest': { name: 'Contamination', value: 0.05, description: 'Expected proportion of outliers in the dataset' },
-        'one_class_svm': { name: 'Nu', value: 0.05, description: 'Upper bound on the fraction of outliers' },
-        'dbscan': { name: 'Eps', value: 0.5, description: 'Maximum distance between two samples to be considered in the same neighborhood' },
-        'lof': { name: 'n_neighbors', value: 20, description: 'Number of neighbors to consider for local density calculation' },
-        'arima': { name: 'Order', value: '5,1,0', description: 'ARIMA parameters (p,d,q) for time series modeling' }
-    };
+    // Current anomalies data
+    let anomaliesData = [];
     
-    // Set up algorithm selector dropdown
-    document.querySelectorAll('#algorithm-selector .dropdown-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const algorithm = this.getAttribute('data-algorithm');
-            document.getElementById('selected-algorithm').textContent = this.textContent;
-            
-            // Update description
-            document.getElementById('algorithm-description').textContent = algorithmDescriptions[algorithm];
-            
-            // Update parameter UI based on selected algorithm
-            if (algorithm === 'ensemble') {
-                document.getElementById('algorithm-params').style.display = 'none';
-                document.getElementById('ensemble-params').style.display = 'block';
-            } else {
-                document.getElementById('algorithm-params').style.display = 'block';
-                document.getElementById('ensemble-params').style.display = 'none';
-                
-                // Update parameter label and value
-                const paramConfig = paramConfigs[algorithm];
-                document.getElementById('param-name-label').textContent = paramConfig.name;
-                document.getElementById('param-value').value = paramConfig.value;
-                document.getElementById('param-description').textContent = paramConfig.description;
-            }
-        });
-    });
-    
-    // Set up detect anomalies button
-    document.getElementById('detect-anomalies-btn').addEventListener('click', detectAnomalies);
-    
-    // Initialize with default algorithm - Z-score
-    document.getElementById('algorithm-description').textContent = algorithmDescriptions['zscore'];
-}
-
-function detectAnomalies() {
-    // Get input data
-    const inputText = document.getElementById('time-series-data').value.trim();
-    if (!inputText) {
-        alert('Please enter time series data');
-        return;
-    }
-    
-    // Parse input data
-    let timeSeriesData;
-    try {
-        // Try to parse as comma-separated values, handling different formats
-        timeSeriesData = inputText.split(/[,\s\n]+/).map(val => {
-            const num = parseFloat(val.trim());
-            if (isNaN(num)) {
-                throw new Error(`Invalid number: ${val}`);
-            }
-            return num;
-        });
-    } catch (error) {
-        alert(`Error parsing data: ${error.message}`);
-        return;
-    }
-    
-    // Show loading state
-    document.getElementById('no-data-message').style.display = 'none';
-    document.getElementById('results-container').style.display = 'none';
-    document.getElementById('analysis-loading').style.display = 'block';
-    
-    // Get selected algorithm and parameters
-    const selectedAlgorithm = document.getElementById('selected-algorithm').textContent;
-    const algorithmMap = {
-        'Z-Score': 'zscore',
-        'IQR': 'iqr',
-        'Isolation Forest': 'isolation_forest',
-        'One-Class SVM': 'one_class_svm',
-        'DBSCAN': 'dbscan',
-        'Local Outlier Factor': 'lof',
-        'ARIMA': 'arima',
-        'Ensemble (Multi-Algorithm)': 'ensemble'
-    };
-    
-    const algorithm = algorithmMap[selectedAlgorithm];
-    
-    // Prepare request data
-    let requestData = {
-        data: timeSeriesData
-    };
-    
-    // Handle either individual algorithm or ensemble
-    if (algorithm === 'ensemble') {
-        // Get selected algorithms for ensemble
-        const selectedAlgorithms = [];
-        document.querySelectorAll('#ensemble-params input:checked').forEach(checkbox => {
-            selectedAlgorithms.push(checkbox.value);
-        });
-        
-        if (selectedAlgorithms.length === 0) {
-            alert('Please select at least one algorithm for ensemble detection');
-            document.getElementById('analysis-loading').style.display = 'none';
-            return;
-        }
-        
-        // Get threshold value
-        const threshold = parseFloat(document.getElementById('ensemble-threshold').value);
-        
-        requestData.algorithms = selectedAlgorithms;
-        requestData.threshold = threshold;
-        
-        // Make API call for ensemble detection
-        fetch('/anomalies/api/anomaly-detection/ensemble', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            displayAnomalyResults(data, timeSeriesData, true);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert(`Error detecting anomalies: ${error.message}`);
-            document.getElementById('analysis-loading').style.display = 'none';
-        });
-    } else {
-        // Single algorithm detection
-        const paramValue = document.getElementById('param-value').value;
-        
-        // Set parameters based on algorithm
-        const params = {};
-        if (algorithm === 'zscore') {
-            params.threshold = parseFloat(paramValue);
-        } else if (algorithm === 'iqr') {
-            params.k = parseFloat(paramValue);
-        } else if (algorithm === 'isolation_forest') {
-            params.contamination = parseFloat(paramValue);
-        } else if (algorithm === 'one_class_svm') {
-            params.nu = parseFloat(paramValue);
-        } else if (algorithm === 'dbscan') {
-            params.eps = parseFloat(paramValue);
-        } else if (algorithm === 'lof') {
-            params.n_neighbors = parseInt(paramValue);
-        } else if (algorithm === 'arima') {
-            // Handle comma-separated ARIMA order
-            const orderParts = paramValue.split(',').map(Number);
-            params.order = orderParts;
-        }
-        
-        requestData.algorithm = algorithm;
-        requestData.params = params;
-        
-        // Make API call
-        fetch('/anomalies/api/anomaly-detection/detect', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            displayAnomalyResults(data, timeSeriesData, false);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert(`Error detecting anomalies: ${error.message}`);
-            document.getElementById('analysis-loading').style.display = 'none';
-        });
-    }
-}
-
-function displayAnomalyResults(result, timeSeriesData, isEnsemble) {
-    // Hide loading, show results
-    document.getElementById('analysis-loading').style.display = 'none';
-    document.getElementById('results-container').style.display = 'block';
-    
-    // Update anomaly count
-    const anomalyCount = isEnsemble ? result.anomaly_indices.length : result.anomaly_indices.length;
-    document.getElementById('anomaly-count').textContent = anomalyCount;
-    
-    // Populate results table
-    const tableBody = document.querySelector('#anomaly-results-table tbody');
-    tableBody.innerHTML = '';
-    
-    if (isEnsemble) {
-        // For ensemble results
-        result.anomaly_indices.forEach((index, i) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index}</td>
-                <td>${timeSeriesData[index].toFixed(2)}</td>
-                <td>${(result.ensemble_scores[index] * 100).toFixed(1)}%</td>
-            `;
-            tableBody.appendChild(row);
-        });
-        
-        // Display metadata
-        document.getElementById('algorithm-metadata').textContent = JSON.stringify({
-            threshold: result.threshold,
-            algorithms_used: result.algorithms_used || ['zscore', 'iqr', 'isolation_forest']
-        }, null, 2);
-    } else {
-        // For single algorithm results
-        result.anomaly_indices.forEach((index, i) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index}</td>
-                <td>${timeSeriesData[index].toFixed(2)}</td>
-                <td>${result.anomaly_scores[index].toFixed(4)}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-        
-        // Display metadata
-        document.getElementById('algorithm-metadata').textContent = JSON.stringify({
-            algorithm: result.algorithm,
-            threshold: result.threshold,
-            metadata: result.metadata || {}
-        }, null, 2);
-    }
-    
-    // Create visualization chart
-    createAnomalyChart(timeSeriesData, isEnsemble ? result.anomaly_indices : result.anomaly_indices);
-}
-
-function createAnomalyChart(timeSeriesData, anomalyIndices) {
-    const canvas = document.getElementById('anomaly-chart');
-    const ctx = canvas.getContext('2d');
-    
-    // Destroy existing chart if any
-    if (window.anomalyDetectionChart) {
-        window.anomalyDetectionChart.destroy();
-    }
-    
-    // Prepare chart data
-    const labels = Array.from({length: timeSeriesData.length}, (_, i) => i);
-    
-    // Normal points (blue)
-    const normalData = timeSeriesData.map((value, index) => 
-        anomalyIndices.includes(index) ? null : value
-    );
-    
-    // Anomaly points (red)
-    const anomalyData = timeSeriesData.map((value, index) => 
-        anomalyIndices.includes(index) ? value : null
-    );
-    
-    // Create chart
-    window.anomalyDetectionChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Normal Points',
-                    data: normalData,
-                    borderColor: '#4285F4',
-                    backgroundColor: 'rgba(66, 133, 244, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    tension: 0.1
-                },
-                {
-                    label: 'Anomalies',
-                    data: anomalyData,
-                    borderColor: '#EA4335',
-                    backgroundColor: 'rgba(234, 67, 53, 0.1)',
-                    borderWidth: 0,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    pointBackgroundColor: '#EA4335',
-                    pointBorderColor: '#EA4335',
-                    pointBorderWidth: 2,
-                    tension: 0.1
+    // Function to load anomaly statistics
+    function loadAnomalyStats() {
+        fetch('/api/anomalies/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const stats = data.stats;
+                    
+                    // Update counter cards
+                    document.getElementById('total-count').textContent = stats.total_count;
+                    document.getElementById('critical-count').textContent = stats.by_severity.CRITICAL || 0;
+                    document.getElementById('error-count').textContent = stats.by_severity.ERROR || 0;
+                    document.getElementById('warning-count').textContent = stats.by_severity.WARN || 0;
+                    
+                    // Update component chart
+                    updateComponentChart(stats.by_component);
+                    
+                    // Update type chart
+                    updateTypeChart(stats.by_type);
                 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const index = context.dataIndex;
-                            const value = timeSeriesData[index];
-                            return `Index: ${index}, Value: ${value.toFixed(2)}`;
+            })
+            .catch(error => {
+                console.error('Error fetching anomaly stats:', error);
+            });
+    }
+    
+    // Function to update component chart
+    function updateComponentChart(componentData) {
+        const labels = Object.keys(componentData);
+        const data = Object.values(componentData);
+        
+        if (componentChart) {
+            componentChart.destroy();
+        }
+        
+        const ctx = document.getElementById('component-chart').getContext('2d');
+        componentChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: [
+                        '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff', 
+                        '#ff9f40', '#8ac249', '#ea80fc', '#607d8b', '#ff5252'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+    }
+    
+    // Function to update type chart
+    function updateTypeChart(typeData) {
+        const labels = Object.keys(typeData).map(type => {
+            // Format type names for display
+            switch(type) {
+                case 'high_severity': return 'High Severity';
+                case 'pattern_match': return 'Pattern Match';
+                case 'error_sequence': return 'Error Sequence';
+                case 'ml_isolation_forest': return 'ML Isolation Forest';
+                case 'ml_dbscan_cluster': return 'ML DBSCAN';
+                default: return type;
+            }
+        });
+        const data = Object.values(typeData);
+        
+        if (typeChart) {
+            typeChart.destroy();
+        }
+        
+        const ctx = document.getElementById('type-chart').getContext('2d');
+        typeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Count',
+                    data: data,
+                    backgroundColor: '#36a2eb',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
                         }
                     }
                 }
-            },
-            scales: {
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Value'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Index'
-                    }
-                }
             }
+        });
+    }
+    
+    // Function to load anomalies
+    function loadAnomalies() {
+        // Get filter values
+        const severityFilter = document.getElementById('filter-severity').value;
+        const typeFilter = document.getElementById('filter-type').value;
+        
+        // Build query string
+        let url = '/api/anomalies';
+        const params = [];
+        if (severityFilter) params.push(`severity=${severityFilter}`);
+        if (typeFilter) params.push(`type=${typeFilter}`);
+        if (params.length > 0) url += '?' + params.join('&');
+        
+        // Show loading state
+        document.getElementById('anomalies-table-body').innerHTML = '<tr><td colspan="7" class="text-center">Loading anomalies...</td></tr>';
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    anomaliesData = data.anomalies;
+                    displayAnomalies(anomaliesData);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching anomalies:', error);
+                document.getElementById('anomalies-table-body').innerHTML = 
+                    '<tr><td colspan="7" class="text-center text-danger">Error loading anomalies. Please try again.</td></tr>';
+            });
+    }
+    
+    // Function to display anomalies in the table
+    function displayAnomalies(anomalies) {
+        const tableBody = document.getElementById('anomalies-table-body');
+        
+        if (anomalies.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No anomalies found.</td></tr>';
+            return;
         }
+        
+        let html = '';
+        
+        anomalies.forEach(anomaly => {
+            const severityClass = anomaly.severity >= 3 ? 'danger' : 
+                                 anomaly.severity === 2 ? 'warning' : 'info';
+            const severityText = anomaly.severity >= 3 ? 'CRITICAL' : 
+                                anomaly.severity === 2 ? 'ERROR' : 'WARNING';
+            
+            let detectionMethod = 'Rule-based';
+            if (anomaly.type.includes('ml_isolation')) {
+                detectionMethod = 'ML Isolation Forest';
+            } else if (anomaly.type.includes('ml_dbscan')) {
+                detectionMethod = 'ML Clustering';
+            }
+            
+            html += `
+            <tr>
+                <td><span class="badge bg-${severityClass}">${severityText}</span></td>
+                <td>${anomaly.timestamp}</td>
+                <td>${anomaly.component}</td>
+                <td class="text-truncate" style="max-width: 300px;">${anomaly.message}</td>
+                <td>${detectionMethod}</td>
+                <td>${anomaly.source_file}</td>
+                <td>
+                    <button class="btn btn-sm btn-info view-details" data-id="${anomaly.id}">
+                        <i class="fas fa-eye"></i> Details
+                    </button>
+                    <a href="/anomalies/recommendations/${anomaly.id}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-clipboard-list"></i> Get Recommendations
+                    </a>
+                </td>
+            </tr>
+            `;
+        });
+        
+        tableBody.innerHTML = html;
+        
+        // Add event listeners for detail buttons
+        document.querySelectorAll('.view-details').forEach(button => {
+            button.addEventListener('click', function() {
+                const anomalyId = this.getAttribute('data-id');
+                showAnomalyDetails(anomalyId);
+            });
+        });
+    }
+    
+    // Function to show anomaly details in modal
+    function showAnomalyDetails(anomalyId) {
+        const anomaly = anomaliesData.find(a => a.id === anomalyId);
+        
+        if (!anomaly) {
+            console.error('Anomaly not found:', anomalyId);
+            return;
+        }
+        
+        // Set basic anomaly details
+        document.getElementById('modal-id').textContent = anomaly.id;
+        document.getElementById('modal-severity').textContent = anomaly.severity >= 3 ? 'CRITICAL' : 
+                                                             anomaly.severity === 2 ? 'ERROR' : 'WARNING';
+        document.getElementById('modal-component').textContent = anomaly.component;
+        document.getElementById('modal-timestamp').textContent = anomaly.timestamp;
+        document.getElementById('modal-type').textContent = formatAnomalyType(anomaly.type);
+        document.getElementById('modal-source').textContent = `${anomaly.source_file}:${anomaly.line_number}`;
+        document.getElementById('modal-message').textContent = anomaly.message;
+        
+        // Show ML details if available
+        const mlDetailsSection = document.getElementById('ml-details-section');
+        if (anomaly.type.includes('ml_') && anomaly.algorithm) {
+            document.getElementById('modal-algorithm').textContent = anomaly.algorithm;
+            document.getElementById('modal-confidence').textContent = anomaly.confidence ? `${(anomaly.confidence * 100).toFixed(1)}%` : 'N/A';
+            document.getElementById('modal-explanation').textContent = anomaly.explanation || 'Not available';
+            mlDetailsSection.style.display = 'block';
+        } else {
+            mlDetailsSection.style.display = 'none';
+        }
+        
+        // Format context
+        let contextHtml = '';
+        if (anomaly.context && Array.isArray(anomaly.context)) {
+            contextHtml = anomaly.context.join('\n');
+        } else {
+            contextHtml = 'No context available';
+        }
+        document.getElementById('modal-context').textContent = contextHtml;
+        
+        // Set recommendation button link
+        document.getElementById('btn-recommendations').href = `/anomalies/recommendations/${anomaly.id}`;
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('anomalyDetailsModal'));
+        modal.show();
+    }
+    
+    // Helper function to format anomaly type for display
+    function formatAnomalyType(type) {
+        switch(type) {
+            case 'high_severity': return 'High Severity';
+            case 'pattern_match': return 'Pattern Match';
+            case 'error_sequence': return 'Error Sequence';
+            case 'ml_isolation_forest': return 'Machine Learning: Isolation Forest';
+            case 'ml_dbscan_cluster': return 'Machine Learning: DBSCAN Clustering';
+            default: return type;
+        }
+    }
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load initial data
+        loadAnomalyStats();
+        loadAnomalies();
+        
+        // Set up event listeners
+        document.getElementById('refresh-anomalies').addEventListener('click', function() {
+            loadAnomalyStats();
+            loadAnomalies();
+        });
+        
+        document.getElementById('filter-severity').addEventListener('change', loadAnomalies);
+        document.getElementById('filter-type').addEventListener('change', loadAnomalies);
     });
-}
 </script>
 {% endblock %}

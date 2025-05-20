@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Anomaly Recommendations{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/anomalies">Anomalies</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Recommendations</li>
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Anomaly Details</h5>
+                </div>
+                <div class="card-body" id="anomaly-details">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>ID:</strong> <span id="anomaly-id">{{ anomaly_id }}</span></p>
+                            <p><strong>Severity:</strong> <span id="anomaly-severity">Loading...</span></p>
+                            <p><strong>Component:</strong> <span id="anomaly-component">Loading...</span></p>
+                            <p><strong>Timestamp:</strong> <span id="anomaly-timestamp">Loading...</span></p>
+                            <p><strong>Source:</strong> <span id="anomaly-source">Loading...</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Message:</strong></p>
+                            <div class="border p-2 mb-3 bg-light" id="anomaly-message" style="min-height: 60px;">Loading...</div>
+                            
+                            <div id="ml-details-section" style="display: none;">
+                                <p><strong>ML Algorithm:</strong> <span id="anomaly-algorithm"></span></p>
+                                <p><strong>Confidence:</strong> <span id="anomaly-confidence"></span></p>
+                                <p><strong>Explanation:</strong> <span id="anomaly-explanation"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mt-3">Context</h5>
+                    <pre class="bg-dark text-light p-3 mt-2" id="anomaly-context" style="max-height: 200px; overflow-y: auto;">Loading...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Machine Learning-Generated Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recommendations-loading" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Analyzing anomaly and generating recommendations...</p>
+                    </div>
+                    
+                    <div id="recommendations-content" style="display: none;">
+                        <div id="no-recommendations" class="alert alert-info" style="display: none;">
+                            No recommendations available for this anomaly.
+                        </div>
+                        
+                        <div id="recommendations-list">
+                            <!-- Recommendations will be listed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    // Function to load anomaly details
+    function loadAnomalyDetails() {
+        const anomalyId = document.getElementById('anomaly-id').textContent;
+        
+        // Show loading state
+        document.getElementById('recommendations-loading').style.display = 'block';
+        document.getElementById('recommendations-content').style.display = 'none';
+        
+        // Fetch recommendations which also include the anomaly details
+        fetch(`/api/anomalies/recommendations/${anomalyId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.recommendations.found) {
+                    // Update anomaly details
+                    const anomaly = data.recommendations.anomaly;
+                    updateAnomalyDetails(anomaly);
+                    
+                    // Show recommendations
+                    displayRecommendations(data.recommendations.recommendations);
+                } else {
+                    // Show error message
+                    document.getElementById('recommendations-loading').style.display = 'none';
+                    document.getElementById('recommendations-content').style.display = 'block';
+                    document.getElementById('no-recommendations').style.display = 'block';
+                    
+                    // Update basic anomaly ID info
+                    document.getElementById('anomaly-severity').textContent = 'N/A';
+                    document.getElementById('anomaly-component').textContent = 'N/A';
+                    document.getElementById('anomaly-timestamp').textContent = 'N/A';
+                    document.getElementById('anomaly-source').textContent = 'N/A';
+                    document.getElementById('anomaly-message').textContent = data.recommendations.message || 'Anomaly not found';
+                    document.getElementById('anomaly-context').textContent = 'No context available';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching recommendations:', error);
+                document.getElementById('recommendations-loading').style.display = 'none';
+                document.getElementById('recommendations-content').style.display = 'block';
+                document.getElementById('no-recommendations').style.display = 'block';
+                document.getElementById('no-recommendations').textContent = 'Error loading recommendations. Please try again.';
+            });
+    }
+    
+    // Function to update anomaly details
+    function updateAnomalyDetails(anomaly) {
+        const severityText = anomaly.severity >= 3 ? 'CRITICAL' : 
+                            anomaly.severity === 2 ? 'ERROR' : 'WARNING';
+        
+        document.getElementById('anomaly-severity').textContent = severityText;
+        document.getElementById('anomaly-component').textContent = anomaly.component;
+        document.getElementById('anomaly-timestamp').textContent = anomaly.timestamp;
+        document.getElementById('anomaly-source').textContent = `${anomaly.source_file}:${anomaly.line_number}`;
+        document.getElementById('anomaly-message').textContent = anomaly.message;
+        
+        // Show ML details if available
+        const mlDetailsSection = document.getElementById('ml-details-section');
+        if (anomaly.type && anomaly.type.includes('ml_') && anomaly.algorithm) {
+            document.getElementById('anomaly-algorithm').textContent = anomaly.algorithm;
+            document.getElementById('anomaly-confidence').textContent = anomaly.confidence ? `${(anomaly.confidence * 100).toFixed(1)}%` : 'N/A';
+            document.getElementById('anomaly-explanation').textContent = anomaly.explanation || 'Not available';
+            mlDetailsSection.style.display = 'block';
+        } else {
+            mlDetailsSection.style.display = 'none';
+        }
+        
+        // Format context
+        let contextText = '';
+        if (anomaly.context && Array.isArray(anomaly.context)) {
+            contextText = anomaly.context.join('\n');
+        } else {
+            contextText = 'No context available';
+        }
+        document.getElementById('anomaly-context').textContent = contextText;
+    }
+    
+    // Function to display recommendations
+    function displayRecommendations(recommendations) {
+        document.getElementById('recommendations-loading').style.display = 'none';
+        document.getElementById('recommendations-content').style.display = 'block';
+        
+        if (!recommendations || recommendations.length === 0) {
+            document.getElementById('no-recommendations').style.display = 'block';
+            return;
+        }
+        
+        document.getElementById('no-recommendations').style.display = 'none';
+        
+        const list = document.getElementById('recommendations-list');
+        list.innerHTML = '';
+        
+        // Display each recommendation in a card
+        recommendations.forEach((rec, index) => {
+            const card = document.createElement('div');
+            card.className = 'card mb-3';
+            card.style.borderLeft = '5px solid #2196F3';
+            
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            
+            const title = document.createElement('h5');
+            title.className = 'card-title';
+            title.textContent = rec.title;
+            
+            const description = document.createElement('p');
+            description.className = 'card-text';
+            description.textContent = rec.description;
+            
+            cardBody.appendChild(title);
+            cardBody.appendChild(description);
+            card.appendChild(cardBody);
+            list.appendChild(card);
+        });
+    }
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAnomalyDetails();
+    });
+</script>
+{% endblock %}

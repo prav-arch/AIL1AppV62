@@ -12,6 +12,7 @@ from flask import stream_with_context
 from routes.local_llm import local_llm_bp
 from routes.rag import rag_bp
 from routes.database import database_bp
+from routes.anomalies import anomalies_bp
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(name)s: %(message)s')
@@ -28,6 +29,7 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.register_blueprint(local_llm_bp)
 app.register_blueprint(rag_bp)
 app.register_blueprint(database_bp)
+app.register_blueprint(anomalies_bp)
 
 # Basic routes for testing
 @app.route('/test')
@@ -53,10 +55,10 @@ def llm_assistant():
 # def rag():
 #     return render_template('rag.html')
 
-# Anomalies page
-@app.route('/anomalies')
-def anomalies():
-    return render_template('anomalies.html')
+# Anomalies page - using blueprint now
+# @app.route('/anomalies')
+# def anomalies():
+#     return render_template('anomalies.html')
 
 # Data Pipeline page
 @app.route('/data-pipeline')
