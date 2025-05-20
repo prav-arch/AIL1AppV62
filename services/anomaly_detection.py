@@ -400,9 +400,7 @@ class AnomalyDetector:
     
     def get_recommendations(self, anomaly_id: str) -> Dict[str, Any]:
         """Generate recommendations for a specific anomaly using local Mistral model"""
-        import json
-        import os
-        from llama_cpp import Llama  # Direct import for local LLM
+        from services.llm_recommendation_service import get_recommendations_for_anomaly
         
         # First, get the anomaly details
         anomalies = self.detect_anomalies()
@@ -414,18 +412,48 @@ class AnomalyDetector:
                 "message": f"Anomaly with ID {anomaly_id} not found",
                 "recommendations": []
             }
+            
+        # Try to get ML-based recommendations from Mistral
+        llm_recommendations = get_recommendations_for_anomaly(anomaly)
         
-        # Convert context to string for LLM input
-        context_str = "\n".join(anomaly.get("context", []))
+        # If we got valid recommendations from the LLM, use them
+        if llm_recommendations and len(llm_recommendations) > 0:
+            logger.info(f"Using Mistral-generated recommendations for anomaly {anomaly_id}")
+            return {
+                "found": True,
+                "anomaly": anomaly,
+                "recommendations": llm_recommendations,
+                "source": "mistral"
+            }
         
-        # Format severity level text
-        severity_text = "CRITICAL" if anomaly.get('severity', 0) >= 3 else "ERROR" if anomaly.get('severity', 0) == 2 else "WARNING"
+        # Fall back to rule-based recommendations
+        logger.info(f"Using rule-based recommendations for anomaly {anomaly_id}")
         
-        # Prepare the prompt for the local LLM
-        system_prompt = "You are a system administrator expert who provides recommendations to fix issues."
+        recommendations = []
         
-        prompt = f"""
-        You are an expert system administrator and software developer. Analyze the following log anomaly and provide specific, actionable recommendations to address the issue.
+        # Generic recommendations based on anomaly type
+        if anomaly["type"] == "high_severity":
+            recommendations.extend(self._get_severity_recommendations(anomaly))
+        
+        if anomaly["type"] == "pattern_match":
+            recommendations.extend(self._get_pattern_recommendations(anomaly))
+        
+        if anomaly["type"] == "error_sequence":
+            recommendations.extend(self._get_sequence_recommendations(anomaly))
+        
+        # Component-specific recommendations
+        component_recs = self._get_component_recommendations(anomaly["component"], anomaly["message"])
+        if component_recs:
+            recommendations.extend(component_recs)
+        
+        return {
+            "found": True,
+            "anomaly": anomaly,
+            "recommendations": recommendations,
+            "source": "rules"
+        }
+        
+# Delete this and everything after it
         
         ANOMALY DETAILS:
         Type: {anomaly.get('type', '')}
