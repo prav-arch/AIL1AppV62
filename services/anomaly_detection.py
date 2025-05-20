@@ -1,661 +1,463 @@
 """
-Advanced Anomaly Detection Service
-
-This module provides various anomaly detection algorithms for detecting
-anomalies in time series data, including:
-1. Statistical methods (Z-score, IQR)
-2. Machine learning methods (Isolation Forest, One-Class SVM)
-3. Density-based methods (DBSCAN, LOF)
-4. Time series methods (ARIMA, LSTM Autoencoder)
+Anomaly Detection Service
+This module provides functionality to detect anomalies in log files and generate recommendations.
 """
-
-import numpy as np
+import os
+import re
+import json
 import logging
-from enum import Enum
-from typing import Dict, List, Tuple, Union, Optional, Any
-from dataclasses import dataclass
+import datetime
+from typing import List, Dict, Any, Tuple
+from collections import defaultdict, Counter
 
-# Set up logging
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class AnomalyAlgorithm(Enum):
-    """Enum of supported anomaly detection algorithms"""
-    ZSCORE = "z_score"
-    IQR = "iqr"
-    ISOLATION_FOREST = "isolation_forest"
-    ONE_CLASS_SVM = "one_class_svm"
-    DBSCAN = "dbscan"
-    LOF = "local_outlier_factor"
-    ARIMA = "arima"
-    LSTM_AUTOENCODER = "lstm_autoencoder"
-
-
-@dataclass
-class AnomalyResult:
-    """Result from an anomaly detection algorithm"""
-    algorithm: str
-    anomaly_indices: List[int]  # Indices of detected anomalies
-    anomaly_scores: List[float]  # Anomaly scores (higher = more anomalous)
-    threshold: float  # Threshold used to determine anomalies
-    metadata: Optional[Dict[str, Any]] = None  # Additional algorithm-specific info
-
+# Anomaly severity levels
+SEVERITY_LEVELS = {
+    "INFO": 0,
+    "WARN": 1,
+    "WARNING": 1,
+    "ERROR": 2,
+    "CRITICAL": 3,
+    "FATAL": 3
+}
 
 class AnomalyDetector:
-    """Main class for detecting anomalies using various algorithms"""
+    """Service for detecting anomalies in log files"""
     
-    def __init__(self, algorithm: Union[str, AnomalyAlgorithm] = AnomalyAlgorithm.ZSCORE, 
-                 params: Optional[Dict[str, Any]] = None):
-        """
-        Initialize the anomaly detector with the specified algorithm
-        
-        Args:
-            algorithm: Algorithm to use for anomaly detection
-            params: Parameters for the algorithm
-        """
-        if isinstance(algorithm, str):
-            try:
-                self.algorithm = AnomalyAlgorithm(algorithm)
-            except ValueError:
-                logger.warning(f"Unknown algorithm '{algorithm}', falling back to Z-score")
-                self.algorithm = AnomalyAlgorithm.ZSCORE
-        else:
-            self.algorithm = algorithm
-            
-        self.params = params or {}
-        logger.info(f"Initialized anomaly detector with algorithm: {self.algorithm.value}")
+    def __init__(self, logs_dir="/tmp/logs"):
+        """Initialize the anomaly detector"""
+        self.logs_dir = logs_dir
+        self.anomaly_patterns = [
+            (r"ERROR|CRITICAL|FATAL", "High severity log entry"),
+            (r"exception|fail|failed|timeout|timed out", "Failure or exception indication"),
+            (r"memory leak|out of memory|memory usage exceed", "Memory issues"),
+            (r"CPU usage|high load|overload", "CPU performance issues"),
+            (r"disk space|storage|capacity", "Storage capacity issues"),
+            (r"attack|security|breach|unauthorized|hack", "Security concerns"),
+            (r"latency|slow|performance|degraded", "Performance degradation"),
+            (r"crash|abort|terminate|killed", "Application crash or termination"),
+            (r"database|connection lost|reconnect", "Database connectivity issues"),
+            (r"API|service unavailable|endpoint", "API or service availability issues")
+        ]
     
-    def detect(self, data: Union[List[float], np.ndarray], 
-               timestamps: Optional[Union[List[str], np.ndarray]] = None) -> AnomalyResult:
-        """
-        Detect anomalies in the given data
+    def load_log_files(self) -> Dict[str, List[str]]:
+        """Load all log files from the logs directory"""
+        log_files = {}
         
-        Args:
-            data: Time series data to analyze
-            timestamps: Optional timestamps corresponding to the data points
-            
-        Returns:
-            AnomalyResult object containing the detected anomalies
-        """
-        # Convert data to numpy array if needed
-        if not isinstance(data, np.ndarray):
-            data = np.array(data)
-            
-        # Call the appropriate algorithm based on the selection
-        if self.algorithm == AnomalyAlgorithm.ZSCORE:
-            return self._detect_zscore(data)
-        elif self.algorithm == AnomalyAlgorithm.IQR:
-            return self._detect_iqr(data)
-        elif self.algorithm == AnomalyAlgorithm.ISOLATION_FOREST:
-            return self._detect_isolation_forest(data)
-        elif self.algorithm == AnomalyAlgorithm.ONE_CLASS_SVM:
-            return self._detect_one_class_svm(data)
-        elif self.algorithm == AnomalyAlgorithm.DBSCAN:
-            return self._detect_dbscan(data)
-        elif self.algorithm == AnomalyAlgorithm.LOF:
-            return self._detect_lof(data)
-        elif self.algorithm == AnomalyAlgorithm.ARIMA:
-            return self._detect_arima(data, timestamps)
-        elif self.algorithm == AnomalyAlgorithm.LSTM_AUTOENCODER:
-            return self._detect_lstm_autoencoder(data)
-        else:
-            logger.warning(f"Unknown algorithm '{self.algorithm}', falling back to Z-score")
-            return self._detect_zscore(data)
-    
-    def _detect_zscore(self, data: np.ndarray) -> AnomalyResult:
-        """
-        Detect anomalies using Z-score method
-        
-        Z-score measures how many standard deviations a data point is from the mean.
-        Points with |z| > threshold are considered anomalies.
-        
-        Args:
-            data: Time series data
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
-        threshold = self.params.get('threshold', 3.0)  # Default threshold: 3.0
-        
-        # Calculate mean and standard deviation
-        mean = np.mean(data)
-        std = np.std(data)
-        
-        if std == 0:
-            # Handle the case where all values are the same
-            logger.warning("Z-score calculation: Standard deviation is zero, no anomalies detected")
-            return AnomalyResult(
-                algorithm=self.algorithm.value,
-                anomaly_indices=[],
-                anomaly_scores=[0.0] * len(data),
-                threshold=threshold
-            )
-        
-        # Calculate z-scores
-        z_scores = np.abs((data - mean) / std)
-        
-        # Identify anomalies
-        anomaly_indices = np.where(z_scores > threshold)[0].tolist()
-        
-        return AnomalyResult(
-            algorithm=self.algorithm.value,
-            anomaly_indices=anomaly_indices,
-            anomaly_scores=z_scores.tolist(),
-            threshold=threshold,
-            metadata={
-                'mean': float(mean),
-                'std': float(std)
-            }
-        )
-    
-    def _detect_iqr(self, data: np.ndarray) -> AnomalyResult:
-        """
-        Detect anomalies using Interquartile Range (IQR) method
-        
-        IQR is the range between the first quartile (Q1) and third quartile (Q3).
-        Points outside Q1 - k*IQR to Q3 + k*IQR are considered anomalies.
-        
-        Args:
-            data: Time series data
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
-        k = self.params.get('k', 1.5)  # Default multiplier: 1.5
-        
-        # Calculate quartiles
-        q1 = np.percentile(data, 25)
-        q3 = np.percentile(data, 75)
-        iqr = q3 - q1
-        
-        # Calculate lower and upper bounds
-        lower_bound = q1 - k * iqr
-        upper_bound = q3 + k * iqr
-        
-        # Calculate "scores" as distance from the nearest bound
-        scores = np.zeros_like(data, dtype=float)
-        for i, val in enumerate(data):
-            if val < lower_bound:
-                scores[i] = (lower_bound - val) / iqr
-            elif val > upper_bound:
-                scores[i] = (val - upper_bound) / iqr
-        
-        # Identify anomalies
-        anomaly_indices = np.where((data < lower_bound) | (data > upper_bound))[0].tolist()
-        
-        return AnomalyResult(
-            algorithm=self.algorithm.value,
-            anomaly_indices=anomaly_indices,
-            anomaly_scores=scores.tolist(),
-            threshold=k,
-            metadata={
-                'q1': float(q1),
-                'q3': float(q3),
-                'iqr': float(iqr),
-                'lower_bound': float(lower_bound),
-                'upper_bound': float(upper_bound)
-            }
-        )
-    
-    def _detect_isolation_forest(self, data: np.ndarray) -> AnomalyResult:
-        """
-        Detect anomalies using Isolation Forest algorithm
-        
-        Isolation Forest isolates observations by randomly selecting a feature
-        and then randomly selecting a split value between the maximum and minimum
-        values of that feature. Anomalies require fewer splits to isolate.
-        
-        Args:
-            data: Time series data
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
         try:
-            from sklearn.ensemble import IsolationForest
-        except ImportError:
-            logger.error("scikit-learn is not installed. Cannot use Isolation Forest.")
-            return self._detect_zscore(data)  # Fallback to Z-score
+            if not os.path.exists(self.logs_dir):
+                logger.warning(f"Logs directory {self.logs_dir} not found")
+                return log_files
             
-        # Get parameters for the algorithm
-        contamination = self.params.get('contamination', 'auto')
-        n_estimators = self.params.get('n_estimators', 100)
-        max_samples = self.params.get('max_samples', 'auto')
-        
-        # Reshape data for scikit-learn
-        X = data.reshape(-1, 1)
-        
-        # Create and fit the model
-        model = IsolationForest(
-            contamination=contamination,
-            n_estimators=n_estimators,
-            max_samples=max_samples,
-            random_state=42
-        )
-        model.fit(X)
-        
-        # Get anomaly scores (-1 for anomalies, 1 for normal points)
-        predictions = model.predict(X)
-        scores = model.decision_function(X)
-        
-        # Normalize scores to [0, 1] where higher values indicate more anomalous points
-        normalized_scores = 1.0 - (scores - np.min(scores)) / (np.max(scores) - np.min(scores))
-        
-        # Get anomaly indices
-        anomaly_indices = np.where(predictions == -1)[0].tolist()
-        
-        return AnomalyResult(
-            algorithm=self.algorithm.value,
-            anomaly_indices=anomaly_indices,
-            anomaly_scores=normalized_scores.tolist(),
-            threshold=0.5,  # Decision boundary value
-            metadata={
-                'contamination': contamination,
-                'n_estimators': n_estimators
-            }
-        )
-    
-    def _detect_one_class_svm(self, data: np.ndarray) -> AnomalyResult:
-        """
-        Detect anomalies using One-Class Support Vector Machine
-        
-        One-Class SVM learns a boundary around the normal data points and
-        classifies points outside this boundary as anomalies.
-        
-        Args:
-            data: Time series data
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
-        try:
-            from sklearn.svm import OneClassSVM
-            from sklearn.preprocessing import StandardScaler
-        except ImportError:
-            logger.error("scikit-learn is not installed. Cannot use One-Class SVM.")
-            return self._detect_zscore(data)  # Fallback to Z-score
-            
-        # Get parameters for the algorithm
-        nu = self.params.get('nu', 0.05)  # Upper bound on the fraction of outliers
-        kernel = self.params.get('kernel', 'rbf')
-        gamma = self.params.get('gamma', 'scale')
-        
-        # Reshape data for scikit-learn
-        X = data.reshape(-1, 1)
-        
-        # Scale the data for better performance
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-        
-        # Create and fit the model
-        model = OneClassSVM(
-            nu=nu,
-            kernel=kernel,
-            gamma=gamma
-        )
-        model.fit(X_scaled)
-        
-        # Get predictions (-1 for anomalies, +1 for normal points)
-        predictions = model.predict(X_scaled)
-        
-        # Get decision function values (distance from the separating hyperplane)
-        scores = model.decision_function(X_scaled)
-        
-        # Normalize scores to [0, 1] where higher values indicate more anomalous points
-        normalized_scores = 1.0 - (scores - np.min(scores)) / (np.max(scores) - np.min(scores))
-        
-        # Get anomaly indices
-        anomaly_indices = np.where(predictions == -1)[0].tolist()
-        
-        return AnomalyResult(
-            algorithm=self.algorithm.value,
-            anomaly_indices=anomaly_indices,
-            anomaly_scores=normalized_scores.tolist(),
-            threshold=0.5,
-            metadata={
-                'nu': nu,
-                'kernel': kernel,
-                'gamma': gamma
-            }
-        )
-    
-    def _detect_dbscan(self, data: np.ndarray) -> AnomalyResult:
-        """
-        Detect anomalies using DBSCAN clustering
-        
-        DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
-        groups together points that are close to each other. Points that
-        cannot be grouped are considered anomalies.
-        
-        Args:
-            data: Time series data
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
-        try:
-            from sklearn.cluster import DBSCAN
-        except ImportError:
-            logger.error("scikit-learn is not installed. Cannot use DBSCAN.")
-            return self._detect_zscore(data)  # Fallback to Z-score
-            
-        # Get parameters for the algorithm
-        eps = self.params.get('eps', 0.5)  # Maximum distance between points
-        min_samples = self.params.get('min_samples', 5)  # Minimum points to form a dense region
-        
-        # Reshape data for scikit-learn
-        X = data.reshape(-1, 1)
-        
-        # Create and fit the model
-        model = DBSCAN(
-            eps=eps,
-            min_samples=min_samples
-        )
-        clusters = model.fit_predict(X)
-        
-        # Points labeled as -1 are anomalies
-        anomaly_indices = np.where(clusters == -1)[0].tolist()
-        
-        # Generate anomaly scores (1.0 for anomalies, 0.0 for normal points)
-        scores = np.zeros_like(data, dtype=float)
-        scores[anomaly_indices] = 1.0
-        
-        return AnomalyResult(
-            algorithm=self.algorithm.value,
-            anomaly_indices=anomaly_indices,
-            anomaly_scores=scores.tolist(),
-            threshold=0.5,
-            metadata={
-                'eps': eps,
-                'min_samples': min_samples,
-                'n_clusters': len(np.unique(clusters)) - (1 if -1 in clusters else 0)
-            }
-        )
-    
-    def _detect_lof(self, data: np.ndarray) -> AnomalyResult:
-        """
-        Detect anomalies using Local Outlier Factor
-        
-        LOF compares the local density of a point with the densities of its neighbors.
-        Points with a significantly lower density than their neighbors are considered anomalies.
-        
-        Args:
-            data: Time series data
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
-        try:
-            from sklearn.neighbors import LocalOutlierFactor
-        except ImportError:
-            logger.error("scikit-learn is not installed. Cannot use Local Outlier Factor.")
-            return self._detect_zscore(data)  # Fallback to Z-score
-            
-        # Get parameters for the algorithm
-        n_neighbors = self.params.get('n_neighbors', 20)
-        contamination = self.params.get('contamination', 'auto')
-        
-        # Reshape data for scikit-learn
-        X = data.reshape(-1, 1)
-        
-        # Create and fit the model
-        model = LocalOutlierFactor(
-            n_neighbors=n_neighbors,
-            contamination=contamination,
-            novelty=False  # We're using it for outlier detection, not novelty detection
-        )
-        
-        # Fit predict returns labels (-1 for anomalies, 1 for normal points)
-        predictions = model.fit_predict(X)
-        
-        # Get the negative outlier factor
-        scores = -model.negative_outlier_factor_
-        
-        # Normalize scores to [0, 1]
-        min_score = np.min(scores)
-        max_score = np.max(scores)
-        if max_score > min_score:
-            normalized_scores = (scores - min_score) / (max_score - min_score)
-        else:
-            normalized_scores = np.zeros_like(scores)
-        
-        # Get anomaly indices
-        anomaly_indices = np.where(predictions == -1)[0].tolist()
-        
-        return AnomalyResult(
-            algorithm=self.algorithm.value,
-            anomaly_indices=anomaly_indices,
-            anomaly_scores=normalized_scores.tolist(),
-            threshold=model.offset_,
-            metadata={
-                'n_neighbors': n_neighbors,
-                'contamination': contamination
-            }
-        )
-    
-    def _detect_arima(self, data: np.ndarray, 
-                      timestamps: Optional[Union[List[str], np.ndarray]] = None) -> AnomalyResult:
-        """
-        Detect anomalies using ARIMA (AutoRegressive Integrated Moving Average)
-        
-        ARIMA models the time series data and identifies points that deviate
-        significantly from the predicted values.
-        
-        Args:
-            data: Time series data
-            timestamps: Timestamps corresponding to the data points
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
-        try:
-            from statsmodels.tsa.arima.model import ARIMA
-        except ImportError:
-            logger.error("statsmodels is not installed. Cannot use ARIMA.")
-            return self._detect_zscore(data)  # Fallback to Z-score
-            
-        # Get parameters for the algorithm
-        order = self.params.get('order', (5, 1, 0))  # (p, d, q) parameters
-        threshold = self.params.get('threshold', 3.0)  # Number of std deviations to consider anomalous
-        
-        # Handle missing data - ARIMA can't handle NaN values
-        is_nan = np.isnan(data)
-        if np.any(is_nan):
-            logger.warning(f"Found {np.sum(is_nan)} NaN values. Imputing with mean.")
-            data_filled = data.copy()
-            data_filled[is_nan] = np.mean(data[~is_nan])
-        else:
-            data_filled = data
-            
-        try:
-            # Fit the ARIMA model
-            model = ARIMA(data_filled, order=order)
-            model_fit = model.fit()
-            
-            # Get predictions and residuals
-            predictions = model_fit.predict()
-            residuals = data_filled - predictions
-            
-            # Calculate mean and standard deviation of residuals
-            residuals_mean = np.mean(residuals)
-            residuals_std = np.std(residuals)
-            
-            # Calculate z-scores of residuals
-            if residuals_std > 0:
-                z_scores = np.abs((residuals - residuals_mean) / residuals_std)
-            else:
-                z_scores = np.zeros_like(residuals)
-            
-            # Identify anomalies
-            anomaly_indices = np.where(z_scores > threshold)[0].tolist()
-            
-            return AnomalyResult(
-                algorithm=self.algorithm.value,
-                anomaly_indices=anomaly_indices,
-                anomaly_scores=z_scores.tolist(),
-                threshold=threshold,
-                metadata={
-                    'order': order,
-                    'residuals_mean': float(residuals_mean),
-                    'residuals_std': float(residuals_std),
-                    'aic': model_fit.aic
-                }
-            )
+            for filename in os.listdir(self.logs_dir):
+                if filename.endswith(".log"):
+                    file_path = os.path.join(self.logs_dir, filename)
+                    try:
+                        with open(file_path, 'r') as file:
+                            log_files[filename] = file.readlines()
+                    except Exception as e:
+                        logger.error(f"Error reading log file {filename}: {e}")
         except Exception as e:
-            logger.error(f"Error in ARIMA modeling: {str(e)}")
-            return self._detect_zscore(data)  # Fallback to Z-score
+            logger.error(f"Error accessing logs directory: {e}")
+        
+        return log_files
     
-    def _detect_lstm_autoencoder(self, data: np.ndarray) -> AnomalyResult:
-        """
-        Detect anomalies using LSTM Autoencoder
+    def parse_log_line(self, line: str) -> Dict[str, Any]:
+        """Parse a log line into structured data"""
+        # Basic log format: YYYY-MM-DD HH:MM:SS LEVEL [Component] Message
+        match = re.match(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (\w+) \[([^\]]+)\] (.+)$', line.strip())
         
-        LSTM Autoencoder is a deep learning model that learns to reconstruct normal data.
-        Points with high reconstruction error are considered anomalies.
+        if match:
+            timestamp, level, component, message = match.groups()
+            return {
+                "timestamp": timestamp,
+                "level": level,
+                "component": component,
+                "message": message,
+                "severity": SEVERITY_LEVELS.get(level, 0)
+            }
         
-        This is a placeholder implementation that returns a message indicating
-        that actual implementation would require TensorFlow/Keras.
-        
-        Args:
-            data: Time series data
-            
-        Returns:
-            AnomalyResult with detected anomalies
-        """
-        # This would require TensorFlow/Keras, so we'll fall back to a simpler method
-        logger.warning("LSTM Autoencoder requires TensorFlow and Keras. Falling back to Z-score.")
-        return self._detect_zscore(data)
-
-
-class AnomalyDetectionService:
-    """
-    Service for managing anomaly detection across multiple data sources and algorithms
-    """
+        return {
+            "timestamp": "",
+            "level": "UNKNOWN",
+            "component": "UNKNOWN",
+            "message": line.strip(),
+            "severity": 0
+        }
     
-    def __init__(self):
-        """Initialize the anomaly detection service"""
-        self.detectors = {}
+    def detect_anomalies(self) -> List[Dict[str, Any]]:
+        """Detect anomalies in log files"""
+        log_files = self.load_log_files()
+        anomalies = []
         
-    def create_detector(self, name: str, algorithm: Union[str, AnomalyAlgorithm], 
-                        params: Optional[Dict[str, Any]] = None) -> AnomalyDetector:
-        """
-        Create a new anomaly detector with the specified algorithm
+        for filename, lines in log_files.items():
+            file_anomalies = self._detect_file_anomalies(filename, lines)
+            anomalies.extend(file_anomalies)
         
-        Args:
-            name: Name to identify this detector
-            algorithm: Algorithm to use for anomaly detection
-            params: Parameters for the algorithm
-            
-        Returns:
-            The created AnomalyDetector
-        """
-        detector = AnomalyDetector(algorithm, params)
-        self.detectors[name] = detector
-        return detector
+        # Sort anomalies by severity (descending) and timestamp (descending)
+        return sorted(anomalies, key=lambda x: (-x["severity"], x["timestamp"]), reverse=True)
     
-    def get_detector(self, name: str) -> Optional[AnomalyDetector]:
-        """
-        Get an existing detector by name
+    def _detect_file_anomalies(self, filename: str, lines: List[str]) -> List[Dict[str, Any]]:
+        """Detect anomalies in a specific log file"""
+        anomalies = []
+        parsed_lines = [self.parse_log_line(line) for line in lines]
         
-        Args:
-            name: Name of the detector
+        # Detect high severity log entries
+        for i, parsed in enumerate(parsed_lines):
+            if parsed["severity"] >= 2:  # ERROR or higher
+                anomaly = {
+                    "id": f"{filename}_{i}",
+                    "type": "high_severity",
+                    "timestamp": parsed["timestamp"],
+                    "component": parsed["component"],
+                    "message": parsed["message"],
+                    "severity": parsed["severity"],
+                    "source_file": filename,
+                    "line_number": i + 1,
+                    "context": self._get_context(lines, i)
+                }
+                anomalies.append(anomaly)
             
-        Returns:
-            The AnomalyDetector if found, None otherwise
-        """
-        return self.detectors.get(name)
+            # Check for pattern-based anomalies
+            for pattern, description in self.anomaly_patterns:
+                if re.search(pattern, parsed["message"], re.IGNORECASE):
+                    if not any(a["line_number"] == i + 1 and a["source_file"] == filename for a in anomalies):
+                        anomaly = {
+                            "id": f"{filename}_{i}",
+                            "type": "pattern_match",
+                            "pattern_description": description,
+                            "timestamp": parsed["timestamp"],
+                            "component": parsed["component"],
+                            "message": parsed["message"],
+                            "severity": max(1, parsed["severity"]),  # At least WARN level
+                            "source_file": filename,
+                            "line_number": i + 1,
+                            "context": self._get_context(lines, i)
+                        }
+                        anomalies.append(anomaly)
+        
+        # Detect sequences of related errors (e.g., multiple retries)
+        components = defaultdict(list)
+        for i, parsed in enumerate(parsed_lines):
+            components[parsed["component"]].append((i, parsed))
+        
+        for component, entries in components.items():
+            if len(entries) >= 3:  # At least 3 entries from the same component
+                error_sequences = self._detect_error_sequences(entries, lines)
+                anomalies.extend(error_sequences)
+        
+        return anomalies
     
-    def detect_anomalies(self, name: str, data: Union[List[float], np.ndarray],
-                         timestamps: Optional[Union[List[str], np.ndarray]] = None) -> Optional[AnomalyResult]:
-        """
-        Detect anomalies using the named detector
+    def _detect_error_sequences(self, entries: List[Tuple[int, Dict]], lines: List[str]) -> List[Dict[str, Any]]:
+        """Detect sequences of related errors"""
+        anomalies = []
+        component = entries[0][1]["component"]
+        filename = entries[0][1].get("source_file", "unknown")
         
-        Args:
-            name: Name of the detector to use
-            data: Time series data to analyze
-            timestamps: Optional timestamps corresponding to the data points
+        # Look for retries, reconnections, or repeated errors
+        retry_patterns = [
+            r"retry|attempt|reconnect",
+            r"\(\d+/\d+\)"  # Matches patterns like (1/3), (2/5), etc.
+        ]
+        
+        for i in range(len(entries) - 1):
+            idx1, entry1 = entries[i]
             
-        Returns:
-            AnomalyResult if the detector exists, None otherwise
-        """
-        detector = self.get_detector(name)
-        if detector:
-            return detector.detect(data, timestamps)
-        else:
-            logger.warning(f"No detector found with name '{name}'")
-            return None
+            # Skip if not an error
+            if entry1["severity"] < 2:
+                continue
+            
+            sequence_found = False
+            sequence_lines = [idx1]
+            
+            # Look for related errors in the next entries
+            for j in range(i + 1, min(i + 5, len(entries))):
+                idx2, entry2 = entries[j]
+                
+                # Check if entries are likely related
+                if entry2["severity"] >= 2 and any(re.search(pattern, entry1["message"], re.IGNORECASE) and 
+                                               re.search(pattern, entry2["message"], re.IGNORECASE) 
+                                               for pattern in retry_patterns):
+                    sequence_found = True
+                    sequence_lines.append(idx2)
+            
+            if sequence_found and len(sequence_lines) >= 2:
+                # Get all lines in sequence
+                context = []
+                for idx in sorted(sequence_lines):
+                    context.append(lines[idx].strip())
+                
+                anomaly = {
+                    "id": f"{filename}_{idx1}_sequence",
+                    "type": "error_sequence",
+                    "timestamp": entry1["timestamp"],
+                    "component": component,
+                    "message": f"Sequence of related errors in component {component}",
+                    "severity": 2,  # ERROR level
+                    "source_file": filename,
+                    "line_number": idx1 + 1,
+                    "context": context
+                }
+                anomalies.append(anomaly)
+                
+                # Skip the lines we've included in this sequence
+                i = max(sequence_lines)
+        
+        return anomalies
     
-    def detect_with_multiple_algorithms(self, data: Union[List[float], np.ndarray],
-                                       algorithms: List[Union[str, AnomalyAlgorithm]] = None,
-                                       timestamps: Optional[Union[List[str], np.ndarray]] = None
-                                      ) -> Dict[str, AnomalyResult]:
-        """
-        Detect anomalies using multiple algorithms and combine the results
-        
-        Args:
-            data: Time series data to analyze
-            algorithms: List of algorithms to use (default: all available algorithms)
-            timestamps: Optional timestamps corresponding to the data points
-            
-        Returns:
-            Dictionary mapping algorithm names to AnomalyResult objects
-        """
-        if algorithms is None:
-            # Use all available algorithms except LSTM Autoencoder
-            algorithms = [algo for algo in AnomalyAlgorithm if algo != AnomalyAlgorithm.LSTM_AUTOENCODER]
-        
-        results = {}
-        for algorithm in algorithms:
-            detector = AnomalyDetector(algorithm)
-            result = detector.detect(data, timestamps)
-            results[result.algorithm] = result
-            
-        return results
+    def _get_context(self, lines: List[str], index: int, context_size: int = 3) -> List[str]:
+        """Get context lines around an anomaly"""
+        start = max(0, index - context_size)
+        end = min(len(lines), index + context_size + 1)
+        return [line.strip() for line in lines[start:end]]
     
-    def ensemble_detection(self, data: Union[List[float], np.ndarray],
-                          algorithms: List[Union[str, AnomalyAlgorithm]] = None,
-                          threshold: float = 0.5,
-                          timestamps: Optional[Union[List[str], np.ndarray]] = None
-                         ) -> Tuple[List[int], List[float]]:
-        """
-        Perform ensemble anomaly detection by combining results from multiple algorithms
+    def get_recommendations(self, anomaly_id: str) -> Dict[str, Any]:
+        """Generate recommendations for a specific anomaly"""
+        anomalies = self.detect_anomalies()
+        anomaly = next((a for a in anomalies if a["id"] == anomaly_id), None)
         
-        Args:
-            data: Time series data to analyze
-            algorithms: List of algorithms to use (default: [ZSCORE, IQR, ISOLATION_FOREST])
-            threshold: Fraction of algorithms that must agree for a point to be considered anomalous
-            timestamps: Optional timestamps corresponding to the data points
-            
-        Returns:
-            Tuple of (anomaly_indices, ensemble_scores)
-        """
-        if algorithms is None:
-            # Default to a reasonable set of algorithms
-            algorithms = [
-                AnomalyAlgorithm.ZSCORE, 
-                AnomalyAlgorithm.IQR, 
-                AnomalyAlgorithm.ISOLATION_FOREST
+        if not anomaly:
+            return {
+                "found": False,
+                "message": f"Anomaly with ID {anomaly_id} not found",
+                "recommendations": []
+            }
+        
+        recommendations = []
+        
+        # Generic recommendations based on anomaly type
+        if anomaly["type"] == "high_severity":
+            recommendations.extend(self._get_severity_recommendations(anomaly))
+        
+        if anomaly["type"] == "pattern_match":
+            recommendations.extend(self._get_pattern_recommendations(anomaly))
+        
+        if anomaly["type"] == "error_sequence":
+            recommendations.extend(self._get_sequence_recommendations(anomaly))
+        
+        # Component-specific recommendations
+        component_recs = self._get_component_recommendations(anomaly["component"], anomaly["message"])
+        if component_recs:
+            recommendations.extend(component_recs)
+        
+        return {
+            "found": True,
+            "anomaly": anomaly,
+            "recommendations": recommendations
+        }
+    
+    def _get_severity_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Get recommendations for high severity anomalies"""
+        recs = [{
+            "title": "Investigate Error",
+            "description": f"Investigate the {anomaly['component']} component to identify the root cause of the error."
+        }]
+        
+        if "exception" in anomaly["message"].lower() or "stack trace" in anomaly["message"].lower():
+            recs.append({
+                "title": "Review Stack Trace",
+                "description": "Analyze the stack trace to identify the specific method or line where the error occurred."
+            })
+        
+        return recs
+    
+    def _get_pattern_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Get recommendations based on pattern matching"""
+        pattern_desc = anomaly.get("pattern_description", "").lower()
+        message = anomaly.get("message", "").lower()
+        
+        recs = []
+        
+        if "memory" in pattern_desc:
+            recs.append({
+                "title": "Memory Optimization",
+                "description": "Check for memory leaks and optimize memory usage in the application."
+            })
+            recs.append({
+                "title": "Increase Memory Allocation",
+                "description": "Consider increasing the memory allocation for the service if consistently hitting limits."
+            })
+        
+        elif "cpu" in pattern_desc:
+            recs.append({
+                "title": "CPU Profiling",
+                "description": "Run CPU profiling to identify performance bottlenecks."
+            })
+            recs.append({
+                "title": "Optimize Algorithms",
+                "description": "Review and optimize CPU-intensive algorithms in the codebase."
+            })
+        
+        elif "storage" in pattern_desc or "disk" in pattern_desc:
+            recs.append({
+                "title": "Disk Space Management",
+                "description": "Implement log rotation and cleanup of temporary files."
+            })
+            recs.append({
+                "title": "Storage Monitoring",
+                "description": "Set up alerts for disk space usage before it reaches critical levels."
+            })
+        
+        elif "security" in pattern_desc:
+            recs.append({
+                "title": "Security Audit",
+                "description": "Conduct a security audit of the affected component."
+            })
+            recs.append({
+                "title": "Update Security Policies",
+                "description": "Review and update security policies and access controls."
+            })
+        
+        elif "performance" in pattern_desc or "latency" in pattern_desc:
+            recs.append({
+                "title": "Performance Tuning",
+                "description": "Optimize database queries and API calls for better performance."
+            })
+            recs.append({
+                "title": "Load Testing",
+                "description": "Conduct load testing to identify performance bottlenecks under stress."
+            })
+        
+        elif "database" in pattern_desc:
+            recs.append({
+                "title": "Database Connection Pooling",
+                "description": "Implement or optimize database connection pooling."
+            })
+            recs.append({
+                "title": "Database Failover",
+                "description": "Set up database failover mechanisms if not already in place."
+            })
+        
+        elif "api" in pattern_desc or "service" in pattern_desc:
+            recs.append({
+                "title": "Service Resilience",
+                "description": "Implement circuit breakers and fallback mechanisms for external services."
+            })
+            recs.append({
+                "title": "Retry Strategy",
+                "description": "Optimize retry strategies with exponential backoff for external API calls."
+            })
+        
+        return recs
+    
+    def _get_sequence_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Get recommendations for error sequences"""
+        return [
+            {
+                "title": "Retry Strategy Review",
+                "description": "Review the retry strategy to ensure it's not too aggressive and includes proper backoff."
+            },
+            {
+                "title": "Failover Mechanisms",
+                "description": "Implement or improve failover mechanisms to handle repeated failures more gracefully."
+            },
+            {
+                "title": "Circuit Breaker Pattern",
+                "description": "Implement a circuit breaker pattern to prevent cascading failures when a service is consistently unavailable."
+            }
+        ]
+    
+    def _get_component_recommendations(self, component: str, message: str) -> List[Dict[str, str]]:
+        """Get component-specific recommendations"""
+        component = component.lower()
+        message = message.lower()
+        
+        if "database" in component or "db" in component:
+            return [
+                {
+                    "title": "Database Health Check",
+                    "description": "Verify database server status, connection pool settings, and query performance."
+                },
+                {
+                    "title": "Database Monitoring",
+                    "description": "Set up monitoring for database connection counts, query performance, and server resources."
+                }
             ]
         
-        # Get results from each algorithm
-        algorithm_results = []
-        for algorithm in algorithms:
-            detector = AnomalyDetector(algorithm)
-            result = detector.detect(data, timestamps)
-            algorithm_results.append(result)
+        elif "network" in component or "connection" in component:
+            return [
+                {
+                    "title": "Network Diagnostics",
+                    "description": "Run network diagnostics to check for packet loss, latency, or connectivity issues."
+                },
+                {
+                    "title": "Network Redundancy",
+                    "description": "Ensure redundant network paths are available and properly configured."
+                }
+            ]
         
-        # Count how many algorithms consider each point anomalous
-        n_points = len(data)
-        anomaly_counts = np.zeros(n_points)
+        elif "security" in component or "auth" in component:
+            return [
+                {
+                    "title": "Security Audit",
+                    "description": "Conduct a security audit focusing on authentication and authorization mechanisms."
+                },
+                {
+                    "title": "Rate Limiting",
+                    "description": "Implement or adjust rate limiting to prevent brute force attacks."
+                }
+            ]
         
-        for result in algorithm_results:
-            for idx in result.anomaly_indices:
-                if 0 <= idx < n_points:  # Ensure index is valid
-                    anomaly_counts[idx] += 1
+        elif "api" in component or "service" in component:
+            return [
+                {
+                    "title": "Service Health Monitoring",
+                    "description": "Set up health checks and monitoring for the API service."
+                },
+                {
+                    "title": "Service Documentation",
+                    "description": "Ensure API contracts and documentation are up to date for proper integration."
+                }
+            ]
         
-        # Normalize to get ensemble score
-        ensemble_scores = anomaly_counts / len(algorithms)
+        return []
+
+# Singleton instance for the application
+_anomaly_detector = None
+
+def get_anomaly_detector():
+    """Get or create the anomaly detector singleton"""
+    global _anomaly_detector
+    if _anomaly_detector is None:
+        _anomaly_detector = AnomalyDetector()
+    return _anomaly_detector
+
+def get_anomalies():
+    """Get all detected anomalies"""
+    detector = get_anomaly_detector()
+    return detector.detect_anomalies()
+
+def get_anomaly_recommendations(anomaly_id):
+    """Get recommendations for an anomaly"""
+    detector = get_anomaly_detector()
+    return detector.get_recommendations(anomaly_id)
+
+def get_anomaly_stats():
+    """Get statistics about detected anomalies"""
+    anomalies = get_anomalies()
+    
+    stats = {
+        "total_count": len(anomalies),
+        "by_severity": defaultdict(int),
+        "by_component": defaultdict(int),
+        "by_type": defaultdict(int),
+        "by_file": defaultdict(int),
+        "recent_anomalies": anomalies[:5] if anomalies else []
+    }
+    
+    for anomaly in anomalies:
+        severity_name = "UNKNOWN"
+        for name, level in SEVERITY_LEVELS.items():
+            if level == anomaly["severity"]:
+                severity_name = name
+                break
         
-        # Points are anomalies if at least threshold fraction of algorithms agree
-        min_count = threshold * len(algorithms)
-        anomaly_indices = np.where(anomaly_counts >= min_count)[0].tolist()
-        
-        return anomaly_indices, ensemble_scores.tolist()
+        stats["by_severity"][severity_name] += 1
+        stats["by_component"][anomaly["component"]] += 1
+        stats["by_type"][anomaly["type"]] += 1
+        stats["by_file"][anomaly["source_file"]] += 1
+    
+    return stats
