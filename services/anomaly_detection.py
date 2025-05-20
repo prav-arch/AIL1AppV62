@@ -54,7 +54,7 @@ class AnomalyDetector:
         # ML model configurations
         self.isolation_forest = IsolationForest(
             n_estimators=100, 
-            contamination=0.05,  # Expect ~5% anomalies
+            contamination="auto",  # Auto-detect contamination 
             random_state=42,
             max_samples='auto'
         )

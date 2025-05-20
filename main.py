@@ -140,59 +140,7 @@ def api_latest_anomalies():
     
     return jsonify(anomalies)
 
-@app.route('/api/anomalies/stats', methods=['GET'])
-def api_anomaly_stats():
-    """Return statistics about anomalies"""
-    return jsonify({
-        'total_anomalies': random.randint(50, 200),
-        'open_anomalies': random.randint(5, 30),
-        'closed_last_week': random.randint(10, 50),
-        'severity_distribution': {
-            'low': random.randint(20, 40),
-            'medium': random.randint(30, 60),
-            'high': random.randint(10, 30),
-            'critical': random.randint(0, 15)
-        },
-        'type_distribution': {
-            'spike': random.randint(20, 50),
-            'dip': random.randint(15, 40),
-            'trend_change': random.randint(10, 30),
-            'outlier': random.randint(5, 20),
-            'pattern_break': random.randint(10, 25)
-        }
-    })
-
-@app.route('/api/anomalies/list', methods=['GET'])
-def api_anomalies_list():
-    """Return list of anomalies with optional filtering"""
-    anomalies = []
-    types = ['spike', 'dip', 'trend_change', 'outlier', 'pattern_break']
-    services = ['api', 'database', 'auth', 'payment', 'storage', 'compute']
-    
-    # Generate random anomalies for demonstration
-    for i in range(20):
-        anomaly_type = random.choice(types)
-        severity = random.choice(['low', 'medium', 'high', 'critical'])
-        service = random.choice(services)
-        timestamp = datetime.now() - timedelta(days=random.randint(0, 30), 
-                                            hours=random.randint(0, 23), 
-                                            minutes=random.randint(0, 59))
-        
-        anomalies.append({
-            'id': f'anomaly-{i+100}',
-            'type': anomaly_type,
-            'service': service,
-            'severity': severity,
-            'timestamp': timestamp.isoformat(),
-            'description': f'Detected {anomaly_type} in {service} service metrics',
-            'is_resolved': random.choice([True, False]),
-            'resolution_time': random.randint(5, 240) if random.choice([True, False]) else None,
-            'metric_name': f'{service}.{random.choice(["cpu", "memory", "latency", "errors", "throughput"])}',
-            'metric_value': round(random.uniform(0.1, 99.9), 2),
-            'baseline': round(random.uniform(10, 90), 2)
-        })
-    
-    return jsonify(anomalies)
+# API routes for anomalies are now handled by the anomalies blueprint in routes/anomalies.py
 
 @app.route('/api/rag/documents', methods=['GET'])
 def api_documents():
