@@ -401,7 +401,8 @@ class AnomalyDetector:
     def get_recommendations(self, anomaly_id: str) -> Dict[str, Any]:
         """Generate recommendations for a specific anomaly using local Mistral model"""
         import json
-        import requests
+        import os
+        from llama_cpp import Llama  # Direct import for local LLM
         
         # First, get the anomaly details
         anomalies = self.detect_anomalies()
@@ -421,6 +422,8 @@ class AnomalyDetector:
         severity_text = "CRITICAL" if anomaly.get('severity', 0) >= 3 else "ERROR" if anomaly.get('severity', 0) == 2 else "WARNING"
         
         # Prepare the prompt for the local LLM
+        system_prompt = "You are a system administrator expert who provides recommendations to fix issues."
+        
         prompt = f"""
         You are an expert system administrator and software developer. Analyze the following log anomaly and provide specific, actionable recommendations to address the issue.
         
@@ -452,27 +455,98 @@ class AnomalyDetector:
         ]
         """
         
+        # Format prompt in the chat completion format
+        formatted_prompt = f"<s>[INST] {system_prompt} [/INST]</s>[INST] {prompt} [/INST]"
+        
         try:
-            # Use the local LLM API endpoint (Mistral model)
+            # Set path to the local Mistral model
+            model_path = "/tmp/llm_models/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
+            
+            # Check if the model exists
+            if not os.path.exists(model_path):
+                logging.warning(f"Mistral model not found at {model_path}")
+                # Fall back to predefined recommendations
+                return {
+                    "found": True,
+                    "anomaly": anomaly,
+                    "recommendations": self._get_fallback_recommendations(anomaly)
+                }
+            
+            # Load the model directly
             try:
-                # Try to connect to the local LLM service
-                response = requests.post(
-                    'http://localhost:15000/api/local-llm/generate',  # Adjust if endpoint is different
-                    json={
-                        'prompt': prompt,
-                        'system_prompt': 'You are a system administrator expert who provides recommendations to fix issues.',
-                        'max_tokens': 1000,
-                        'temperature': 0.2  # Low temperature for more focused recommendations
-                    },
-                    timeout=20  # Reasonable timeout
+                # Initialize the Llama model with minimal context window to save memory
+                llm = Llama(
+                    model_path=model_path,
+                    n_ctx=2048,        # Smaller context window to reduce memory usage
+                    n_batch=512,       # Batch size for prompt processing
+                    verbose=False
                 )
                 
-                if response.status_code == 200:
-                    # Try to extract JSON from the response
-                    try:
-                        content = response.json().get('response', '')
+                # Generate response from the local model
+                output = llm(
+                    formatted_prompt,
+                    max_tokens=1000,    # Limit response length
+                    temperature=0.2,    # Low temperature for more focused recommendations
+                    stop=["</s>"]       # Stop at the end of the response
+                )
+                
+                # The llama-cpp-python interface returns a different output format than OpenAI
+                # For llama-cpp's output we need to get the text from the returned dict
+                response_text = output.get('choices', [{}])[0].get('text', '')
+                
+                # Try to extract JSON from the response
+                try:
+                    import re
+                    # First, try to find and extract the JSON array
+                    json_match = re.search(r'\[\s*\{.*\}\s*\]', response_text, re.DOTALL)
+                    
+                    if json_match:
+                        json_str = json_match.group(0)
+                        recommendations = json.loads(json_str)
+                    else:
+                        # If no JSON array found, try to manually extract recommendations
+                        recommendations = []
                         
-                        # Parse recommendations from response
+                        # Find recommendation titles (often numbered or with clear headings)
+                        title_pattern = r'(?:^\d+\.\s+|\*\*|\b)([A-Z][^.!?:]*(?::|\.))(?:\s|\n)'
+                        titles = re.findall(title_pattern, response_text, re.MULTILINE)
+                        
+                        # Extract descriptions following titles
+                        for i, title in enumerate(titles[:5]):  # Limit to 5 recommendations
+                            title = title.strip(': .\n\r\t')
+                            description = ""
+                            
+                            # Try to find the description after the title until the next title or end
+                            start_pos = response_text.find(title) + len(title)
+                            end_pos = len(response_text)
+                            
+                            if i < len(titles) - 1:
+                                next_title = titles[i + 1]
+                                next_pos = response_text.find(next_title)
+                                if next_pos > start_pos:
+                                    end_pos = next_pos
+                            
+                            description = response_text[start_pos:end_pos].strip(': .\n\r\t')
+                            
+                            # Clean up the description
+                            description = re.sub(r'^\s*[-:]\s*', '', description)
+                            description = description.strip()
+                            
+                            if title and description:
+                                recommendations.append({
+                                    "title": title[:50],  # Limit title length
+                                    "description": description[:300]  # Limit description length
+                                })
+                    
+                    # Validate recommendations format and ensure we have at least one
+                    if isinstance(recommendations, list) and len(recommendations) > 0 and all(isinstance(r, dict) and 'title' in r and 'description' in r for r in recommendations):
+                        return {
+                            "found": True,
+                            "anomaly": anomaly,
+                            "recommendations": recommendations
+                        }
+                except Exception as e:
+                    logging.warning(f"Error parsing LLM response: {e}")
                         # First, try to find and extract the JSON array
                         import re
                         json_match = re.search(r'\[\s*\{.*\}\s*\]', content, re.DOTALL)
