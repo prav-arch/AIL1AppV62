@@ -399,7 +399,11 @@ class AnomalyDetector:
         return [line.strip() for line in lines[start:end]]
     
     def get_recommendations(self, anomaly_id: str) -> Dict[str, Any]:
-        """Generate recommendations for a specific anomaly"""
+        """Generate recommendations for a specific anomaly using local Mistral model"""
+        import json
+        import requests
+        
+        # First, get the anomaly details
         anomalies = self.detect_anomalies()
         anomaly = next((a for a in anomalies if a["id"] == anomaly_id), None)
         
@@ -410,6 +414,139 @@ class AnomalyDetector:
                 "recommendations": []
             }
         
+        # Convert context to string for LLM input
+        context_str = "\n".join(anomaly.get("context", []))
+        
+        # Format severity level text
+        severity_text = "CRITICAL" if anomaly.get('severity', 0) >= 3 else "ERROR" if anomaly.get('severity', 0) == 2 else "WARNING"
+        
+        # Prepare the prompt for the local LLM
+        prompt = f"""
+        You are an expert system administrator and software developer. Analyze the following log anomaly and provide specific, actionable recommendations to address the issue.
+        
+        ANOMALY DETAILS:
+        Type: {anomaly.get('type', '')}
+        Component: {anomaly.get('component', '')}
+        Message: {anomaly.get('message', '')}
+        Severity: {severity_text}
+        Source: {anomaly.get('source_file', '')}:{anomaly.get('line_number', 0)}
+        
+        CONTEXT:
+        {context_str}
+        
+        Based on this information, provide 3-5 actionable recommendations to fix this issue. For each recommendation, include:
+        1. A clear title (max 10 words)
+        2. A detailed description of what to do (2-3 sentences)
+        
+        Format your response as a JSON array of objects with 'title' and 'description' fields.
+        Example:
+        [
+          {
+            "title": "First recommendation title",
+            "description": "Detailed description of what to do and why it will help resolve the issue."
+          },
+          {
+            "title": "Second recommendation title",
+            "description": "Another detailed description with specific actions to take."
+          }
+        ]
+        """
+        
+        try:
+            # Use the local LLM API endpoint (Mistral model)
+            try:
+                # Try to connect to the local LLM service
+                response = requests.post(
+                    'http://localhost:15000/api/local-llm/generate',  # Adjust if endpoint is different
+                    json={
+                        'prompt': prompt,
+                        'system_prompt': 'You are a system administrator expert who provides recommendations to fix issues.',
+                        'max_tokens': 1000,
+                        'temperature': 0.2  # Low temperature for more focused recommendations
+                    },
+                    timeout=20  # Reasonable timeout
+                )
+                
+                if response.status_code == 200:
+                    # Try to extract JSON from the response
+                    try:
+                        content = response.json().get('response', '')
+                        
+                        # Parse recommendations from response
+                        # First, try to find and extract the JSON array
+                        import re
+                        json_match = re.search(r'\[\s*\{.*\}\s*\]', content, re.DOTALL)
+                        
+                        if json_match:
+                            json_str = json_match.group(0)
+                            recommendations = json.loads(json_str)
+                        else:
+                            # If no JSON array found, try to manually extract recommendations
+                            recommendations = []
+                            # Find recommendation titles (often numbered or with clear headings)
+                            title_pattern = r'(?:^\d+\.\s+|\*\*|\b)([A-Z][^.!?:]*(?::|\.))(?:\s|\n)'
+                            titles = re.findall(title_pattern, content, re.MULTILINE)
+                            
+                            # Extract descriptions following titles
+                            for i, title in enumerate(titles[:5]):  # Limit to 5 recommendations
+                                title = title.strip(': .\n\r\t')
+                                description = ""
+                                
+                                # Try to find the description after the title until the next title or end
+                                start_pos = content.find(title) + len(title)
+                                end_pos = len(content)
+                                
+                                if i < len(titles) - 1:
+                                    next_title = titles[i + 1]
+                                    next_pos = content.find(next_title)
+                                    if next_pos > start_pos:
+                                        end_pos = next_pos
+                                
+                                description = content[start_pos:end_pos].strip(': .\n\r\t')
+                                
+                                # Clean up the description
+                                description = re.sub(r'^\s*[-:]\s*', '', description)
+                                description = description.strip()
+                                
+                                if title and description:
+                                    recommendations.append({
+                                        "title": title[:50],  # Limit title length
+                                        "description": description[:300]  # Limit description length
+                                    })
+                            
+                        # Validate recommendations format and ensure we have at least one
+                        if isinstance(recommendations, list) and len(recommendations) > 0 and all(isinstance(r, dict) and 'title' in r and 'description' in r for r in recommendations):
+                            return {
+                                "found": True,
+                                "anomaly": anomaly,
+                                "recommendations": recommendations
+                            }
+                    except Exception as e:
+                        logger.warning(f"Error parsing response: {e}")
+                        # Continue to fallback
+            except Exception as e:
+                logger.warning(f"Error connecting to local service: {e}")
+                # Continue to fallback
+                
+            # If any step fails, fall back to predefined recommendations
+            recommendations = self._get_fallback_recommendations(anomaly)
+            return {
+                "found": True,
+                "anomaly": anomaly,
+                "recommendations": recommendations
+            }
+                
+        except Exception as e:
+            logger.warning(f"Error generating recommendations: {e}")
+            recommendations = self._get_fallback_recommendations(anomaly)
+            return {
+                "found": True,
+                "anomaly": anomaly,
+                "recommendations": recommendations
+            }
+        
+    def _get_fallback_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
+        """Generate fallback recommendations if LLM is not available"""
         recommendations = []
         
         # Generic recommendations based on anomaly type
@@ -426,12 +563,8 @@ class AnomalyDetector:
         component_recs = self._get_component_recommendations(anomaly["component"], anomaly["message"])
         if component_recs:
             recommendations.extend(component_recs)
-        
-        return {
-            "found": True,
-            "anomaly": anomaly,
-            "recommendations": recommendations
-        }
+            
+        return recommendations
     
     def _get_severity_recommendations(self, anomaly: Dict[str, Any]) -> List[Dict[str, str]]:
         """Get recommendations for high severity anomalies"""
