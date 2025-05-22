@@ -81,7 +81,7 @@ window.onload = function() {
         <div class="col-md-3">
             <div class="panel panel-danger">
                 <div class="panel-heading">
-                    <h3 class="panel-title"><i class="fa fa-skull-crossbones"></i> Critical</h3>
+                    <h3 class="panel-title"><i class="fa fa-exclamation-triangle"></i> Critical</h3>
                 </div>
                 <div class="panel-body text-center">
                     <h2>{{ stats.critical|default(0) }}</h2>
@@ -144,7 +144,7 @@ window.onload = function() {
                         {% set panel_class = 'panel-danger' %}
                         {% set severity_label = 'Critical' %}
                         {% set severity_class = 'label-danger' %}
-                        {% set icon_class = 'fa-skull-crossbones' %}
+                        {% set icon_class = 'fa-exclamation-triangle' %}
                     {% elif anomaly.severity == 2 %}
                         {% set panel_class = 'panel-warning' %}
                         {% set severity_label = 'Error' %}
