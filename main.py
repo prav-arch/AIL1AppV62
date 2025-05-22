@@ -31,50 +31,7 @@ app.register_blueprint(rag_bp)
 app.register_blueprint(database_bp)
 app.register_blueprint(anomalies_bp)
 
-# API routes for Kafka and Pipelines
-@app.route('/api/kafka/recent-messages', methods=['GET'])
-def api_recent_kafka_messages():
-    """Return recent Kafka messages for the dashboard"""
-    messages = []
-    topics = ['logs', 'metrics', 'alerts', 'transactions', 'events']
-    
-    for _ in range(5):
-        messages.append({
-            'queue': random.choice(topics),
-            'message': random.choice([
-                "System startup completed",
-                "User login successful",
-                "New data received from source",
-                "Processing completed successfully",
-                "CPU spike detected",
-                "Memory usage increased",
-                "Database backup completed",
-                "New anomaly detected",
-                "Alert triggered by sensor",
-                "Scheduled task started"
-            ]),
-            'time_ago': f"{random.randint(1, 30)}m ago"
-        })
-    
-    return jsonify({'messages': messages})
-
-@app.route('/api/pipeline/status', methods=['GET'])
-def api_pipeline_status():
-    """Return pipeline status information"""
-    pipelines = []
-    statuses = ['running', 'completed', 'failed', 'scheduled', 'paused']
-    
-    for i in range(1, 6):
-        pipelines.append({
-            'id': f'pipeline-{i}',
-            'name': f'Data Pipeline {i}',
-            'status': random.choice(statuses),
-            'last_run': (datetime.now() - timedelta(hours=random.randint(0, 24))).isoformat(),
-            'next_run': (datetime.now() + timedelta(hours=random.randint(1, 12))).isoformat() if random.choice([True, False]) else None,
-            'success_rate': random.randint(70, 100)
-        })
-    
-    return jsonify(pipelines)
+# The Kafka and Pipeline API routes have been moved to separate functions below
 
 # Basic routes for testing
 @app.route('/test')
@@ -130,7 +87,7 @@ def api_dashboard_metrics():
     })
 
 @app.route('/api/dashboard/kafka-messages', methods=['GET'])
-def api_recent_kafka_messages():
+def api_dashboard_kafka_messages():
     """Return recent Kafka messages for the dashboard"""
     messages = []
     topics = ['logs', 'metrics', 'alerts', 'transactions', 'events']
