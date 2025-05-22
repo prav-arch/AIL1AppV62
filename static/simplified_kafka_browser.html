@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simplified Kafka Browser</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Kafka Browser - Simplified View</h1>
+        
+        <div class="row">
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Broker Count</div>
+                    <div class="panel-body text-center">
+                        <h2>3</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Total Topics</div>
+                    <div class="panel-body text-center">
+                        <h2>15</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Consumer Groups</div>
+                    <div class="panel-body text-center">
+                        <h2>12</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="panel panel-default">
+                    <div class="panel-heading">Total Messages</div>
+                    <div class="panel-body text-center">
+                        <h2>1,862,473</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel panel-default">
+            <div class="panel-heading">Kafka Topics</div>
+            <div class="panel-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Topic Name</th>
+                            <th>Partitions</th>
+                            <th>Replication</th>
+                            <th>Message Count</th>
+                            <th>Throughput</th>
+                            <th>Size</th>
+                            <th>Retention</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>logs-topic</strong></td>
+                            <td>3</td>
+                            <td>3</td>
+                            <td class="text-success">524,892</td>
+                            <td>120 msg/sec</td>
+                            <td>750 MB</td>
+                            <td>7 days</td>
+                            <td>2025-04-01 00:00:00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>metrics-topic</strong></td>
+                            <td>5</td>
+                            <td>3</td>
+                            <td>328,157</td>
+                            <td>250 msg/sec</td>
+                            <td>1.2 GB</td>
+                            <td>14 days</td>
+                            <td>2025-04-01 00:00:00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>events-topic</strong></td>
+                            <td>2</td>
+                            <td>3</td>
+                            <td>125,628</td>
+                            <td>45 msg/sec</td>
+                            <td>380 MB</td>
+                            <td>30 days</td>
+                            <td>2025-04-02 00:00:00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>alerts-topic</strong></td>
+                            <td>1</td>
+                            <td>3</td>
+                            <td class="text-muted">8,421</td>
+                            <td>5 msg/sec</td>
+                            <td>12 MB</td>
+                            <td>90 days</td>
+                            <td>2025-04-02 00:00:00</td>
+                        </tr>
+                        <tr>
+                            <td><strong>clickstream-topic</strong></td>
+                            <td>8</td>
+                            <td>3</td>
+                            <td class="text-success">1,458,276</td>
+                            <td>850 msg/sec</td>
+                            <td>3.5 GB</td>
+                            <td>3 days</td>
+                            <td>2025-04-03 00:00:00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="panel panel-default">
+            <div class="panel-heading">Topic: logs-topic - Messages</div>
+            <div class="panel-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">Message Count</div>
+                            <div class="panel-body text-center">
+                                <h4>524,892</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">Avg Message Size</div>
+                            <div class="panel-body text-center">
+                                <h4>1.4 KB</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">Top Partition</div>
+                            <div class="panel-body text-center">
+                                <h4>1</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">Message Rate</div>
+                            <div class="panel-body text-center">
+                                <h4>120 msg/sec</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Offset</th>
+                            <th>Partition</th>
+                            <th>Key</th>
+                            <th>Value</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1000050</td>
+                            <td>1</td>
+                            <td><code>srv-web-01</code></td>
+                            <td class="text-truncate" style="max-width:400px;">
+                                <code>{"timestamp":"2025-05-22T04:55:12.000Z","level":"INFO","service":"api-gateway","message":"Request processed successfully","requestId":"abcd1234","duration":125}</code>
+                            </td>
+                            <td>2025-05-22 04:55:12</td>
+                        </tr>
+                        <tr>
+                            <td>1000049</td>
+                            <td>0</td>
+                            <td><code>srv-auth-02</code></td>
+                            <td class="text-truncate" style="max-width:400px;">
+                                <code>{"timestamp":"2025-05-22T04:55:10.000Z","level":"WARN","service":"auth-service","message":"Rate limit exceeded","requestId":"efgh5678","duration":350}</code>
+                            </td>
+                            <td>2025-05-22 04:55:10</td>
+                        </tr>
+                        <tr>
+                            <td>1000048</td>
+                            <td>2</td>
+                            <td><code>srv-db-01</code></td>
+                            <td class="text-truncate" style="max-width:400px;">
+                                <code>{"timestamp":"2025-05-22T04:55:08.000Z","level":"ERROR","service":"database","message":"Connection timeout","requestId":"ijkl9012","duration":500}</code>
+                            </td>
+                            <td>2025-05-22 04:55:08</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="panel panel-default">
+            <div class="panel-heading">Consumer Groups</div>
+            <div class="panel-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Group ID</th>
+                            <th>Members</th>
+                            <th>Topics</th>
+                            <th>Total Lag</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>log-processor-group</strong></td>
+                            <td>3</td>
+                            <td>logs-topic, app-logs</td>
+                            <td>275</td>
+                            <td><span class="label label-success">Stable</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>metrics-analyzer</strong></td>
+                            <td>5</td>
+                            <td>metrics-topic, system-metrics</td>
+                            <td>482</td>
+                            <td><span class="label label-success">Stable</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>clickstream-processor</strong></td>
+                            <td>8</td>
+                            <td>clickstream-topic</td>
+                            <td>8,763</td>
+                            <td><span class="label label-warning">Warning</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

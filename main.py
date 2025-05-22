@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from flask import Flask, jsonify, render_template, request, Response
+from flask import Flask, jsonify, render_template, request, Response, send_from_directory
 import random
 from datetime import datetime, timedelta
 import time
@@ -327,6 +327,15 @@ def kafka_browser():
                           kafka_messages=kafka_messages,
                           consumer_groups=consumer_groups,
                           stats=stats)
+
+# Simplified standalone pages that show data
+@app.route('/simple-data-pipeline')
+def simple_data_pipeline():
+    return send_from_directory('static', 'simplified_data_pipeline.html')
+
+@app.route('/simple-kafka-browser')
+def simple_kafka_browser():
+    return send_from_directory('static', 'simplified_kafka_browser.html')
 
 # API routes for dashboard metrics
 @app.route('/api/dashboard/metrics', methods=['GET'])
