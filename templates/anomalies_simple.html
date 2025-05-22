@@ -41,6 +41,26 @@ window.onload = function() {
             });
         });
     }
+    
+    // Expand/Collapse handlers for anomaly details
+    var expandButtons = document.querySelectorAll(".btn-expand");
+    if (expandButtons) {
+        expandButtons.forEach(function(button) {
+            button.addEventListener("click", function(e) {
+                e.preventDefault();
+                var targetId = this.getAttribute("data-target");
+                var detailsArea = document.getElementById(targetId);
+                
+                if (detailsArea.style.display === "none") {
+                    this.innerHTML = '<i class="fa fa-chevron-up"></i> Collapse';
+                    detailsArea.style.display = "block";
+                } else {
+                    this.innerHTML = '<i class="fa fa-chevron-down"></i> Expand';
+                    detailsArea.style.display = "none";
+                }
+            });
+        });
+    }
 };
 </script>
 {% endblock %}
@@ -127,35 +147,42 @@ window.onload = function() {
                     </div>
                 </div>
                 <div class="panel-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <strong>Component:</strong> Database
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Source:</strong> postgres-main
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Detection:</strong> ML Isolation Forest
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Confidence:</strong> 98%
-                        </div>
-                    </div>
-                    <hr>
                     <p><strong>Message:</strong> Database connection timeout after 30 seconds. Connection pool exhausted. This is causing cascading failures in the API layer.</p>
-                    <div class="well well-sm">
-                        <code>ERROR [2025-05-22 05:23:18,721] postgres-main - Connection timeout. Attempted to connect to 192.168.1.45:5432 but received no response after 30000ms</code>
+                    
+                    <div class="text-center" style="margin: 10px 0">
+                        <button class="btn btn-default btn-expand" data-target="details-1"><i class="fa fa-chevron-down"></i> Expand</button>
                     </div>
-                    <button class="btn btn-primary btn-recommendations" data-target="rec-1"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
-                    <div id="rec-1" class="alert alert-info mt-3" style="display: none;">
-                        <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
-                        <ol>
-                            <li>Check if the database server is running and accessible from the application server</li>
-                            <li>Verify PostgreSQL service status on the database server</li>
-                            <li>Check for network connectivity issues between application and database servers</li>
-                            <li>Review connection pool settings and increase max connections if needed</li>
-                            <li>Consider implementing a circuit breaker pattern to handle database failures gracefully</li>
-                        </ol>
+                    
+                    <div id="details-1" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Component:</strong> Database
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Source:</strong> postgres-main
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Detection:</strong> ML Isolation Forest
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Confidence:</strong> 98%
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="well well-sm">
+                            <code>ERROR [2025-05-22 05:23:18,721] postgres-main - Connection timeout. Attempted to connect to 192.168.1.45:5432 but received no response after 30000ms</code>
+                        </div>
+                        <button class="btn btn-primary btn-recommendations" data-target="rec-1"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
+                        <div id="rec-1" class="alert alert-info mt-3" style="display: none;">
+                            <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
+                            <ol>
+                                <li>Check if the database server is running and accessible from the application server</li>
+                                <li>Verify PostgreSQL service status on the database server</li>
+                                <li>Check for network connectivity issues between application and database servers</li>
+                                <li>Review connection pool settings and increase max connections if needed</li>
+                                <li>Consider implementing a circuit breaker pattern to handle database failures gracefully</li>
+                            </ol>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -174,35 +201,42 @@ window.onload = function() {
                     </div>
                 </div>
                 <div class="panel-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <strong>Component:</strong> API Gateway
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Source:</strong> api-gateway-prod
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Detection:</strong> DBSCAN Clustering
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Confidence:</strong> 87%
-                        </div>
-                    </div>
-                    <hr>
                     <p><strong>Message:</strong> Unusual spike in API requests from client IP range 203.0.113.x triggering rate limiting. Potential API abuse or misconfigured client.</p>
-                    <div class="well well-sm">
-                        <code>WARN [2025-05-22 04:47:31,103] api-gateway-prod - Rate limit exceeded for client 203.0.113.28. Requests: 238/min, Limit: 200/min</code>
+                    
+                    <div class="text-center" style="margin: 10px 0">
+                        <button class="btn btn-default btn-expand" data-target="details-2"><i class="fa fa-chevron-down"></i> Expand</button>
                     </div>
-                    <button class="btn btn-primary btn-recommendations" data-target="rec-2"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
-                    <div id="rec-2" class="alert alert-info mt-3" style="display: none;">
-                        <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
-                        <ol>
-                            <li>Investigate the client IP address to determine if this is a legitimate client or potential abuse</li>
-                            <li>Review the API usage patterns from this client to identify specific endpoints being called</li>
-                            <li>Consider implementing a more granular rate limiting strategy based on endpoint sensitivity</li>
-                            <li>Contact the client if this is a legitimate service to discuss appropriate API usage</li>
-                            <li>Implement API caching for frequently accessed resources to reduce load</li>
-                        </ol>
+                    
+                    <div id="details-2" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Component:</strong> API Gateway
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Source:</strong> api-gateway-prod
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Detection:</strong> DBSCAN Clustering
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Confidence:</strong> 87%
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="well well-sm">
+                            <code>WARN [2025-05-22 04:47:31,103] api-gateway-prod - Rate limit exceeded for client 203.0.113.28. Requests: 238/min, Limit: 200/min</code>
+                        </div>
+                        <button class="btn btn-primary btn-recommendations" data-target="rec-2"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
+                        <div id="rec-2" class="alert alert-info mt-3" style="display: none;">
+                            <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
+                            <ol>
+                                <li>Investigate the client IP address to determine if this is a legitimate client or potential abuse</li>
+                                <li>Review the API usage patterns from this client to identify specific endpoints being called</li>
+                                <li>Consider implementing a more granular rate limiting strategy based on endpoint sensitivity</li>
+                                <li>Contact the client if this is a legitimate service to discuss appropriate API usage</li>
+                                <li>Implement API caching for frequently accessed resources to reduce load</li>
+                            </ol>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -221,35 +255,42 @@ window.onload = function() {
                     </div>
                 </div>
                 <div class="panel-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <strong>Component:</strong> Application Server
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Source:</strong> app-server-03
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Detection:</strong> Pattern Match
-                        </div>
-                        <div class="col-md-3">
-                            <strong>Confidence:</strong> 76%
-                        </div>
-                    </div>
-                    <hr>
                     <p><strong>Message:</strong> Memory usage increased to 85% on app-server-03. This is 30% higher than the typical baseline for this time period.</p>
-                    <div class="well well-sm">
-                        <code>WARN [2025-05-22 03:12:59,431] app-server-03 - Memory usage at 85% (13.6GB/16GB). Previous average for this time period: 55%</code>
+                    
+                    <div class="text-center" style="margin: 10px 0">
+                        <button class="btn btn-default btn-expand" data-target="details-3"><i class="fa fa-chevron-down"></i> Expand</button>
                     </div>
-                    <button class="btn btn-primary btn-recommendations" data-target="rec-3"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
-                    <div id="rec-3" class="alert alert-info mt-3" style="display: none;">
-                        <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
-                        <ol>
-                            <li>Check for recent deployments or changes to the application that might cause increased memory usage</li>
-                            <li>Review application logs for potential memory leaks or resource-intensive operations</li>
-                            <li>Monitor garbage collection metrics to identify potential memory management issues</li>
-                            <li>Consider horizontal scaling if the increased load is legitimate and expected to continue</li>
-                            <li>Implement memory usage alerts at 90% to provide early warning before critical levels</li>
-                        </ol>
+                    
+                    <div id="details-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Component:</strong> Application Server
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Source:</strong> app-server-03
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Detection:</strong> Pattern Match
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Confidence:</strong> 76%
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="well well-sm">
+                            <code>WARN [2025-05-22 03:12:59,431] app-server-03 - Memory usage at 85% (13.6GB/16GB). Previous average for this time period: 55%</code>
+                        </div>
+                        <button class="btn btn-primary btn-recommendations" data-target="rec-3"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
+                        <div id="rec-3" class="alert alert-info mt-3" style="display: none;">
+                            <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
+                            <ol>
+                                <li>Check for recent deployments or changes to the application that might cause increased memory usage</li>
+                                <li>Review application logs for potential memory leaks or resource-intensive operations</li>
+                                <li>Monitor garbage collection metrics to identify potential memory management issues</li>
+                                <li>Consider horizontal scaling if the increased load is legitimate and expected to continue</li>
+                                <li>Implement memory usage alerts at 90% to provide early warning before critical levels</li>
+                            </ol>
+                        </div>
                     </div>
                 </div>
             </div>
