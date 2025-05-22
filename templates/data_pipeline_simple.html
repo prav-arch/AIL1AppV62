@@ -3,38 +3,74 @@
 
 {% block title %}Data Pipeline - AI Assistant Platform{% endblock %}
 
+{% block extra_js %}
+<script>
+// Add simple interactivity
+window.onload = function() {
+    console.log("Data Pipeline interface loaded");
+    
+    // Add hover effect to table rows
+    var tableRows = document.querySelectorAll(".table tbody tr");
+    if (tableRows) {
+        tableRows.forEach(function(row) {
+            row.addEventListener("mouseover", function() {
+                this.style.backgroundColor = "#f5f5f5";
+            });
+            row.addEventListener("mouseout", function() {
+                this.style.backgroundColor = "";
+            });
+        });
+    }
+};
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
-    <h1>Data Pipeline</h1>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header">
+                <h2><i class="fa fa-stream"></i> Data Pipeline</h2>
+            </div>
+        </div>
+    </div>
     
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Active Processors</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-cogs"></i> Active Processors</h3>
+                </div>
                 <div class="panel-body text-center">
                     <h2>42</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Process Groups</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-project-diagram"></i> Process Groups</h3>
+                </div>
                 <div class="panel-body text-center">
                     <h2>8</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Connections</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-plug"></i> Connections</h3>
+                </div>
                 <div class="panel-body text-center">
                     <h2>65</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Running Jobs</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-tasks"></i> Running Jobs</h3>
+                </div>
                 <div class="panel-body text-center">
                     <h2>5</h2>
                 </div>
@@ -42,8 +78,10 @@
         </div>
     </div>
     
-    <div class="panel panel-default">
-        <div class="panel-heading">NiFi Jobs</div>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-exchange-alt"></i> NiFi Jobs</h3>
+        </div>
         <div class="panel-body">
             <table class="table table-striped">
                 <thead>
@@ -123,8 +161,10 @@
         </div>
     </div>
     
-    <div class="panel panel-default">
-        <div class="panel-heading">Airflow DAGs</div>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-calendar"></i> Airflow DAGs</h3>
+        </div>
         <div class="panel-body">
             <table class="table table-striped">
                 <thead>
@@ -189,8 +229,10 @@
         </div>
     </div>
     
-    <div class="panel panel-default">
-        <div class="panel-heading">Job Status</div>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-chart-line"></i> Job Status</h3>
+        </div>
         <div class="panel-body">
             <table class="table table-striped">
                 <thead>
