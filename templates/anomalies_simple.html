@@ -84,7 +84,7 @@ window.onload = function() {
                     <h3 class="panel-title"><i class="fa fa-skull-crossbones"></i> Critical</h3>
                 </div>
                 <div class="panel-body text-center">
-                    <h2>3</h2>
+                    <h2>{{ stats.critical|default(0) }}</h2>
                 </div>
             </div>
         </div>
@@ -94,7 +94,7 @@ window.onload = function() {
                     <h3 class="panel-title"><i class="fa fa-exclamation-circle"></i> Errors</h3>
                 </div>
                 <div class="panel-body text-center">
-                    <h2>7</h2>
+                    <h2>{{ stats.errors|default(0) }}</h2>
                 </div>
             </div>
         </div>
@@ -104,7 +104,7 @@ window.onload = function() {
                     <h3 class="panel-title"><i class="fa fa-info-circle"></i> Warnings</h3>
                 </div>
                 <div class="panel-body text-center">
-                    <h2>12</h2>
+                    <h2>{{ stats.warnings|default(0) }}</h2>
                 </div>
             </div>
         </div>
@@ -114,7 +114,7 @@ window.onload = function() {
                     <h3 class="panel-title"><i class="fa fa-chart-line"></i> Total</h3>
                 </div>
                 <div class="panel-body text-center">
-                    <h2>22</h2>
+                    <h2>{{ stats.total|default(0) }}</h2>
                 </div>
             </div>
         </div>
@@ -133,167 +133,84 @@ window.onload = function() {
             </div>
         </div>
         <div class="panel-body">
-            <!-- Critical Anomaly -->
-            <div class="panel panel-danger anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <div class="panel-heading anomaly-heading" role="button" data-toggle="collapse" data-target="#collapse-1" aria-expanded="false" aria-controls="collapse-1" style="cursor: pointer;">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h4>
-                                <i class="fa fa-chevron-down"></i>
-                                <i class="fa fa-skull-crossbones" style="margin-left: 10px;"></i> 
-                                Database Connection Failure
-                            </h4>
+            {% if anomalies %}
+                {% for anomaly in anomalies %}
+                    {% set panel_class = 'panel-info' %}
+                    {% set severity_label = 'Warning' %}
+                    {% set severity_class = 'label-info' %}
+                    {% set icon_class = 'fa-info-circle' %}
+                    
+                    {% if anomaly.severity == 3 %}
+                        {% set panel_class = 'panel-danger' %}
+                        {% set severity_label = 'Critical' %}
+                        {% set severity_class = 'label-danger' %}
+                        {% set icon_class = 'fa-skull-crossbones' %}
+                    {% elif anomaly.severity == 2 %}
+                        {% set panel_class = 'panel-warning' %}
+                        {% set severity_label = 'Error' %}
+                        {% set severity_class = 'label-warning' %}
+                        {% set icon_class = 'fa-exclamation-circle' %}
+                    {% endif %}
+                    
+                    <div class="panel {{ panel_class }} anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <div class="panel-heading anomaly-heading" role="button" data-toggle="collapse" data-target="#collapse-{{ loop.index }}" aria-expanded="false" aria-controls="collapse-{{ loop.index }}" style="cursor: pointer;">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4>
+                                        <i class="fa fa-chevron-down"></i>
+                                        <i class="fa {{ icon_class }}" style="margin-left: 10px;"></i> 
+                                        {{ anomaly.title }}
+                                    </h4>
+                                </div>
+                                <div class="col-md-4 text-right">
+                                    <span class="label {{ severity_class }}">{{ severity_label }}</span>
+                                    <span class="label label-default">{{ anomaly.timestamp }}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-4 text-right">
-                            <span class="label label-danger">Critical</span>
-                            <span class="label label-default">2025-05-22 05:23:18</span>
+                        <div id="collapse-{{ loop.index }}" class="panel-collapse collapse">
+                            <div class="panel-body">
+                                <p><strong>Message:</strong> {{ anomaly.message }}</p>
+                                
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>Component:</strong> {{ anomaly.component }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Source:</strong> {{ anomaly.source }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Detection:</strong> {{ anomaly.detection_method }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Confidence:</strong> {{ anomaly.confidence }}%
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="well well-sm">
+                                    <code>{{ anomaly.raw_log }}</code>
+                                </div>
+                                <button class="btn btn-primary btn-recommendations" data-target="rec-{{ loop.index }}"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
+                                <div id="rec-{{ loop.index }}" class="alert alert-info mt-3" style="display: none;">
+                                    <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
+                                    <ol>
+                                        {% for rec in anomaly.recommendations %}
+                                            <li>{{ rec }}</li>
+                                        {% else %}
+                                            <li>No recommendations available. Generate recommendations using the button above.</li>
+                                        {% endfor %}
+                                    </ol>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <h4><i class="fa fa-info-circle"></i> No anomalies detected</h4>
+                    <p>No anomalies have been detected in the system at this time. This could mean everything is operating normally, or that not enough data has been collected for analysis.</p>
                 </div>
-                <div id="collapse-1" class="panel-collapse collapse">
-                    <div class="panel-body">
-                        <p><strong>Message:</strong> Database connection timeout after 30 seconds. Connection pool exhausted. This is causing cascading failures in the API layer.</p>
-                        
-                        <div class="row">
-                            <div class="col-md-3">
-                                <strong>Component:</strong> Database
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Source:</strong> postgres-main
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Detection:</strong> ML Isolation Forest
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Confidence:</strong> 98%
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="well well-sm">
-                            <code>ERROR [2025-05-22 05:23:18,721] postgres-main - Connection timeout. Attempted to connect to 192.168.1.45:5432 but received no response after 30000ms</code>
-                        </div>
-                        <button class="btn btn-primary btn-recommendations" data-target="rec-1"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
-                        <div id="rec-1" class="alert alert-info mt-3" style="display: none;">
-                            <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
-                            <ol>
-                                <li>Check if the database server is running and accessible from the application server</li>
-                                <li>Verify PostgreSQL service status on the database server</li>
-                                <li>Check for network connectivity issues between application and database servers</li>
-                                <li>Review connection pool settings and increase max connections if needed</li>
-                                <li>Consider implementing a circuit breaker pattern to handle database failures gracefully</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Error Anomaly -->
-            <div class="panel panel-warning anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <div class="panel-heading anomaly-heading" role="button" data-toggle="collapse" data-target="#collapse-2" aria-expanded="false" aria-controls="collapse-2" style="cursor: pointer;">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h4>
-                                <i class="fa fa-chevron-down"></i>
-                                <i class="fa fa-exclamation-circle" style="margin-left: 10px;"></i> 
-                                API Rate Limiting Triggered
-                            </h4>
-                        </div>
-                        <div class="col-md-4 text-right">
-                            <span class="label label-warning">Error</span>
-                            <span class="label label-default">2025-05-22 04:47:31</span>
-                        </div>
-                    </div>
-                </div>
-                <div id="collapse-2" class="panel-collapse collapse">
-                    <div class="panel-body">
-                        <p><strong>Message:</strong> Unusual spike in API requests from client IP range 203.0.113.x triggering rate limiting. Potential API abuse or misconfigured client.</p>
-                        
-                        <div class="row">
-                            <div class="col-md-3">
-                                <strong>Component:</strong> API Gateway
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Source:</strong> api-gateway-prod
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Detection:</strong> DBSCAN Clustering
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Confidence:</strong> 87%
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="well well-sm">
-                            <code>WARN [2025-05-22 04:47:31,103] api-gateway-prod - Rate limit exceeded for client 203.0.113.28. Requests: 238/min, Limit: 200/min</code>
-                        </div>
-                        <button class="btn btn-primary btn-recommendations" data-target="rec-2"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
-                        <div id="rec-2" class="alert alert-info mt-3" style="display: none;">
-                            <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
-                            <ol>
-                                <li>Investigate the client IP address to determine if this is a legitimate client or potential abuse</li>
-                                <li>Review the API usage patterns from this client to identify specific endpoints being called</li>
-                                <li>Consider implementing a more granular rate limiting strategy based on endpoint sensitivity</li>
-                                <li>Contact the client if this is a legitimate service to discuss appropriate API usage</li>
-                                <li>Implement API caching for frequently accessed resources to reduce load</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Warning Anomaly -->
-            <div class="panel panel-info anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <div class="panel-heading anomaly-heading" role="button" data-toggle="collapse" data-target="#collapse-3" aria-expanded="false" aria-controls="collapse-3" style="cursor: pointer;">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h4>
-                                <i class="fa fa-chevron-down"></i>
-                                <i class="fa fa-info-circle" style="margin-left: 10px;"></i> 
-                                Memory Usage Spike
-                            </h4>
-                        </div>
-                        <div class="col-md-4 text-right">
-                            <span class="label label-info">Warning</span>
-                            <span class="label label-default">2025-05-22 03:12:59</span>
-                        </div>
-                    </div>
-                </div>
-                <div id="collapse-3" class="panel-collapse collapse">
-                    <div class="panel-body">
-                        <p><strong>Message:</strong> Memory usage increased to 85% on app-server-03. This is 30% higher than the typical baseline for this time period.</p>
-                        
-                        <div class="row">
-                            <div class="col-md-3">
-                                <strong>Component:</strong> Application Server
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Source:</strong> app-server-03
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Detection:</strong> Pattern Match
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Confidence:</strong> 76%
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="well well-sm">
-                            <code>WARN [2025-05-22 03:12:59,431] app-server-03 - Memory usage at 85% (13.6GB/16GB). Previous average for this time period: 55%</code>
-                        </div>
-                        <button class="btn btn-primary btn-recommendations" data-target="rec-3"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
-                        <div id="rec-3" class="alert alert-info mt-3" style="display: none;">
-                            <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
-                            <ol>
-                                <li>Check for recent deployments or changes to the application that might cause increased memory usage</li>
-                                <li>Review application logs for potential memory leaks or resource-intensive operations</li>
-                                <li>Monitor garbage collection metrics to identify potential memory management issues</li>
-                                <li>Consider horizontal scaling if the increased load is legitimate and expected to continue</li>
-                                <li>Implement memory usage alerts at 90% to provide early warning before critical levels</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>

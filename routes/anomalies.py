@@ -13,7 +13,14 @@ def anomalies_page():
     """
     Render the anomalies page with detected anomalies
     """
-    return render_template('anomalies_simple.html')
+    # Get anomalies and stats
+    anomalies = get_anomalies()
+    stats = get_anomaly_stats()
+    
+    # Pass anomalies and stats to the template
+    return render_template('anomalies_simple.html', 
+                          anomalies=anomalies,
+                          stats=stats)
 
 @anomalies_bp.route('/anomalies/recommendations/<anomaly_id>')
 def anomaly_recommendations_page(anomaly_id):
