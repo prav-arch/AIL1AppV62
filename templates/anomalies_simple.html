@@ -22,6 +22,26 @@ window.onload = function() {
         });
     }
     
+    // Accordion heading click handlers
+    var anomalyHeadings = document.querySelectorAll(".anomaly-heading");
+    if (anomalyHeadings) {
+        anomalyHeadings.forEach(function(heading) {
+            heading.addEventListener("click", function() {
+                // Toggle the chevron icon
+                var icon = this.querySelector(".fa-chevron-down, .fa-chevron-up");
+                if (icon) {
+                    if (icon.classList.contains("fa-chevron-down")) {
+                        icon.classList.remove("fa-chevron-down");
+                        icon.classList.add("fa-chevron-up");
+                    } else {
+                        icon.classList.remove("fa-chevron-up");
+                        icon.classList.add("fa-chevron-down");
+                    }
+                }
+            });
+        });
+    }
+    
     // Recommendations button handlers
     var recommendationButtons = document.querySelectorAll(".btn-recommendations");
     if (recommendationButtons) {
@@ -37,26 +57,6 @@ window.onload = function() {
                 } else {
                     this.innerHTML = '<i class="fa fa-lightbulb"></i> Get Recommendations';
                     recArea.style.display = "none";
-                }
-            });
-        });
-    }
-    
-    // Expand/Collapse handlers for anomaly details
-    var expandButtons = document.querySelectorAll(".btn-expand");
-    if (expandButtons) {
-        expandButtons.forEach(function(button) {
-            button.addEventListener("click", function(e) {
-                e.preventDefault();
-                var targetId = this.getAttribute("data-target");
-                var detailsArea = document.getElementById(targetId);
-                
-                if (detailsArea.style.display === "none") {
-                    this.innerHTML = '<i class="fa fa-chevron-up"></i> Collapse';
-                    detailsArea.style.display = "block";
-                } else {
-                    this.innerHTML = '<i class="fa fa-chevron-down"></i> Expand';
-                    detailsArea.style.display = "none";
                 }
             });
         });
@@ -135,10 +135,14 @@ window.onload = function() {
         <div class="panel-body">
             <!-- Critical Anomaly -->
             <div class="panel panel-danger anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <div class="panel-heading">
+                <div class="panel-heading anomaly-heading" role="button" data-toggle="collapse" data-target="#collapse-1" aria-expanded="false" aria-controls="collapse-1" style="cursor: pointer;">
                     <div class="row">
                         <div class="col-md-8">
-                            <h4><i class="fa fa-skull-crossbones"></i> Database Connection Failure</h4>
+                            <h4>
+                                <i class="fa fa-skull-crossbones"></i> 
+                                Database Connection Failure
+                                <i class="fa fa-chevron-down pull-right"></i>
+                            </h4>
                         </div>
                         <div class="col-md-4 text-right">
                             <span class="label label-danger">Critical</span>
@@ -146,14 +150,10 @@ window.onload = function() {
                         </div>
                     </div>
                 </div>
-                <div class="panel-body">
-                    <p><strong>Message:</strong> Database connection timeout after 30 seconds. Connection pool exhausted. This is causing cascading failures in the API layer.</p>
-                    
-                    <div class="text-center" style="margin: 10px 0">
-                        <button class="btn btn-default btn-expand" data-target="details-1"><i class="fa fa-chevron-down"></i> Expand</button>
-                    </div>
-                    
-                    <div id="details-1" style="display: none;">
+                <div id="collapse-1" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <p><strong>Message:</strong> Database connection timeout after 30 seconds. Connection pool exhausted. This is causing cascading failures in the API layer.</p>
+                        
                         <div class="row">
                             <div class="col-md-3">
                                 <strong>Component:</strong> Database
@@ -189,10 +189,14 @@ window.onload = function() {
             
             <!-- Error Anomaly -->
             <div class="panel panel-warning anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <div class="panel-heading">
+                <div class="panel-heading anomaly-heading" role="button" data-toggle="collapse" data-target="#collapse-2" aria-expanded="false" aria-controls="collapse-2" style="cursor: pointer;">
                     <div class="row">
                         <div class="col-md-8">
-                            <h4><i class="fa fa-exclamation-circle"></i> API Rate Limiting Triggered</h4>
+                            <h4>
+                                <i class="fa fa-exclamation-circle"></i> 
+                                API Rate Limiting Triggered
+                                <i class="fa fa-chevron-down pull-right"></i>
+                            </h4>
                         </div>
                         <div class="col-md-4 text-right">
                             <span class="label label-warning">Error</span>
@@ -200,14 +204,10 @@ window.onload = function() {
                         </div>
                     </div>
                 </div>
-                <div class="panel-body">
-                    <p><strong>Message:</strong> Unusual spike in API requests from client IP range 203.0.113.x triggering rate limiting. Potential API abuse or misconfigured client.</p>
-                    
-                    <div class="text-center" style="margin: 10px 0">
-                        <button class="btn btn-default btn-expand" data-target="details-2"><i class="fa fa-chevron-down"></i> Expand</button>
-                    </div>
-                    
-                    <div id="details-2" style="display: none;">
+                <div id="collapse-2" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <p><strong>Message:</strong> Unusual spike in API requests from client IP range 203.0.113.x triggering rate limiting. Potential API abuse or misconfigured client.</p>
+                        
                         <div class="row">
                             <div class="col-md-3">
                                 <strong>Component:</strong> API Gateway
@@ -243,10 +243,14 @@ window.onload = function() {
             
             <!-- Warning Anomaly -->
             <div class="panel panel-info anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                <div class="panel-heading">
+                <div class="panel-heading anomaly-heading" role="button" data-toggle="collapse" data-target="#collapse-3" aria-expanded="false" aria-controls="collapse-3" style="cursor: pointer;">
                     <div class="row">
                         <div class="col-md-8">
-                            <h4><i class="fa fa-info-circle"></i> Memory Usage Spike</h4>
+                            <h4>
+                                <i class="fa fa-info-circle"></i> 
+                                Memory Usage Spike
+                                <i class="fa fa-chevron-down pull-right"></i>
+                            </h4>
                         </div>
                         <div class="col-md-4 text-right">
                             <span class="label label-info">Warning</span>
@@ -254,14 +258,10 @@ window.onload = function() {
                         </div>
                     </div>
                 </div>
-                <div class="panel-body">
-                    <p><strong>Message:</strong> Memory usage increased to 85% on app-server-03. This is 30% higher than the typical baseline for this time period.</p>
-                    
-                    <div class="text-center" style="margin: 10px 0">
-                        <button class="btn btn-default btn-expand" data-target="details-3"><i class="fa fa-chevron-down"></i> Expand</button>
-                    </div>
-                    
-                    <div id="details-3" style="display: none;">
+                <div id="collapse-3" class="panel-collapse collapse">
+                    <div class="panel-body">
+                        <p><strong>Message:</strong> Memory usage increased to 85% on app-server-03. This is 30% higher than the typical baseline for this time period.</p>
+                        
                         <div class="row">
                             <div class="col-md-3">
                                 <strong>Component:</strong> Application Server
