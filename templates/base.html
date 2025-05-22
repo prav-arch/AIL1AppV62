@@ -62,23 +62,15 @@
                         <i class="fas fa-exclamation-triangle me-1"></i> Anomalies
                     </a>
                 </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {% if active_tab == 'data_pipeline' %}active{% endif %}" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_tab == 'data_pipeline' %}active{% endif %}" href="/simple-data-pipeline">
                         <i class="fas fa-stream me-1"></i> Data Pipeline
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="/data-pipeline">Original Tab</a></li>
-                        <li><a href="/simple-data-pipeline">Simplified View (with Data)</a></li>
-                    </ul>
                 </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {% if active_tab == 'kafka_browser' %}active{% endif %}" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                <li class="nav-item">
+                    <a class="nav-link {% if active_tab == 'kafka_browser' %}active{% endif %}" href="/simple-kafka-browser">
                         <i class="fas fa-exchange-alt me-1"></i> Kafka Browser
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a href="/kafka-browser">Original Tab</a></li>
-                        <li><a href="/simple-kafka-browser">Simplified View (with Data)</a></li>
-                    </ul>
                 </li>
             </ul>
         </nav>
