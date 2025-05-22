@@ -3,6 +3,10 @@
 
 {% block title %}Kafka Browser - AI Assistant Platform{% endblock %}
 
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <h1>Kafka Browser</h1>
@@ -43,9 +47,21 @@
     </div>
     
     <div class="panel panel-default">
-        <div class="panel-heading">Kafka Topics</div>
+        <div class="panel-heading">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3 class="panel-title">Kafka Topics</h3>
+                </div>
+                <div class="col-md-6 text-right">
+                    <div class="btn-group">
+                        <button class="btn btn-default btn-sm" id="show-all-topics">Show All</button>
+                        <button class="btn btn-primary btn-sm" id="show-less-than-50">Show < 50 msg/sec</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="panel-body">
-            <table class="table table-striped">
+            <table class="table table-striped" id="topics-table">
                 <thead>
                     <tr>
                         <th>Topic Name</th>
@@ -239,5 +255,36 @@
 <script>
 // Simple logging to show the page has loaded
 console.log("Simple Bootstrap 3 Kafka Browser loaded");
+
+// Add filtering functionality for Kafka topics
+$(document).ready(function() {
+    // Filter to show topics with less than 50 messages per second
+    $("#show-less-than-50").click(function() {
+        $("#topics-table tbody tr").each(function() {
+            // Get the throughput value (column 5), parse the number
+            var throughput = parseInt($(this).find("td:eq(4)").text());
+            
+            // Show or hide based on throughput
+            if (throughput < 50) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+        
+        // Update button states
+        $(this).addClass("btn-primary").removeClass("btn-default");
+        $("#show-all-topics").addClass("btn-default").removeClass("btn-primary");
+    });
+    
+    // Show all topics
+    $("#show-all-topics").click(function() {
+        $("#topics-table tbody tr").show();
+        
+        // Update button states
+        $(this).addClass("btn-primary").removeClass("btn-default");
+        $("#show-less-than-50").addClass("btn-default").removeClass("btn-primary");
+    });
+});
 </script>
 {% endblock %}
