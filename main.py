@@ -65,7 +65,7 @@ def llm_assistant():
 # Data Pipeline page
 @app.route('/data-pipeline')
 def data_pipeline():
-    return render_template('data_pipeline_direct.html')
+    return render_template('data_pipeline.html', active_tab='data_pipeline')
 
 # Kafka Browser page
 @app.route('/kafka-browser')
