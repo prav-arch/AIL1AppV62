@@ -9,51 +9,65 @@
 
 {% block content %}
 <div class="container">
-    <h1>Kafka Browser</h1>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header">
+                <h2><i class="fa fa-exchange"></i> Kafka Browser</h2>
+            </div>
+        </div>
+    </div>
     
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Broker Count</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-server"></i> Broker Count</h3>
+                </div>
                 <div class="panel-body text-center">
                     <h2>3</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Total Topics</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-list"></i> Total Topics</h3>
+                </div>
                 <div class="panel-body text-center">
                     <h2>15</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Consumer Groups</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-users"></i> Consumer Groups</h3>
+                </div>
                 <div class="panel-body text-center">
                     <h2>12</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="panel panel-default">
-                <div class="panel-heading">Total Messages</div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-envelope"></i> Total Messages</h3>
+                </div>
                 <div class="panel-body text-center">
-                    <h2>1,862,473</h2>
+                    <h2>172</h2>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="panel panel-default">
+    <div class="panel panel-primary">
         <div class="panel-heading">
             <div class="row">
                 <div class="col-md-6">
-                    <h3 class="panel-title">Kafka Topics</h3>
+                    <h3 class="panel-title"><i class="fa fa-list-alt"></i> Kafka Topics</h3>
                 </div>
                 <div class="col-md-6 text-right">
-                    <h4>Showing low-volume topics</h4>
+                    <span class="label label-info">Showing low-volume topics</span>
                 </div>
             </div>
         </div>
@@ -127,39 +141,49 @@
         </div>
     </div>
     
-    <div class="panel panel-default">
-        <div class="panel-heading">Topic: logs-topic - Messages</div>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-file-text"></i> Topic: alerts-topic - Messages</h3>
+        </div>
         <div class="panel-body">
             <div class="row mb-4">
                 <div class="col-md-3">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">Message Count</div>
+                    <div class="panel panel-info">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Message Count</h3>
+                        </div>
                         <div class="panel-body text-center">
-                            <h4>524,892</h4>
+                            <h4>45</h4>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">Avg Message Size</div>
+                    <div class="panel panel-info">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Avg Message Size</h3>
+                        </div>
                         <div class="panel-body text-center">
-                            <h4>1.4 KB</h4>
+                            <h4>0.5 KB</h4>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">Top Partition</div>
+                    <div class="panel panel-info">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Top Partition</h3>
+                        </div>
                         <div class="panel-body text-center">
                             <h4>1</h4>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">Message Rate</div>
+                    <div class="panel panel-info">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Message Rate</h3>
+                        </div>
                         <div class="panel-body text-center">
-                            <h4>120 msg/sec</h4>
+                            <h4>5 msg/sec</h4>
                         </div>
                     </div>
                 </div>
@@ -208,8 +232,10 @@
         </div>
     </div>
     
-    <div class="panel panel-default">
-        <div class="panel-heading">Consumer Groups</div>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-users"></i> Consumer Groups</h3>
+        </div>
         <div class="panel-body">
             <table class="table table-striped">
                 <thead>
@@ -253,58 +279,22 @@
 // Simple logging to show the page has loaded
 console.log("Simple Bootstrap 3 Kafka Browser loaded");
 
-// Function to run when document is ready
+// Simple script to enhance UI interaction
 window.onload = function() {
-    // Filter to show topics with message count less than 50 AND size less than 10MB
-    document.getElementById("show-less-than-50").addEventListener("click", function() {
-        var rows = document.querySelectorAll("#topics-table tbody tr");
-        
-        rows.forEach(function(row) {
-            // Get the message count (column 4), parse the number
-            var messageCountText = row.cells[3].textContent;
-            var messageCount = parseInt(messageCountText.replace(/,/g, ''));
-            
-            // Get the size (column 6), convert to MB
-            var sizeText = row.cells[5].textContent;
-            var sizeInMB = 0;
-            
-            if (sizeText.includes("MB")) {
-                sizeInMB = parseFloat(sizeText.replace(" MB", ""));
-            } else if (sizeText.includes("GB")) {
-                sizeInMB = parseFloat(sizeText.replace(" GB", "")) * 1024;
-            } else if (sizeText.includes("KB")) {
-                sizeInMB = parseFloat(sizeText.replace(" KB", "")) / 1024;
-            }
-            
-            // Show or hide based on both criteria
-            if (messageCount < 50 && sizeInMB < 10) {
-                row.style.display = "";
-            } else {
-                row.style.display = "none";
-            }
-        });
-        
-        // Update button states
-        this.classList.add("btn-primary");
-        this.classList.remove("btn-default");
-        document.getElementById("show-all-topics").classList.add("btn-default");
-        document.getElementById("show-all-topics").classList.remove("btn-primary");
-    });
+    console.log("Kafka Browser interface loaded successfully");
     
-    // Show all topics
-    document.getElementById("show-all-topics").addEventListener("click", function() {
-        var rows = document.querySelectorAll("#topics-table tbody tr");
-        
-        rows.forEach(function(row) {
-            row.style.display = "";
+    // Add hover effect to table rows
+    var tableRows = document.querySelectorAll(".table tbody tr");
+    if (tableRows) {
+        tableRows.forEach(function(row) {
+            row.addEventListener("mouseover", function() {
+                this.style.backgroundColor = "#f5f5f5";
+            });
+            row.addEventListener("mouseout", function() {
+                this.style.backgroundColor = "";
+            });
         });
-        
-        // Update button states
-        this.classList.add("btn-primary");
-        this.classList.remove("btn-default");
-        document.getElementById("show-less-than-50").classList.add("btn-default");
-        document.getElementById("show-less-than-50").classList.remove("btn-primary");
-    });
+    }
 };
 </script>
 {% endblock %}
