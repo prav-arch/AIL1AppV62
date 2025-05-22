@@ -4,26 +4,47 @@
 {% block title %}Data Pipeline - AI Assistant Platform{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Data Pipeline Management</h5>
+<div class="container">
+    <h2>Data Pipeline Management</h2>
+        
+    <div class="row">
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Active Processors</div>
+                <div class="panel-body text-center">
+                    <h2>42</h2>
+                </div>
             </div>
-            <div class="card-body">
-                <ul class="nav nav-tabs" id="pipeline-tabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="nifi-tab" data-bs-toggle="tab" data-bs-target="#nifi" type="button" role="tab" aria-controls="nifi" aria-selected="true">NiFi Jobs</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="airflow-tab" data-bs-toggle="tab" data-bs-target="#airflow" type="button" role="tab" aria-controls="airflow" aria-selected="false">Airflow Schedules</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="jobs-tab" data-bs-toggle="tab" data-bs-target="#jobs" type="button" role="tab" aria-controls="jobs" aria-selected="false">Job Status</button>
-                    </li>
-                </ul>
-                
-                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="pipeline-tab-content">
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Process Groups</div>
+                <div class="panel-body text-center">
+                    <h2>8</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Connections</div>
+                <div class="panel-body text-center">
+                    <h2>65</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Running Jobs</div>
+                <div class="panel-body text-center">
+                    <h2>5</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+    <div class="panel panel-default">
+        <div class="panel-heading">NiFi Jobs</div>
+        <div class="panel-body">
                     <!-- NiFi Tab -->
                     <div class="tab-pane fade show active" id="nifi" role="tabpanel" aria-labelledby="nifi-tab">
                         <div class="d-flex justify-content-between mb-3">

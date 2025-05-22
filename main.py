@@ -65,12 +65,12 @@ def llm_assistant():
 # Data Pipeline page
 @app.route('/data-pipeline')
 def data_pipeline():
-    return render_template('data_pipeline.html', active_tab='data_pipeline')
+    return render_template('data_pipeline_simple.html', active_tab='data_pipeline')
 
 # Kafka Browser page
 @app.route('/kafka-browser')
 def kafka_browser():
-    return render_template('kafka_browser.html', active_tab='kafka_browser')
+    return render_template('kafka_browser_simple.html', active_tab='kafka_browser')
 
 # Function below is no longer used - keeping for reference
 def kafka_browser_old():

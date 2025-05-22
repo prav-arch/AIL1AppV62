@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% set active_tab = 'data_pipeline' %}
+
+{% block title %}Data Pipeline - AI Assistant Platform{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Data Pipeline</h1>
+    
+    <div class="row">
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Active Processors</div>
+                <div class="panel-body text-center">
+                    <h2>42</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Process Groups</div>
+                <div class="panel-body text-center">
+                    <h2>8</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Connections</div>
+                <div class="panel-body text-center">
+                    <h2>65</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">Running Jobs</div>
+                <div class="panel-body text-center">
+                    <h2>5</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="panel panel-default">
+        <div class="panel-heading">NiFi Jobs</div>
+        <div class="panel-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Job Name</th>
+                        <th>Type</th>
+                        <th>Source</th>
+                        <th>Destination</th>
+                        <th>Status</th>
+                        <th>Last Run</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Log Data Ingestion</td>
+                        <td>File Transfer</td>
+                        <td>/var/log/server01</td>
+                        <td>Kafka: logs-topic</td>
+                        <td><span class="label label-success">Running</span></td>
+                        <td>2025-05-22 04:30:15</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                <button class="btn btn-default" title="Pause"><i class="fa fa-pause"></i></button>
+                                <button class="btn btn-default" title="Stop"><i class="fa fa-stop"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>S3 Bucket Sync</td>
+                        <td>Cloud Storage</td>
+                        <td>AWS S3: data-bucket</td>
+                        <td>MinIO: archived-data</td>
+                        <td><span class="label label-success">Running</span></td>
+                        <td>2025-05-22 04:15:42</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                <button class="btn btn-default" title="Pause"><i class="fa fa-pause"></i></button>
+                                <button class="btn btn-default" title="Stop"><i class="fa fa-stop"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Database Backup</td>
+                        <td>Database</td>
+                        <td>PostgreSQL: main-db</td>
+                        <td>MinIO: db-backups</td>
+                        <td><span class="label label-default">Idle</span></td>
+                        <td>2025-05-22 02:00:00</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                <button class="btn btn-default" title="Start"><i class="fa fa-play"></i></button>
+                                <button class="btn btn-default" title="Delete"><i class="fa fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>API Data Collector</td>
+                        <td>REST API</td>
+                        <td>External API</td>
+                        <td>Kafka: api-data</td>
+                        <td><span class="label label-success">Running</span></td>
+                        <td>2025-05-22 04:55:12</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                <button class="btn btn-default" title="Pause"><i class="fa fa-pause"></i></button>
+                                <button class="btn btn-default" title="Stop"><i class="fa fa-stop"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="panel panel-default">
+        <div class="panel-heading">Airflow DAGs</div>
+        <div class="panel-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>DAG ID</th>
+                        <th>Description</th>
+                        <th>Schedule</th>
+                        <th>Last Run</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>daily_data_processing</td>
+                        <td>Process daily incoming data</td>
+                        <td><code>0 0 * * *</code></td>
+                        <td>2025-05-22 00:00:05</td>
+                        <td>23m 45s</td>
+                        <td><span class="label label-success">Success</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                <button class="btn btn-default" title="Trigger"><i class="fa fa-play"></i></button>
+                                <button class="btn btn-default" title="Edit Schedule"><i class="fa fa-calendar"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>hourly_metrics_collection</td>
+                        <td>Collect system metrics hourly</td>
+                        <td><code>0 * * * *</code></td>
+                        <td>2025-05-22 05:00:00</td>
+                        <td>4m 12s</td>
+                        <td><span class="label label-primary">Running</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                <button class="btn btn-default" title="Trigger"><i class="fa fa-play"></i></button>
+                                <button class="btn btn-default" title="Edit Schedule"><i class="fa fa-calendar"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ml_model_training</td>
+                        <td>Train ML models on new data</td>
+                        <td><code>0 4 * * *</code></td>
+                        <td>2025-05-22 04:00:00</td>
+                        <td>1h 15m 18s</td>
+                        <td><span class="label label-danger">Failed</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                <button class="btn btn-default" title="Trigger"><i class="fa fa-play"></i></button>
+                                <button class="btn btn-default" title="Edit Schedule"><i class="fa fa-calendar"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="panel panel-default">
+        <div class="panel-heading">Job Status</div>
+        <div class="panel-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>job-123</td>
+                        <td>Daily ETL Process</td>
+                        <td>Batch Processing</td>
+                        <td>2025-05-22 00:00:05</td>
+                        <td>2025-05-22 01:15:42</td>
+                        <td><span class="label label-success">Completed</span></td>
+                        <td>1h 15m 37s</td>
+                    </tr>
+                    <tr>
+                        <td>job-125</td>
+                        <td>ML Model Training</td>
+                        <td>Machine Learning</td>
+                        <td>2025-05-22 04:00:00</td>
+                        <td>-</td>
+                        <td><span class="label label-primary">Running</span></td>
+                        <td>1h 42m (running)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Simple logging to show the page has loaded
+console.log("Simple Bootstrap 3 Data Pipeline loaded");
+</script>
+{% endblock %}
