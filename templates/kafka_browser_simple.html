@@ -53,10 +53,7 @@
                     <h3 class="panel-title">Kafka Topics</h3>
                 </div>
                 <div class="col-md-6 text-right">
-                    <div class="btn-group">
-                        <button class="btn btn-default btn-sm" id="show-all-topics">Show All</button>
-                        <button class="btn btn-primary btn-sm" id="show-less-than-50">Message Count < 50 & Size < 10MB</button>
-                    </div>
+                    <h4>Showing low-volume topics</h4>
                 </div>
             </div>
         </div>
@@ -76,54 +73,54 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>logs-topic</strong></td>
-                        <td>3</td>
-                        <td>3</td>
-                        <td class="text-success">524,892</td>
-                        <td>120 msg/sec</td>
-                        <td>750 MB</td>
-                        <td>7 days</td>
-                        <td>2025-04-01 00:00:00</td>
-                    </tr>
-                    <tr>
-                        <td><strong>metrics-topic</strong></td>
-                        <td>5</td>
-                        <td>3</td>
-                        <td>328,157</td>
-                        <td>250 msg/sec</td>
-                        <td>1.2 GB</td>
-                        <td>14 days</td>
-                        <td>2025-04-01 00:00:00</td>
-                    </tr>
-                    <tr>
-                        <td><strong>events-topic</strong></td>
-                        <td>2</td>
-                        <td>3</td>
-                        <td>125,628</td>
-                        <td>45 msg/sec</td>
-                        <td>380 MB</td>
-                        <td>30 days</td>
-                        <td>2025-04-02 00:00:00</td>
-                    </tr>
-                    <tr>
                         <td><strong>alerts-topic</strong></td>
                         <td>1</td>
                         <td>3</td>
-                        <td class="text-muted">8,421</td>
+                        <td class="text-muted">45</td>
                         <td>5 msg/sec</td>
-                        <td>12 MB</td>
+                        <td>2.5 MB</td>
                         <td>90 days</td>
                         <td>2025-04-02 00:00:00</td>
                     </tr>
                     <tr>
-                        <td><strong>clickstream-topic</strong></td>
-                        <td>8</td>
+                        <td><strong>notification-alerts</strong></td>
+                        <td>2</td>
                         <td>3</td>
-                        <td class="text-success">1,458,276</td>
-                        <td>850 msg/sec</td>
-                        <td>3.5 GB</td>
-                        <td>3 days</td>
-                        <td>2025-04-03 00:00:00</td>
+                        <td class="text-muted">32</td>
+                        <td>3 msg/sec</td>
+                        <td>1.8 MB</td>
+                        <td>60 days</td>
+                        <td>2025-04-15 00:00:00</td>
+                    </tr>
+                    <tr>
+                        <td><strong>config-changes</strong></td>
+                        <td>1</td>
+                        <td>3</td>
+                        <td class="text-muted">18</td>
+                        <td>1 msg/sec</td>
+                        <td>0.7 MB</td>
+                        <td>180 days</td>
+                        <td>2025-04-10 00:00:00</td>
+                    </tr>
+                    <tr>
+                        <td><strong>heartbeat-signals</strong></td>
+                        <td>1</td>
+                        <td>3</td>
+                        <td class="text-muted">48</td>
+                        <td>12 msg/sec</td>
+                        <td>0.3 MB</td>
+                        <td>14 days</td>
+                        <td>2025-04-05 00:00:00</td>
+                    </tr>
+                    <tr>
+                        <td><strong>audit-events</strong></td>
+                        <td>2</td>
+                        <td>3</td>
+                        <td class="text-muted">27</td>
+                        <td>2 msg/sec</td>
+                        <td>1.2 MB</td>
+                        <td>365 days</td>
+                        <td>2025-04-08 00:00:00</td>
                     </tr>
                 </tbody>
             </table>
