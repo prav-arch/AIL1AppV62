@@ -65,12 +65,268 @@ def llm_assistant():
 # Data Pipeline page
 @app.route('/data-pipeline')
 def data_pipeline():
-    return render_template('data_pipeline.html')
+    # Prepare mock data for templates
+    nifi_jobs = [
+        {
+            "name": "Log Data Ingestion",
+            "type": "File Transfer",
+            "source": "/var/log/server01",
+            "destination": "Kafka: logs-topic",
+            "status": "Running",
+            "status_class": "success",
+            "last_run": "2025-05-22 04:30:15"
+        },
+        {
+            "name": "S3 Bucket Sync",
+            "type": "Cloud Storage",
+            "source": "AWS S3: data-bucket",
+            "destination": "MinIO: archived-data",
+            "status": "Running",
+            "status_class": "success",
+            "last_run": "2025-05-22 04:15:42"
+        },
+        {
+            "name": "Database Backup",
+            "type": "Database",
+            "source": "PostgreSQL: main-db",
+            "destination": "MinIO: db-backups",
+            "status": "Idle",
+            "status_class": "default",
+            "last_run": "2025-05-22 02:00:00"
+        },
+        {
+            "name": "API Data Collector",
+            "type": "REST API",
+            "source": "External API",
+            "destination": "Kafka: api-data",
+            "status": "Running",
+            "status_class": "success",
+            "last_run": "2025-05-22 04:55:12"
+        }
+    ]
+    
+    airflow_dags = [
+        {
+            "id": "daily_data_processing",
+            "description": "Process daily incoming data",
+            "schedule": "0 0 * * *",
+            "last_run": "2025-05-22 00:00:05",
+            "duration": "23m 45s",
+            "status": "Success",
+            "status_class": "success"
+        },
+        {
+            "id": "hourly_metrics_collection",
+            "description": "Collect system metrics hourly",
+            "schedule": "0 * * * *",
+            "last_run": "2025-05-22 05:00:00",
+            "duration": "4m 12s",
+            "status": "Running",
+            "status_class": "primary"
+        },
+        {
+            "id": "ml_model_training",
+            "description": "Train ML models on new data",
+            "schedule": "0 4 * * *",
+            "last_run": "2025-05-22 04:00:00",
+            "duration": "1h 15m 18s",
+            "status": "Failed",
+            "status_class": "danger"
+        }
+    ]
+    
+    job_status = [
+        {
+            "id": "job-123",
+            "name": "Daily ETL Process",
+            "type": "Batch Processing",
+            "start_time": "2025-05-22 00:00:05",
+            "end_time": "2025-05-22 01:15:42",
+            "status": "Completed",
+            "status_class": "success",
+            "duration": "1h 15m 37s",
+            "resources": {"cpu": "45%", "memory": "2.3 GB", "disk": "128 MB"}
+        },
+        {
+            "id": "job-125",
+            "name": "ML Model Training",
+            "type": "Machine Learning",
+            "start_time": "2025-05-22 04:00:00",
+            "end_time": None,
+            "status": "Running",
+            "status_class": "primary",
+            "duration": "1h 42m (running)",
+            "resources": {"cpu": "85%", "memory": "7.8 GB", "disk": "1.2 GB"}
+        }
+    ]
+    
+    stats = {
+        "active_processors": 42,
+        "process_groups": 8,
+        "connections": 65,
+        "running_jobs": 5,
+        "active_dags": 12,
+        "paused_dags": 3,
+        "success_rate": "98%",
+        "running_tasks": 4
+    }
+    
+    return render_template('data_pipeline.html', 
+                          nifi_jobs=nifi_jobs, 
+                          airflow_dags=airflow_dags,
+                          job_status=job_status,
+                          stats=stats)
 
 # Kafka Browser page
 @app.route('/kafka-browser')
 def kafka_browser():
-    return render_template('kafka_browser.html')
+    # Prepare mock data for templates
+    kafka_topics = [
+        {
+            "name": "logs-topic",
+            "partitions": 3,
+            "replication": 3,
+            "message_count": 524892,
+            "throughput": "120 msg/sec",
+            "size": "750 MB",
+            "retention": "7 days",
+            "created": "2025-04-01 00:00:00"
+        },
+        {
+            "name": "metrics-topic",
+            "partitions": 5,
+            "replication": 3,
+            "message_count": 328157,
+            "throughput": "250 msg/sec",
+            "size": "1.2 GB",
+            "retention": "14 days",
+            "created": "2025-04-01 00:00:00"
+        },
+        {
+            "name": "events-topic",
+            "partitions": 2,
+            "replication": 3,
+            "message_count": 125628,
+            "throughput": "45 msg/sec",
+            "size": "380 MB",
+            "retention": "30 days",
+            "created": "2025-04-02 00:00:00"
+        },
+        {
+            "name": "alerts-topic",
+            "partitions": 1,
+            "replication": 3,
+            "message_count": 8421,
+            "throughput": "5 msg/sec",
+            "size": "12 MB",
+            "retention": "90 days",
+            "created": "2025-04-02 00:00:00"
+        },
+        {
+            "name": "clickstream-topic",
+            "partitions": 8,
+            "replication": 3,
+            "message_count": 1458276,
+            "throughput": "850 msg/sec",
+            "size": "3.5 GB",
+            "retention": "3 days",
+            "created": "2025-04-03 00:00:00"
+        }
+    ]
+    
+    kafka_messages = [
+        {
+            "offset": 1000050,
+            "partition": 1,
+            "key": "srv-web-01",
+            "value": {
+                "timestamp": "2025-05-22T04:55:12.000Z",
+                "level": "INFO",
+                "service": "api-gateway",
+                "message": "Request processed successfully",
+                "requestId": "abcd1234",
+                "duration": 125
+            },
+            "timestamp": "2025-05-22 04:55:12"
+        },
+        {
+            "offset": 1000049,
+            "partition": 0,
+            "key": "srv-auth-02",
+            "value": {
+                "timestamp": "2025-05-22T04:55:10.000Z",
+                "level": "WARN",
+                "service": "auth-service",
+                "message": "Rate limit exceeded",
+                "requestId": "efgh5678",
+                "duration": 350
+            },
+            "timestamp": "2025-05-22 04:55:10"
+        },
+        {
+            "offset": 1000048,
+            "partition": 2,
+            "key": "srv-db-01",
+            "value": {
+                "timestamp": "2025-05-22T04:55:08.000Z",
+                "level": "ERROR",
+                "service": "database",
+                "message": "Connection timeout",
+                "requestId": "ijkl9012",
+                "duration": 500
+            },
+            "timestamp": "2025-05-22 04:55:08"
+        }
+    ]
+    
+    consumer_groups = [
+        {
+            "id": "log-processor-group",
+            "members": 3,
+            "topics": ["logs-topic", "app-logs"],
+            "total_lag": 275,
+            "status": "Stable",
+            "status_class": "success"
+        },
+        {
+            "id": "metrics-analyzer",
+            "members": 5,
+            "topics": ["metrics-topic", "system-metrics"],
+            "total_lag": 482,
+            "status": "Stable",
+            "status_class": "success"
+        },
+        {
+            "id": "clickstream-processor",
+            "members": 8,
+            "topics": ["clickstream-topic"],
+            "total_lag": 8763,
+            "status": "Warning",
+            "status_class": "warning"
+        }
+    ]
+    
+    stats = {
+        "broker_count": 3,
+        "total_topics": 15,
+        "consumer_groups_count": 12,
+        "total_messages": "1,862,473",
+        "selected_topic": "logs-topic",
+        "topic_message_count": "524,892",
+        "topic_avg_size": "1.4 KB",
+        "topic_top_partition": 1,
+        "topic_message_rate": "120 msg/sec"
+    }
+    
+    import json
+    for msg in kafka_messages:
+        msg["value_json"] = json.dumps(msg["value"])
+    
+    return render_template('kafka_browser.html',
+                          kafka_topics=kafka_topics,
+                          kafka_messages=kafka_messages,
+                          consumer_groups=consumer_groups,
+                          stats=stats)
 
 # API routes for dashboard metrics
 @app.route('/api/dashboard/metrics', methods=['GET'])
