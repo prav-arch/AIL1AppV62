@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% set active_tab = 'anomalies' %}
+
+{% block title %}Anomalies - L1 Troubleshooting Platform{% endblock %}
+
+{% block extra_js %}
+<script>
+// Add simple interactivity
+window.onload = function() {
+    console.log("Anomalies interface loaded");
+    
+    // Add hover effect to anomaly cards
+    var anomalyCards = document.querySelectorAll(".anomaly-card");
+    if (anomalyCards) {
+        anomalyCards.forEach(function(card) {
+            card.addEventListener("mouseover", function() {
+                this.style.boxShadow = "0 5px 15px rgba(0,0,0,0.2)";
+            });
+            card.addEventListener("mouseout", function() {
+                this.style.boxShadow = "0 2px 5px rgba(0,0,0,0.1)";
+            });
+        });
+    }
+    
+    // Recommendations button handlers
+    var recommendationButtons = document.querySelectorAll(".btn-recommendations");
+    if (recommendationButtons) {
+        recommendationButtons.forEach(function(button) {
+            button.addEventListener("click", function(e) {
+                e.preventDefault();
+                var targetId = this.getAttribute("data-target");
+                var recArea = document.getElementById(targetId);
+                
+                if (recArea.style.display === "none") {
+                    this.innerHTML = '<i class="fa fa-times"></i> Hide Recommendations';
+                    recArea.style.display = "block";
+                } else {
+                    this.innerHTML = '<i class="fa fa-lightbulb"></i> Get Recommendations';
+                    recArea.style.display = "none";
+                }
+            });
+        });
+    }
+};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header">
+                <h2><i class="fa fa-exclamation-triangle"></i> Anomaly Detection</h2>
+                <p class="text-muted">Machine learning-powered detection of unusual patterns and events</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Row -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="panel panel-danger">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-skull-crossbones"></i> Critical</h3>
+                </div>
+                <div class="panel-body text-center">
+                    <h2>3</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-warning">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-exclamation-circle"></i> Errors</h3>
+                </div>
+                <div class="panel-body text-center">
+                    <h2>7</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-info">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-info-circle"></i> Warnings</h3>
+                </div>
+                <div class="panel-body text-center">
+                    <h2>12</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-chart-line"></i> Total</h3>
+                </div>
+                <div class="panel-body text-center">
+                    <h2>22</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Row -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-filter"></i> Filter Anomalies</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="severity-filter">Severity:</label>
+                                <select id="severity-filter" class="form-control">
+                                    <option value="all">All Severities</option>
+                                    <option value="critical">Critical Only</option>
+                                    <option value="error">Error & Critical</option>
+                                    <option value="warning">Warning & Above</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="component-filter">Component:</label>
+                                <select id="component-filter" class="form-control">
+                                    <option value="all">All Components</option>
+                                    <option value="database">Database</option>
+                                    <option value="api">API Gateway</option>
+                                    <option value="network">Network</option>
+                                    <option value="security">Security</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="date-filter">Time Range:</label>
+                                <select id="date-filter" class="form-control">
+                                    <option value="24h">Last 24 Hours</option>
+                                    <option value="7d">Last 7 Days</option>
+                                    <option value="30d">Last 30 Days</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Anomalies List -->
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3 class="panel-title"><i class="fa fa-search"></i> Detected Anomalies</h3>
+                </div>
+                <div class="col-md-6 text-right">
+                    <span class="label label-info">Showing most recent anomalies</span>
+                </div>
+            </div>
+        </div>
+        <div class="panel-body">
+            <!-- Critical Anomaly -->
+            <div class="panel panel-danger anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4><i class="fa fa-skull-crossbones"></i> Database Connection Failure</h4>
+                        </div>
+                        <div class="col-md-4 text-right">
+                            <span class="label label-danger">Critical</span>
+                            <span class="label label-default">2025-05-22 05:23:18</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Component:</strong> Database
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Source:</strong> postgres-main
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Detection:</strong> ML Isolation Forest
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Confidence:</strong> 98%
+                        </div>
+                    </div>
+                    <hr>
+                    <p><strong>Message:</strong> Database connection timeout after 30 seconds. Connection pool exhausted. This is causing cascading failures in the API layer.</p>
+                    <div class="well well-sm">
+                        <code>ERROR [2025-05-22 05:23:18,721] postgres-main - Connection timeout. Attempted to connect to 192.168.1.45:5432 but received no response after 30000ms</code>
+                    </div>
+                    <button class="btn btn-primary btn-recommendations" data-target="rec-1"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
+                    <div id="rec-1" class="alert alert-info mt-3" style="display: none;">
+                        <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
+                        <ol>
+                            <li>Check if the database server is running and accessible from the application server</li>
+                            <li>Verify PostgreSQL service status on the database server</li>
+                            <li>Check for network connectivity issues between application and database servers</li>
+                            <li>Review connection pool settings and increase max connections if needed</li>
+                            <li>Consider implementing a circuit breaker pattern to handle database failures gracefully</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error Anomaly -->
+            <div class="panel panel-warning anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4><i class="fa fa-exclamation-circle"></i> API Rate Limiting Triggered</h4>
+                        </div>
+                        <div class="col-md-4 text-right">
+                            <span class="label label-warning">Error</span>
+                            <span class="label label-default">2025-05-22 04:47:31</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Component:</strong> API Gateway
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Source:</strong> api-gateway-prod
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Detection:</strong> DBSCAN Clustering
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Confidence:</strong> 87%
+                        </div>
+                    </div>
+                    <hr>
+                    <p><strong>Message:</strong> Unusual spike in API requests from client IP range 203.0.113.x triggering rate limiting. Potential API abuse or misconfigured client.</p>
+                    <div class="well well-sm">
+                        <code>WARN [2025-05-22 04:47:31,103] api-gateway-prod - Rate limit exceeded for client 203.0.113.28. Requests: 238/min, Limit: 200/min</code>
+                    </div>
+                    <button class="btn btn-primary btn-recommendations" data-target="rec-2"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
+                    <div id="rec-2" class="alert alert-info mt-3" style="display: none;">
+                        <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
+                        <ol>
+                            <li>Investigate the client IP address to determine if this is a legitimate client or potential abuse</li>
+                            <li>Review the API usage patterns from this client to identify specific endpoints being called</li>
+                            <li>Consider implementing a more granular rate limiting strategy based on endpoint sensitivity</li>
+                            <li>Contact the client if this is a legitimate service to discuss appropriate API usage</li>
+                            <li>Implement API caching for frequently accessed resources to reduce load</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Warning Anomaly -->
+            <div class="panel panel-info anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4><i class="fa fa-info-circle"></i> Memory Usage Spike</h4>
+                        </div>
+                        <div class="col-md-4 text-right">
+                            <span class="label label-info">Warning</span>
+                            <span class="label label-default">2025-05-22 03:12:59</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Component:</strong> Application Server
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Source:</strong> app-server-03
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Detection:</strong> Pattern Match
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Confidence:</strong> 76%
+                        </div>
+                    </div>
+                    <hr>
+                    <p><strong>Message:</strong> Memory usage increased to 85% on app-server-03. This is 30% higher than the typical baseline for this time period.</p>
+                    <div class="well well-sm">
+                        <code>WARN [2025-05-22 03:12:59,431] app-server-03 - Memory usage at 85% (13.6GB/16GB). Previous average for this time period: 55%</code>
+                    </div>
+                    <button class="btn btn-primary btn-recommendations" data-target="rec-3"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
+                    <div id="rec-3" class="alert alert-info mt-3" style="display: none;">
+                        <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
+                        <ol>
+                            <li>Check for recent deployments or changes to the application that might cause increased memory usage</li>
+                            <li>Review application logs for potential memory leaks or resource-intensive operations</li>
+                            <li>Monitor garbage collection metrics to identify potential memory management issues</li>
+                            <li>Consider horizontal scaling if the increased load is legitimate and expected to continue</li>
+                            <li>Implement memory usage alerts at 90% to provide early warning before critical levels</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
