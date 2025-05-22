@@ -55,7 +55,7 @@
                 <div class="col-md-6 text-right">
                     <div class="btn-group">
                         <button class="btn btn-default btn-sm" id="show-all-topics">Show All</button>
-                        <button class="btn btn-primary btn-sm" id="show-less-than-50">Show < 50 msg/sec</button>
+                        <button class="btn btn-primary btn-sm" id="show-less-than-50">Message Count < 50 & Size < 10MB</button>
                     </div>
                 </div>
             </div>
@@ -256,35 +256,58 @@
 // Simple logging to show the page has loaded
 console.log("Simple Bootstrap 3 Kafka Browser loaded");
 
-// Add filtering functionality for Kafka topics
-$(document).ready(function() {
-    // Filter to show topics with less than 50 messages per second
-    $("#show-less-than-50").click(function() {
-        $("#topics-table tbody tr").each(function() {
-            // Get the throughput value (column 5), parse the number
-            var throughput = parseInt($(this).find("td:eq(4)").text());
+// Function to run when document is ready
+window.onload = function() {
+    // Filter to show topics with message count less than 50 AND size less than 10MB
+    document.getElementById("show-less-than-50").addEventListener("click", function() {
+        var rows = document.querySelectorAll("#topics-table tbody tr");
+        
+        rows.forEach(function(row) {
+            // Get the message count (column 4), parse the number
+            var messageCountText = row.cells[3].textContent;
+            var messageCount = parseInt(messageCountText.replace(/,/g, ''));
             
-            // Show or hide based on throughput
-            if (throughput < 50) {
-                $(this).show();
+            // Get the size (column 6), convert to MB
+            var sizeText = row.cells[5].textContent;
+            var sizeInMB = 0;
+            
+            if (sizeText.includes("MB")) {
+                sizeInMB = parseFloat(sizeText.replace(" MB", ""));
+            } else if (sizeText.includes("GB")) {
+                sizeInMB = parseFloat(sizeText.replace(" GB", "")) * 1024;
+            } else if (sizeText.includes("KB")) {
+                sizeInMB = parseFloat(sizeText.replace(" KB", "")) / 1024;
+            }
+            
+            // Show or hide based on both criteria
+            if (messageCount < 50 && sizeInMB < 10) {
+                row.style.display = "";
             } else {
-                $(this).hide();
+                row.style.display = "none";
             }
         });
         
         // Update button states
-        $(this).addClass("btn-primary").removeClass("btn-default");
-        $("#show-all-topics").addClass("btn-default").removeClass("btn-primary");
+        this.classList.add("btn-primary");
+        this.classList.remove("btn-default");
+        document.getElementById("show-all-topics").classList.add("btn-default");
+        document.getElementById("show-all-topics").classList.remove("btn-primary");
     });
     
     // Show all topics
-    $("#show-all-topics").click(function() {
-        $("#topics-table tbody tr").show();
+    document.getElementById("show-all-topics").addEventListener("click", function() {
+        var rows = document.querySelectorAll("#topics-table tbody tr");
+        
+        rows.forEach(function(row) {
+            row.style.display = "";
+        });
         
         // Update button states
-        $(this).addClass("btn-primary").removeClass("btn-default");
-        $("#show-less-than-50").addClass("btn-default").removeClass("btn-primary");
+        this.classList.add("btn-primary");
+        this.classList.remove("btn-default");
+        document.getElementById("show-less-than-50").classList.add("btn-default");
+        document.getElementById("show-less-than-50").classList.remove("btn-primary");
     });
-});
+};
 </script>
 {% endblock %}
