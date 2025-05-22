@@ -87,81 +87,28 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {% for job in nifi_jobs %}
                                     <tr>
-                                        <td>Log Data Ingestion</td>
-                                        <td>File Transfer</td>
-                                        <td>/var/log/server01</td>
-                                        <td>Kafka: logs-topic</td>
-                                        <td><span class="badge bg-success">Running</span></td>
-                                        <td>2023-05-20 14:30:00</td>
+                                        <td>{{ job.name }}</td>
+                                        <td>{{ job.type }}</td>
+                                        <td>{{ job.source }}</td>
+                                        <td>{{ job.destination }}</td>
+                                        <td><span class="label label-{{ job.status_class }}">{{ job.status }}</span></td>
+                                        <td>{{ job.last_run }}</td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
-                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
+                                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                                {% if job.status == "Running" %}
+                                                <button class="btn btn-default" title="Pause"><i class="fa fa-pause"></i></button>
+                                                <button class="btn btn-default" title="Stop"><i class="fa fa-stop"></i></button>
+                                                {% else %}
+                                                <button class="btn btn-default" title="Start"><i class="fa fa-play"></i></button>
+                                                <button class="btn btn-default" title="Delete"><i class="fa fa-trash"></i></button>
+                                                {% endif %}
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td>S3 Bucket Sync</td>
-                                        <td>Cloud Storage</td>
-                                        <td>AWS S3: data-bucket</td>
-                                        <td>MinIO: archived-data</td>
-                                        <td><span class="badge bg-success">Running</span></td>
-                                        <td>2023-05-20 13:45:00</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
-                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Network PCAP Collection</td>
-                                        <td>Network Data</td>
-                                        <td>Network Interface</td>
-                                        <td>MinIO: pcap-storage</td>
-                                        <td><span class="badge bg-success">Running</span></td>
-                                        <td>2023-05-20 12:00:00</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
-                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Database Backup</td>
-                                        <td>Database</td>
-                                        <td>PostgreSQL: main-db</td>
-                                        <td>MinIO: db-backups</td>
-                                        <td><span class="badge bg-secondary">Idle</span></td>
-                                        <td>2023-05-20 02:00:00</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-success" title="Start"><i class="fas fa-play"></i></button>
-                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>API Data Collector</td>
-                                        <td>REST API</td>
-                                        <td>External API</td>
-                                        <td>Kafka: api-data</td>
-                                        <td><span class="badge bg-success">Running</span></td>
-                                        <td>2023-05-20 10:15:00</td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-warning" title="Pause"><i class="fas fa-pause"></i></button>
-                                                <button class="btn btn-outline-danger" title="Stop"><i class="fas fa-stop"></i></button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    {% endfor %}
                                 </tbody>
                             </table>
                         </div>
@@ -230,23 +177,23 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {% for dag in airflow_dags %}
                                     <tr>
-                                        <td>daily_data_processing</td>
-                                        <td>Process daily incoming data</td>
-                                        <td>0 0 * * *</td>
-                                        <td>2023-05-20 00:00:00</td>
-                                        <td>23m 45s</td>
-                                        <td><span class="badge bg-success">Success</span></td>
+                                        <td>{{ dag.id }}</td>
+                                        <td>{{ dag.description }}</td>
+                                        <td><code>{{ dag.schedule }}</code></td>
+                                        <td>{{ dag.last_run }}</td>
+                                        <td>{{ dag.duration }}</td>
+                                        <td><span class="label label-{{ dag.status_class }}">{{ dag.status }}</span></td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" title="View"><i class="fas fa-eye"></i></button>
-                                                <button class="btn btn-outline-success" title="Trigger"><i class="fas fa-play"></i></button>
-                                                <button class="btn btn-outline-secondary" title="Edit Schedule"><i class="fas fa-calendar-alt"></i></button>
+                                                <button class="btn btn-default" title="View"><i class="fa fa-eye"></i></button>
+                                                <button class="btn btn-default" title="Trigger"><i class="fa fa-play"></i></button>
+                                                <button class="btn btn-default" title="Edit Schedule"><i class="fa fa-calendar"></i></button>
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td>hourly_metrics_collection</td>
+                                    {% endfor %}
                                         <td>Collect system metrics hourly</td>
                                         <td>0 * * * *</td>
                                         <td>2023-05-20 14:00:00</td>
