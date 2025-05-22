@@ -86,8 +86,8 @@ def api_dashboard_metrics():
         'last_updated': datetime.now().isoformat()
     })
 
-@app.route('/api/dashboard/kafka-messages', methods=['GET'])
-def api_dashboard_kafka_messages():
+@app.route('/api/kafka/recent-messages', methods=['GET'])
+def api_kafka_recent_messages():
     """Return recent Kafka messages for the dashboard"""
     messages = []
     topics = ['logs', 'metrics', 'alerts', 'transactions', 'events']
@@ -95,16 +95,26 @@ def api_dashboard_kafka_messages():
     for _ in range(5):
         messages.append({
             'topic': random.choice(topics),
-            'partition': random.randint(0, 3),
-            'offset': random.randint(1000, 9999),
+            'content': random.choice([
+                "System startup completed",
+                "User login successful",
+                "New data received from source",
+                "Processing completed successfully",
+                "CPU spike detected",
+                "Memory usage increased",
+                "Database backup completed",
+                "New anomaly detected",
+                "Alert triggered by sensor",
+                "Scheduled task started"
+            ]),
             'timestamp': (datetime.now() - timedelta(minutes=random.randint(0, 60))).isoformat(),
             'size': random.randint(200, 1500),
             'key': f'key-{random.randint(1, 100)}'
         })
     
-    return jsonify(messages)
+    return jsonify({'messages': messages})
 
-@app.route('/api/dashboard/pipeline-status', methods=['GET'])
+@app.route('/api/pipeline/status', methods=['GET'])
 def api_pipeline_status():
     """Return pipeline status information"""
     pipelines = []
@@ -114,15 +124,16 @@ def api_pipeline_status():
         pipelines.append({
             'id': f'pipeline-{i}',
             'name': f'Data Pipeline {i}',
+            'description': f'Processing data for pipeline {i}',
             'status': random.choice(statuses),
             'last_run': (datetime.now() - timedelta(hours=random.randint(0, 24))).isoformat(),
             'next_run': (datetime.now() + timedelta(hours=random.randint(1, 12))).isoformat() if random.choice([True, False]) else None,
             'success_rate': random.randint(70, 100)
         })
     
-    return jsonify(pipelines)
+    return jsonify({'pipelines': pipelines})
 
-@app.route('/api/dashboard/latest-anomalies', methods=['GET'])
+@app.route('/api/anomalies/latest', methods=['GET'])
 def api_latest_anomalies():
     """Return latest anomalies information"""
     anomalies = []
@@ -130,17 +141,20 @@ def api_latest_anomalies():
     services = ['api', 'database', 'auth', 'payment', 'storage', 'compute']
     
     for i in range(5):
+        anomaly_type = random.choice(types)
+        service = random.choice(services)
         anomalies.append({
             'id': f'anomaly-{i+1}',
-            'type': random.choice(types),
-            'service': random.choice(services),
+            'title': f'{service.title()} Service Anomaly',
+            'type': anomaly_type,
+            'service': service,
             'severity': random.choice(['low', 'medium', 'high']),
             'timestamp': (datetime.now() - timedelta(hours=random.randint(0, 48))).isoformat(),
-            'description': f'Detected {random.choice(types)} in {random.choice(services)} service metrics',
+            'description': f'Detected {anomaly_type} in {service} service metrics',
             'is_resolved': random.choice([True, False])
         })
     
-    return jsonify(anomalies)
+    return jsonify({'anomalies': anomalies})
 
 # API routes for anomalies are now handled by the anomalies blueprint in routes/anomalies.py
 
