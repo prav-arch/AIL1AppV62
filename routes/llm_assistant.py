@@ -1,6 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify
 from services.llm_service import LLMService
+from vector_service import VectorService
+from clickhouse_models import DocumentChunk
 import time
+import json
 import logging
 from clickhouse_models import LLMPrompt  # Import the LLMPrompt model
 
@@ -30,9 +33,35 @@ def query_llm():
         # Start timing for response time measurement
         start_time = time.time()
         
-        # Query the LLM service
+        # Search vector database for relevant context
+        vector_service = VectorService()
+        relevant_chunks = vector_service.search_similar_text(prompt, top_k=3)
+        
+        # Build context from relevant chunks
+        context_parts = []
+        if relevant_chunks:
+            chunk_ids = [int(chunk_id) if str(chunk_id).isdigit() else 0 for chunk_id, _ in relevant_chunks]
+            chunks_data = DocumentChunk.get_by_ids(chunk_ids)
+            
+            for chunk in chunks_data:
+                if chunk:
+                    context_parts.append(f"Context: {chunk.get('chunk_text', '')}")
+        
+        # Create enhanced prompt with context
+        if context_parts:
+            enhanced_prompt = f"""Based on the following context information, please answer the user's question:
+
+{chr(10).join(context_parts)}
+
+User Question: {prompt}
+
+Please provide a helpful answer based on the context above. If the context doesn't contain relevant information, please say so and provide a general response."""
+        else:
+            enhanced_prompt = prompt
+        
+        # Query the LLM service with enhanced prompt
         llm_service = LLMService()
-        response = llm_service.query(prompt)
+        response = llm_service.query(enhanced_prompt)
         
         # End timing
         end_time = time.time()
@@ -85,11 +114,37 @@ def stream_llm_response(prompt):
     
     def generate():
         try:
+            # Search vector database for relevant context
+            vector_service = VectorService()
+            relevant_chunks = vector_service.search_similar_text(prompt, top_k=3)
+            
+            # Build context from relevant chunks
+            context_parts = []
+            if relevant_chunks:
+                chunk_ids = [int(chunk_id) if str(chunk_id).isdigit() else 0 for chunk_id, _ in relevant_chunks]
+                chunks_data = DocumentChunk.get_by_ids(chunk_ids)
+                
+                for chunk in chunks_data:
+                    if chunk:
+                        context_parts.append(f"Context: {chunk.get('chunk_text', '')}")
+            
+            # Create enhanced prompt with context
+            if context_parts:
+                enhanced_prompt = f"""Based on the following context information, please answer the user's question:
+
+{chr(10).join(context_parts)}
+
+User Question: {prompt}
+
+Please provide a helpful answer based on the context above. If the context doesn't contain relevant information, please say so and provide a general response."""
+            else:
+                enhanced_prompt = prompt
+            
             llm_service = LLMService()
             full_response = ""
             
             # Stream the response chunks
-            for chunk in llm_service.query_stream(prompt):
+            for chunk in llm_service.query_stream(enhanced_prompt):
                 full_response += chunk
                 yield f"data: {json.dumps({'chunk': chunk})}\n\n"
             
