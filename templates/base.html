@@ -17,6 +17,66 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    
+    <!-- Font Size Customization -->
+    <style>
+        /* Base font size: 16px (1rem) */
+        html {
+            font-size: 16px;
+        }
+        
+        body {
+            font-size: 1rem; /* 16px */
+            line-height: 1.5;
+        }
+        
+        /* Bootstrap heading overrides */
+        h1 { font-size: 2.5rem; }    /* 40px */
+        h2 { font-size: 2rem; }      /* 32px */
+        h3 { font-size: 1.75rem; }   /* 28px */
+        h4 { font-size: 1.5rem; }    /* 24px */
+        h5 { font-size: 1.25rem; }   /* 20px */
+        h6 { font-size: 1rem; }      /* 16px */
+        
+        /* Tab and navigation font sizes */
+        .nav-tabs > li > a {
+            font-size: 1rem; /* 16px */
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem; /* 24px */
+        }
+        
+        /* Panel titles */
+        .panel-title {
+            font-size: 1.125rem; /* 18px */
+        }
+        
+        /* Button text */
+        .btn {
+            font-size: 1rem; /* 16px */
+        }
+        
+        /* Table text */
+        .table {
+            font-size: 1rem; /* 16px */
+        }
+        
+        /* Form elements */
+        .form-control {
+            font-size: 1rem; /* 16px */
+        }
+        
+        /* Labels and small text */
+        .label {
+            font-size: 0.875rem; /* 14px */
+        }
+        
+        /* Code blocks */
+        code, pre {
+            font-size: 0.875rem; /* 14px */
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body class="dark-theme">
