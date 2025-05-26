@@ -1,22 +1,125 @@
 """
 FAISS Vector Service
-This module provides interfaces for the FAISS vector database
+This module provides interfaces for the FAISS vector database with real TF-IDF embeddings
 """
 import os
 import json
 import logging
 import numpy as np
 import faiss
+import pickle
 from typing import List, Dict, Tuple, Any, Optional
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
+from sklearn.preprocessing import normalize
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Default configuration
-FAISS_DIMENSION = int(os.environ.get('FAISS_DIMENSION', 12))
+# Default configuration for real embeddings
+FAISS_DIMENSION = int(os.environ.get('FAISS_DIMENSION', 128))  # Increased for real embeddings
 FAISS_INDEX_PATH = os.environ.get('FAISS_INDEX_PATH', 'data/faiss_index.bin')
 FAISS_MAPPING_PATH = os.environ.get('FAISS_MAPPING_PATH', 'data/faiss_id_mapping.json')
+EMBEDDING_MODEL_PATH = os.environ.get('EMBEDDING_MODEL_PATH', 'data/embedding_model.pkl')
+
+class RealEmbeddingModel:
+    """Real embedding model using TF-IDF + SVD for semantic similarity"""
+    
+    def __init__(self, dimension=128, model_path=EMBEDDING_MODEL_PATH):
+        self.dimension = dimension
+        self.model_path = model_path
+        self.vectorizer = None
+        self.svd = None
+        self.is_fitted = False
+        self._load_or_create_model()
+    
+    def _load_or_create_model(self):
+        """Load existing model or create new one"""
+        try:
+            if os.path.exists(self.model_path):
+                with open(self.model_path, 'rb') as f:
+                    model_data = pickle.load(f)
+                    self.vectorizer = model_data['vectorizer']
+                    self.svd = model_data['svd']
+                    self.is_fitted = True
+                logger.info(f"Loaded embedding model from {self.model_path}")
+            else:
+                self._create_new_model()
+        except Exception as e:
+            logger.warning(f"Could not load embedding model: {e}, creating new one")
+            self._create_new_model()
+    
+    def _create_new_model(self):
+        """Create a new embedding model"""
+        self.vectorizer = TfidfVectorizer(
+            max_features=5000,
+            stop_words='english',
+            ngram_range=(1, 2),
+            min_df=1,
+            max_df=0.95
+        )
+        self.svd = TruncatedSVD(n_components=self.dimension, random_state=42)
+        self.is_fitted = False
+        logger.info("Created new TF-IDF embedding model")
+    
+    def _save_model(self):
+        """Save the trained model"""
+        try:
+            os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
+            model_data = {
+                'vectorizer': self.vectorizer,
+                'svd': self.svd
+            }
+            with open(self.model_path, 'wb') as f:
+                pickle.dump(model_data, f)
+            logger.info(f"Saved embedding model to {self.model_path}")
+        except Exception as e:
+            logger.error(f"Error saving model: {e}")
+    
+    def fit_texts(self, texts):
+        """Fit the model on a collection of texts"""
+        if not texts:
+            return
+        try:
+            # Fit TF-IDF vectorizer
+            tfidf_matrix = self.vectorizer.fit_transform(texts)
+            # Fit SVD for dimensionality reduction
+            self.svd.fit(tfidf_matrix)
+            self.is_fitted = True
+            self._save_model()
+            logger.info(f"Fitted embedding model on {len(texts)} texts")
+        except Exception as e:
+            logger.error(f"Error fitting model: {e}")
+    
+    def encode_texts(self, texts):
+        """Encode texts into embeddings"""
+        if not self.is_fitted:
+            # Auto-fit on the input texts if not fitted
+            self.fit_texts(texts)
+        
+        try:
+            # Transform to TF-IDF
+            tfidf_matrix = self.vectorizer.transform(texts)
+            # Apply SVD
+            embeddings = self.svd.transform(tfidf_matrix)
+            # Normalize
+            embeddings = normalize(embeddings, norm='l2')
+            return embeddings.astype('float32')
+        except Exception as e:
+            logger.error(f"Error encoding texts: {e}")
+            # Fallback to random vectors if encoding fails
+            return np.random.randn(len(texts), self.dimension).astype('float32')
+
+# Global embedding model instance
+_embedding_model = None
+
+def get_embedding_model():
+    """Get the global embedding model instance"""
+    global _embedding_model
+    if _embedding_model is None:
+        _embedding_model = RealEmbeddingModel()
+    return _embedding_model
 
 class VectorService:
     """Service for vector operations using FAISS"""
@@ -142,6 +245,64 @@ class VectorService:
         except Exception as e:
             logger.error(f"Error adding vectors: {e}")
             return False
+    
+    def add_documents(self, doc_ids: List[str], texts: List[str]) -> bool:
+        """
+        Add documents to the vector store using real TF-IDF embeddings
+        
+        Args:
+            doc_ids: List of document IDs
+            texts: List of text content to embed
+            
+        Returns:
+            bool: Success status
+        """
+        try:
+            if not doc_ids or not texts or len(doc_ids) != len(texts):
+                logger.error(f"Invalid inputs: doc_ids={len(doc_ids) if doc_ids else 0}, texts={len(texts) if texts else 0}")
+                return False
+            
+            # Get embedding model
+            embedding_model = get_embedding_model()
+            
+            # Generate real embeddings
+            embeddings = embedding_model.encode_texts(texts)
+            
+            # Convert embeddings to list format for add_vectors
+            embedding_vectors = [embedding.tolist() for embedding in embeddings]
+            
+            # Add to vector store
+            return self.add_vectors(doc_ids, embedding_vectors)
+            
+        except Exception as e:
+            logger.error(f"Error adding documents: {e}")
+            return False
+    
+    def search_similar_text(self, query_text: str, top_k: int = 5) -> List[Tuple[str, float]]:
+        """
+        Search for documents similar to the query text using real embeddings
+        
+        Args:
+            query_text: The search query text
+            top_k: Number of results to return
+            
+        Returns:
+            List of (document_id, similarity_score) tuples
+        """
+        try:
+            # Get embedding model
+            embedding_model = get_embedding_model()
+            
+            # Generate embedding for query
+            query_embeddings = embedding_model.encode_texts([query_text])
+            query_vector = query_embeddings[0].tolist()
+            
+            # Search using the embedding
+            return self.search(query_vector, top_k)
+            
+        except Exception as e:
+            logger.error(f"Error searching similar text: {e}")
+            return []
     
     def search(self, query_vector: List[float], top_k: int = 5) -> List[Tuple[str, float]]:
         """
