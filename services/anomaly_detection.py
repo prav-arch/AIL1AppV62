@@ -727,7 +727,7 @@ def get_anomalies():
         client = get_clickhouse_client()
         query = """
         SELECT
-            CASE severity
+            CASE CAST(severity AS UInt8)
                 WHEN 4 THEN 'Critical'
                 WHEN 3 THEN 'High'
                 WHEN 1 THEN 'Warning'
@@ -744,7 +744,7 @@ def get_anomalies():
                 log_line,
                 'fh_violations' AS source_table
             FROM l1_app_db.fh_violations
-            WHERE severity IN (4, 3, 1)
+            WHERE CAST(severity AS UInt8) IN (4, 3, 1)
 
             UNION ALL
 
@@ -754,7 +754,7 @@ def get_anomalies():
                 log_line,
                 'cp_up_coupling' AS source_table
             FROM l1_app_db.cp_up_coupling
-            WHERE severity IN (4, 3, 1)
+            WHERE CAST(severity AS UInt8) IN (4, 3, 1)
 
             UNION ALL
 
@@ -764,7 +764,7 @@ def get_anomalies():
                 log_line,
                 'interference_splane' AS source_table
             FROM l1_app_db.interference_splane
-            WHERE severity IN (4, 3, 1)
+            WHERE CAST(severity AS UInt8) IN (4, 3, 1)
         )
         ORDER BY severity, source_table, log_line
         """
