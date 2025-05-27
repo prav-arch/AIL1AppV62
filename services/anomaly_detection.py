@@ -730,38 +730,76 @@ def get_anomaly_recommendations(anomaly_id):
     return detector.get_recommendations(anomaly_id)
 
 def get_anomaly_stats():
-    """Get statistics about detected anomalies"""
-    anomalies = get_anomalies()
-    
-    # Count anomalies by type
-    type_counts = Counter(a.get('type', 'unknown') for a in anomalies)
-    
-    # Count anomalies by component
-    component_counts = Counter(a.get('component', 'Unknown') for a in anomalies)
-    
-    # Count anomalies by severity
-    severity_counts = Counter(a.get('severity', 0) for a in anomalies)
-    severity_labels = {
-        0: 'INFO',
-        1: 'WARNING',
-        2: 'ERROR',
-        3: 'CRITICAL'
-    }
-    labeled_severity_counts = {severity_labels.get(k, str(k)): v for k, v in severity_counts.items()}
-    
-    # Calculate ML detection ratio
-    ml_anomalies = sum(1 for a in anomalies if a.get('type', '').startswith('ml_'))
-    ml_ratio = ml_anomalies / len(anomalies) if anomalies else 0
-    
-    # Get timestamps for time series data
-    timestamps = [a.get('timestamp', '') for a in anomalies if a.get('timestamp')]
-    
-    return {
-        'total_anomalies': len(anomalies),
-        'by_type': dict(type_counts),
-        'by_component': dict(component_counts),
-        'by_severity': labeled_severity_counts,
-        'ml_detected_ratio': ml_ratio,
-        'ml_detected_count': ml_anomalies,
-        'timestamps': timestamps
-    }
+    """Get statistics about detected anomalies from real database"""
+    try:
+        from clickhouse_models import get_clickhouse_client
+        
+        # Execute the real query to get anomaly counts
+        client = get_clickhouse_client()
+        query = """
+        SELECT
+            sum(critical_count) AS total_critical,
+            sum(high_count) AS total_high,
+            sum(warning_count) AS total_warning,
+            sum(total_critical_high_warning) AS total_sum
+        FROM
+        (
+            SELECT * FROM l1_app_db.fh_violations_daily
+            UNION ALL
+            SELECT * FROM l1_app_db.cp_up_coupling_daily
+            UNION ALL
+            SELECT * FROM l1_app_db.interference_splane_daily
+        )
+        """
+        
+        result = client.execute(query)
+        
+        if result and len(result) > 0:
+            row = result[0]
+            critical_count = row[0] if row[0] is not None else 0
+            high_count = row[1] if row[1] is not None else 0
+            warning_count = row[2] if row[2] is not None else 0
+            total_count = row[3] if row[3] is not None else 0
+            
+            return {
+                'critical': critical_count,
+                'errors': high_count,  # High priority mapped to errors
+                'warnings': warning_count,
+                'total': total_count,
+                'by_severity': {
+                    'CRITICAL': critical_count,
+                    'ERROR': high_count,
+                    'WARNING': warning_count
+                },
+                'total_anomalies': total_count
+            }
+        else:
+            # Return zeros if no data found
+            return {
+                'critical': 0,
+                'errors': 0,
+                'warnings': 0,
+                'total': 0,
+                'by_severity': {
+                    'CRITICAL': 0,
+                    'ERROR': 0,
+                    'WARNING': 0
+                },
+                'total_anomalies': 0
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching anomaly stats from database: {e}")
+        # Return zeros if database query fails
+        return {
+            'critical': 0,
+            'errors': 0,
+            'warnings': 0,
+            'total': 0,
+            'by_severity': {
+                'CRITICAL': 0,
+                'ERROR': 0,
+                'WARNING': 0
+            },
+            'total_anomalies': 0
+        }
