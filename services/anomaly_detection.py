@@ -720,9 +720,93 @@ def get_anomaly_detector():
     return _anomaly_detector
 
 def get_anomalies():
-    """Get all detected anomalies"""
-    detector = get_anomaly_detector()
-    return detector.detect_anomalies()
+    """Get all detected anomalies from real database"""
+    try:
+        from clickhouse_models import get_clickhouse_client
+        
+        client = get_clickhouse_client()
+        query = """
+        SELECT
+            CASE severity
+                WHEN 4 THEN 'Critical'
+                WHEN 3 THEN 'High'
+                WHEN 1 THEN 'Warning'
+                ELSE 'Other'
+            END AS severity,
+            description,
+            log_line,
+            source_table
+        FROM
+        (
+            SELECT
+                severity,
+                description,
+                log_line,
+                'fh_violations' AS source_table
+            FROM l1_app_db.fh_violations
+            WHERE severity IN (4, 3, 1)
+
+            UNION ALL
+
+            SELECT
+                severity,
+                description,
+                log_line,
+                'cp_up_coupling' AS source_table
+            FROM l1_app_db.cp_up_coupling
+            WHERE severity IN (4, 3, 1)
+
+            UNION ALL
+
+            SELECT
+                severity,
+                description,
+                log_line,
+                'interference_splane' AS source_table
+            FROM l1_app_db.interference_splane
+            WHERE severity IN (4, 3, 1)
+        )
+        ORDER BY severity, source_table, log_line
+        """
+        
+        result = client.execute(query)
+        
+        anomalies = []
+        for i, row in enumerate(result):
+            severity = row[0]
+            description = row[1]
+            log_line = row[2]
+            source_table = row[3]
+            
+            # Map severity to numeric values for consistency
+            severity_map = {
+                'Critical': 4,
+                'High': 3,
+                'Warning': 1
+            }
+            
+            # Generate unique ID
+            anomaly_id = f"db_anomaly_{source_table}_{i}"
+            
+            anomalies.append({
+                'id': anomaly_id,
+                'severity': severity_map.get(severity, 1),
+                'severity_label': severity,
+                'title': f"{severity} issue detected",
+                'message': description,
+                'log_line': log_line,
+                'source': source_table,
+                'timestamp': 'Recent',  # You can add timestamp from DB if available
+                'type': 'database_detected',
+                'component': source_table.replace('_', ' ').title()
+            })
+        
+        return anomalies
+        
+    except Exception as e:
+        logger.error(f"Error fetching anomalies from database: {e}")
+        # Return empty list if database query fails
+        return []
 
 def get_anomaly_recommendations(anomaly_id):
     """Get recommendations for an anomaly"""

@@ -140,16 +140,21 @@ window.onload = function() {
                     {% set severity_class = 'label-info' %}
                     {% set icon_class = 'fa-info-circle' %}
                     
-                    {% if anomaly.severity == 3 %}
+                    {% if anomaly.severity == 4 or anomaly.severity_label == 'Critical' %}
                         {% set panel_class = 'panel-danger' %}
                         {% set severity_label = 'Critical' %}
                         {% set severity_class = 'label-danger' %}
                         {% set icon_class = 'fa-exclamation-triangle' %}
-                    {% elif anomaly.severity == 2 %}
+                    {% elif anomaly.severity == 3 or anomaly.severity_label == 'High' %}
                         {% set panel_class = 'panel-warning' %}
-                        {% set severity_label = 'Error' %}
+                        {% set severity_label = 'High Priority' %}
                         {% set severity_class = 'label-warning' %}
                         {% set icon_class = 'fa-exclamation-circle' %}
+                    {% elif anomaly.severity == 1 or anomaly.severity_label == 'Warning' %}
+                        {% set panel_class = 'panel-info' %}
+                        {% set severity_label = 'Warning' %}
+                        {% set severity_class = 'label-info' %}
+                        {% set icon_class = 'fa-info-circle' %}
                     {% endif %}
                     
                     <div class="panel {{ panel_class }} anomaly-card" style="margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
@@ -170,26 +175,24 @@ window.onload = function() {
                         </div>
                         <div id="collapse-{{ loop.index }}" class="panel-collapse collapse">
                             <div class="panel-body">
-                                <p><strong>Message:</strong> {{ anomaly.message }}</p>
+                                <p><strong>Description:</strong> {{ anomaly.message }}</p>
                                 
                                 <div class="row">
-                                    <div class="col-md-3">
-                                        <strong>Component:</strong> {{ anomaly.component }}
-                                    </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-6">
                                         <strong>Source:</strong> {{ anomaly.source }}
                                     </div>
-                                    <div class="col-md-3">
-                                        <strong>Detection:</strong> {{ anomaly.detection_method }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <strong>Confidence:</strong> {{ anomaly.confidence }}%
+                                    <div class="col-md-6">
+                                        <strong>Timestamp:</strong> {{ anomaly.timestamp }}
                                     </div>
                                 </div>
                                 <hr>
-                                <div class="well well-sm">
-                                    <code>{{ anomaly.raw_log }}</code>
+                                
+                                <!-- Log Line in Green Box with White Text -->
+                                <div class="form-group">
+                                    <label><strong>Log Line:</strong></label>
+                                    <textarea class="form-control" readonly style="background-color: #28a745; color: white; border: 1px solid #28a745; font-family: monospace; font-size: 14px;" rows="3">{{ anomaly.log_line }}</textarea>
                                 </div>
+                                
                                 <button class="btn btn-primary btn-recommendations" data-target="rec-{{ loop.index }}"><i class="fa fa-lightbulb"></i> Get Recommendations</button>
                                 <div id="rec-{{ loop.index }}" class="alert alert-info mt-3" style="display: none;">
                                     <h4><i class="fa fa-lightbulb"></i> AI Recommendations</h4>
