@@ -1,5 +1,5 @@
 SELECT
-    CASE CAST(severity AS UInt8)
+    CASE severity
         WHEN 4 THEN 'Critical'
         WHEN 3 THEN 'High'
         WHEN 1 THEN 'Warning'
@@ -10,9 +10,9 @@ SELECT
     source_table
 FROM
 (
-    -- fh_violations: log_line
+    -- fh_violations: log_line, description as-is
     SELECT
-        severity,
+        CAST(severity AS UInt8) AS severity,
         description,
         log_line,
         'fh_violations' AS source_table
@@ -21,10 +21,10 @@ FROM
 
     UNION ALL
 
-    -- cp_up_coupling: cp_log + up_log as log_line
+    -- cp_up_coupling: cp_log as description, concat cp_log + up_log as log_line
     SELECT
-        severity,
-        description,
+        CAST(severity AS UInt8) AS severity,
+        cp_log AS description,
         concat(cp_log, ' | ', up_log) AS log_line,
         'cp_up_coupling' AS source_table
     FROM l1_app_db.cp_up_coupling
@@ -32,10 +32,10 @@ FROM
 
     UNION ALL
 
-    -- interference_splane: log_line
+    -- interference_splane: log_line as description, log_line as log_line
     SELECT
-        severity,
-        description,
+        CAST(severity AS UInt8) AS severity,
+        log_line AS description,
         log_line,
         'interference_splane' AS source_table
     FROM l1_app_db.interference_splane
