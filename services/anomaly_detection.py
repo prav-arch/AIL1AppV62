@@ -738,6 +738,7 @@ def get_anomalies():
             source_table
         FROM
         (
+            -- fh_violations: log_line
             SELECT
                 severity,
                 description,
@@ -748,16 +749,18 @@ def get_anomalies():
 
             UNION ALL
 
+            -- cp_up_coupling: cp_log + up_log as log_line
             SELECT
                 severity,
                 description,
-                log_line,
+                concat(cp_log, ' | ', up_log) AS log_line,
                 'cp_up_coupling' AS source_table
             FROM l1_app_db.cp_up_coupling
             WHERE CAST(severity AS UInt8) IN (4, 3, 1)
 
             UNION ALL
 
+            -- interference_splane: log_line
             SELECT
                 severity,
                 description,
